@@ -1,7 +1,7 @@
 """
 FastAPI dependencies for session-based authentication.
 
-get_current_user  — returns User if session cookie is valid, else None (guest)
+get_current_user  — returns User if session is valid (cookie or header), else None
 require_user      — same but raises HTTP 401 if no valid session
 
 Requirements: 2.4
@@ -10,7 +10,7 @@ Requirements: 2.4
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import Cookie, Depends, HTTPException
+from fastapi import Cookie, Depends, HTTPException, Request
 from sqlalchemy import select
 
 from database import AsyncSessionFactory
@@ -20,29 +20,28 @@ SESSION_COOKIE_NAME = "session_id"
 
 
 async def get_current_user(
+    request: Request,
     session_id: Optional[str] = Cookie(None, alias=SESSION_COOKIE_NAME),
 ) -> Optional[User]:
     """
-    Read the session_id cookie, validate it against the DB, and return the
-    associated User object.
-
-    Returns None for guests (no cookie or invalid/expired session).
-    Never raises an exception — callers that require auth should use
-    `require_user` instead.
-
+    Validate session from X-Session-Token header or session_id cookie.
+    Header takes precedence for cross-domain setups.
+    Returns None for guests.
     Requirements: 2.4
     """
-    if not session_id:
+    token_header = request.headers.get("X-Session-Token")
+    effective_session_id = token_header or session_id
+
+    if not effective_session_id:
         return None
 
     async with AsyncSessionFactory() as db:
-        result = await db.execute(select(Session).where(Session.id == session_id))
+        result = await db.execute(select(Session).where(Session.id == effective_session_id))
         session: Optional[Session] = result.scalar_one_or_none()
 
     if session is None:
         return None
 
-    # Treat naive datetimes stored in DB as UTC
     now_naive = datetime.now(timezone.utc).replace(tzinfo=None)
     if session.expires_at < now_naive:
         return None
@@ -57,8 +56,6 @@ async def get_current_user(
 async def require_user(user: Optional[User] = Depends(get_current_user)) -> User:
     """
     Like get_current_user but raises HTTP 401 if there is no authenticated user.
-    Use this as a dependency on endpoints that require authentication.
-
     Requirements: 2.4
     """
     if user is None:

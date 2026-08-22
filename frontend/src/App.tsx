@@ -6,7 +6,7 @@ import QueueBar from "./components/QueueBar";
 import AnalysisPanel from "./components/AnalysisPanel";
 import RecommendationList from "./components/RecommendationList";
 import { PredictResult, CurrentUser, QueueState, DominantPlaystyle } from "./types";
-import { getCurrentUser, getQueueState, predictFromLink, predictFromUpload, pollJobResult } from "./api";
+import { getCurrentUser, getQueueState, predictFromLink, predictFromUpload, pollJobResult, setSessionToken, clearSessionToken } from "./api";
 
 export default function App() {
   const [result, setResult] = useState<PredictResult | null>(null);
@@ -15,6 +15,19 @@ export default function App() {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [queueState, setQueueState] = useState<QueueState | null>(null);
   const [dominantPlaystyle, setDominantPlaystyle] = useState<DominantPlaystyle | null>(null);
+
+  // Read session_token from URL query param after OAuth redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("session_token");
+    if (token) {
+      setSessionToken(token);
+      // Clean the token from URL without reloading
+      const url = new URL(window.location.href);
+      url.searchParams.delete("session_token");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, []);
 
   // Load current user on mount (Requirements 2.4)
   useEffect(() => {
@@ -84,6 +97,7 @@ export default function App() {
   }
 
   function handleLogout() {
+    clearSessionToken();
     setUser(null);
     window.location.reload();
   }

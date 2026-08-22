@@ -176,8 +176,8 @@ async def callback(code: Optional[str] = None, error: Optional[str] = None):
     # Create session
     session_id = await _create_session(user_id, access_token, refresh_token, expires_in)
 
-    # Redirect to frontend with session cookie set
-    response = RedirectResponse(url=f"{FRONTEND_URL}/")
+    # Redirect to frontend with session token in query param (cross-domain safe)
+    response = RedirectResponse(url=f"{FRONTEND_URL}/?session_token={session_id}")
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
         value=session_id,
@@ -205,17 +205,25 @@ async def logout(response: Response, session_id: Optional[str] = Cookie(None, al
 
 
 @router.get("/me")
-async def me(session_id: Optional[str] = Cookie(None, alias=SESSION_COOKIE_NAME)):
+async def me(
+    request: Request,
+    session_id: Optional[str] = Cookie(None, alias=SESSION_COOKIE_NAME),
+):
     """
     Return current user info from the active session.
+    Accepts session via cookie or X-Session-Token header (cross-domain support).
     Requirements: 2.4
     """
-    if not session_id:
+    # Prefer header over cookie for cross-domain setups
+    token_header = request.headers.get("X-Session-Token")
+    effective_session_id = token_header or session_id
+
+    if not effective_session_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     async with AsyncSessionFactory() as db:
         result = await db.execute(
-            select(Session).where(Session.id == session_id)
+            select(Session).where(Session.id == effective_session_id)
         )
         session: Optional[Session] = result.scalar_one_or_none()
 
