@@ -49,6 +49,11 @@ export interface PredictResult {
   status?: string;
   cover_url?: string;
   card_url?: string;
+  play_count?: number;
+  favourite_count?: number;
+  ranked_date?: string;
+  submitted_date?: string;
+  creator?: string;
 }
 
 // Beatmap recommendation record (Requirements 4.2)

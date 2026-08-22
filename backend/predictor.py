@@ -14,6 +14,79 @@ MAX_OBJECTS = 2500  # hard cap before feature extraction
 
 _model = None
 _mlb = None
+_app_token: str | None = None
+
+
+def _get_app_token() -> str | None:
+    global _app_token
+    if _app_token:
+        return _app_token
+    client_id = os.environ.get("OSU_CLIENT_ID", "")
+    client_secret = os.environ.get("OSU_CLIENT_SECRET", "")
+    if not client_id or not client_secret:
+        return None
+    try:
+        resp = requests.post(
+            "https://osu.ppy.sh/oauth/token",
+            json={"client_id": client_id, "client_secret": client_secret,
+                  "grant_type": "client_credentials", "scope": "public"},
+            timeout=10,
+        )
+        if resp.status_code == 200:
+            _app_token = resp.json().get("access_token")
+            return _app_token
+    except Exception:
+        pass
+    return None
+
+
+def fetch_beatmap_metadata(beatmap_id: str) -> dict:
+    """Fetch beatmap metadata from osu! API. Returns empty dict on failure."""
+    global _app_token
+    token = _get_app_token()
+    if not token:
+        return {}
+
+    def _call(tok: str):
+        try:
+            return requests.get(
+                f"https://osu.ppy.sh/api/v2/beatmaps/{beatmap_id}",
+                headers={"Authorization": f"Bearer {tok}"},
+                timeout=10,
+            )
+        except Exception:
+            return None
+
+    resp = _call(token)
+    if resp is None:
+        return {}
+    if resp.status_code == 401:
+        _app_token = None
+        token = _get_app_token()
+        if not token:
+            return {}
+        resp = _call(token)
+    if resp is None or resp.status_code != 200:
+        return {}
+
+    data = resp.json()
+    bset = data.get("beatmapset") or {}
+    covers = bset.get("covers", {})
+    return {
+        "title": bset.get("title"),
+        "artist": bset.get("artist"),
+        "version": data.get("version"),
+        "difficulty_rating": data.get("difficulty_rating"),
+        "status": data.get("status"),
+        "cover_url": covers.get("cover"),
+        "card_url": covers.get("card"),
+        "list_url": covers.get("list"),
+        "play_count": data.get("playcount"),
+        "favourite_count": bset.get("favourite_count"),
+        "ranked_date": bset.get("ranked_date"),
+        "submitted_date": bset.get("submitted_date"),
+        "creator": bset.get("creator"),
+    }
 
 
 def load_artifacts(model_path: str, mlb_path: str):
@@ -316,4 +389,5 @@ def predict_from_link(link: str) -> dict:
 
     result = predict_from_file(file_path)
     result["beatmap_id"] = beatmap_id
+    result.update(fetch_beatmap_metadata(beatmap_id))
     return result

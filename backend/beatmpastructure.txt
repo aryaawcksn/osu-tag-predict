@@ -1,0 +1,273 @@
+OBJECT STRUCTURE
+
+Beatmap
+Represent a beatmap.
+
+Field	Type	Description
+beatmapset_id	integer	
+difficulty_rating	float	
+id	integer	
+mode	Ruleset	
+status	string	See Rank status for list of possible values.
+total_length	integer	
+user_id	integer	
+version	string	
+Optional attributes:
+
+Field	Type	Description
+beatmapset	Beatmapset|BeatmapsetExtended|null	Beatmapset for Beatmap object, BeatmapsetExtended for BeatmapExtended object. null if the beatmap doesn't have associated beatmapset (e.g. deleted).
+checksum	string?	
+current_user_playcount	integer	
+failtimes	Failtimes	
+max_combo	integer	
+owners	BeatmapOwner[]	List of owners (mappers) for the Beatmap.
+Failtimes
+All fields are optional but there's always at least one field returned.
+
+Field	Type	Description
+exit	integer[]?	Array of length 100.
+fail	integer[]?	Array of length 100.
+BeatmapDifficultyAttributes
+Represent beatmap difficulty attributes. Following fields are always present and then there are additional fields for different rulesets.
+
+Field	Type
+star_rating	float
+max_combo	integer
+osu
+Field	Type
+aim_difficulty	float
+aim_difficult_slider_count	float
+speed_difficulty	float
+speed_note_count	float
+slider_factor	float
+aim_difficult_strain_count	float
+speed_difficult_strain_count	float
+taiko
+Field	Type
+mono_stamina_factor	float
+BeatmapExtended
+Represent a beatmap. This extends Beatmap with additional attributes.
+
+Additional attributes:
+
+Field	Type	Description
+accuracy	float	
+ar	float	
+beatmapset_id	integer	
+bpm	float?	
+convert	boolean	
+count_circles	integer	
+count_sliders	integer	
+count_spinners	integer	
+cs	float	
+deleted_at	Timestamp?	
+drain	float	
+hit_length	integer	
+is_scoreable	boolean	
+last_updated	Timestamp	
+mode_int	integer	
+passcount	integer	
+playcount	integer	
+ranked	integer	See Rank status for list of possible values.
+url	string	
+BeatmapOwner
+Field	Type	Description
+id	integer	User id of the Beatmap owner.
+username	string	Username of the Beatmap owner.
+Users that are no longer visible will still appear as a BeatmapOwner but have the username set to [deleted user].
+
+BeatmapPack
+Represent a beatmap pack.
+
+Field	Type	Description
+author	string
+date	Timestamp
+name	string
+no_diff_reduction	boolean	Whether difficulty reduction mods may be used to clear the pack.
+ruleset_id	integer
+tag	string	The tag of the beatmap pack. Starts with a character representing the type (See the Tag column of BeatmapPackType) followed by an integer.
+url	string	The download url of the beatmap pack.
+Optional Attributes
+Field	Type	Description
+beatmapsets	Beatmapset[]
+user_completion_data.beatmapset_ids	integer[]	IDs of beatmapsets completed by the user (according to the requirements of the pack)
+user_completion_data.completed	boolean	Whether all beatmapsets are completed or not
+BeatmapPackType
+Available beatmap pack types:
+
+Name	Tag	Description
+standard	S	Standard
+featured	F	Featured Artist
+tournament	P	Tournament
+loved	L	Project Loved
+chart	R	Spotlights
+theme	T	Theme
+artist	A	Artist/Album
+BeatmapPlaycount
+Represent the playcount of a beatmap.
+
+Field	Type	Description
+beatmap_id	integer	
+beatmap	Beatmap?	
+beatmapset	Beatmapset?	
+count	integer	
+BeatmapScores
+{
+  "scores": [],
+  "userScore": {}
+}
+Field	Type	Description
+scores	Score[]	The list of top scores for the beatmap in descending order.
+userScore	BeatmapUserScore?	The score of the current user. This is not returned if the current user does not have a score. Note: will be moved to user_score in the future
+BeatmapUserScore
+{
+  "position": 1,
+  "score": {}
+}
+Field	Type	Description
+position	integer	The position of the score within the requested beatmap ranking.
+score	Score	The details of the score.
+Beatmapset
+Represents a beatmapset.
+
+Field	Type	Description
+artist	string	
+artist_unicode	string	
+covers	Covers	
+creator	string	
+favourite_count	integer	
+id	integer	
+nsfw	boolean	
+offset	integer	
+play_count	integer	
+preview_url	string	
+source	string	
+status	string	
+spotlight	boolean	
+title	string	
+title_unicode	string	
+user_id	integer	
+video	boolean	
+Those fields are optional.
+
+Field	Type	Description
+beatmaps	(Beatmap|BeatmapExtended)[]	
+converts		
+current_nominations	Nomination[]	
+current_user_attributes		
+description		
+discussions		
+events		
+genre		
+has_favourited	boolean	
+language		
+nominations		
+pack_tags	string[]	
+ratings		
+recent_favourites		
+related_users		
+user		
+track_id	integer	
+Covers
+Field	Type
+cover	string
+cover@2x	string
+card	string
+card@2x	string
+list	string
+list@2x	string
+slimcover	string
+slimcover@2x	string
+Rank status
+The possible values are denoted either as integer or string.
+
+Integer	String
+-2	graveyard
+-1	wip
+0	pending
+1	ranked
+2	approved
+3	qualified
+4	loved
+BeatmapsetDiscussion
+Represents a Beatmapset modding discussion.
+
+Field	Type	Description
+beatmap	Beatmap?	
+beatmap_id	integer?	
+beatmapset	Beatmapset?	
+beatmapset_id	integer	
+can_be_resolved	boolean	
+can_grant_kudosu	boolean	
+created_at	Timestamp	
+current_user_attributes	CurrentUserAttributes	
+deleted_at	Timestamp?	
+deleted_by_id	integer?	
+id	integer	
+kudosu_denied	boolean	
+last_post_at	Timestamp	
+message_type	MessageType	
+parent_id	integer?	
+posts	BeatmapsetDiscussionPost[]?	
+resolved	boolean	
+starting_post	BeatmapsetDiscussionPost?	
+timestamp	integer?	
+updated_at	Timestamp	
+user_id	integer	
+MessageType
+Name	Description
+hype	
+mapper_note	
+praise	
+problem	
+review	
+suggestion	
+BeatmapsetDiscussionPost
+Represents a post in a BeatmapsetDiscussion.
+
+Field	Type	Description
+beatmapset_discussion_id	integer	
+created_at	Timestamp	
+deleted_at	Timestamp?	
+deleted_by_id	integer?	
+id	integer	
+last_editor_id	integer?	
+message	string	
+system	boolean	
+updated_at	Timestamp	
+user_id	integer	
+BeatmapsetDiscussionVote
+Represents a vote on a BeatmapsetDiscussion.
+
+Field	Type	Description
+beatmapset_discussion_id	integer	
+created_at	Timestamp	
+id	integer	
+score	integer	
+updated_at	Timestamp	
+user_id	integer	
+BeatmapsetExtended
+Represents a beatmapset. This extends Beatmapset with additional attributes.
+
+Field	Type	Description
+availability.download_disabled	boolean	
+availability.more_information	string?	
+bpm	float	
+can_be_hyped	boolean	
+deleted_at	Timestamp?	
+discussion_enabled	boolean	Deprecated, all beatmapsets now have discussion enabled.
+discussion_locked	boolean	
+hype.current	integer	
+hype.required	integer	
+is_scoreable	boolean	
+last_updated	Timestamp	
+legacy_thread_url	string?	
+nominations_summary.current	integer	
+nominations_summary.required	integer	
+ranked	integer	See Rank status for list of possible values.
+ranked_date	Timestamp?	
+rating	float	
+source	string	
+storyboard	boolean	
+submitted_date	Timestamp?	
+tags	string

@@ -9,26 +9,37 @@ const STATUS_COLOR: Record<string, string> = {
   approved: "#b8e994",
   loved: "#ff6b9d",
   qualified: "#74b9ff",
-  pending: "#a7a9be",
-  wip: "#a7a9be",
+  pending: "#fbbf24",
+  wip: "#fbbf24",
   graveyard: "#636e72",
 };
+
+function formatDate(iso?: string): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleDateString("id-ID", {
+      day: "numeric", month: "short", year: "numeric",
+    });
+  } catch {
+    return "—";
+  }
+}
+
+function fmt(n?: number | null, decimals = 1): string {
+  if (n == null) return "—";
+  return Number.isInteger(n) ? String(n) : n.toFixed(decimals);
+}
 
 export default function ResultCard({ result }: Props) {
   const href = result.beatmap_id
     ? `https://osu.ppy.sh/beatmaps/${result.beatmap_id}`
     : undefined;
+
   const title = result.title ?? result.filename ?? (result.beatmap_id ? `Beatmap #${result.beatmap_id}` : "Result");
   const stars = result.difficulty_rating != null ? result.difficulty_rating.toFixed(2) : null;
   const statusColor = STATUS_COLOR[result.status ?? ""] ?? "#a7a9be";
-
-  const stats: [string, number | null][] = [
-    ["BPM", result.bpm],
-    ["AR", result.ar],
-    ["CS", result.cs],
-    ["OD", result.od],
-    ["Objects", result.object_count],
-  ];
+  const displayDate = result.ranked_date ?? result.submitted_date;
+  const dateLabel = result.ranked_date ? "Tanggal ranked" : "Tanggal submit";
 
   return (
     <div style={wrapperStyle}>
@@ -40,40 +51,70 @@ export default function ResultCard({ result }: Props) {
         <div style={bannerOverlayStyle} />
         <div style={bannerContentStyle}>
           <div style={{ flex: 1, minWidth: 0 }}>
+            {/* Title */}
             {href ? (
-              <a href={href} target="_blank" rel="noopener noreferrer" style={titleLinkStyle}>
+              <a href={href} target="_blank" rel="noopener noreferrer" style={titleStyle}>
                 {title}
               </a>
             ) : (
-              <span style={{ ...titleLinkStyle, cursor: "default" }}>{title}</span>
+              <span style={titleStyle}>{title}</span>
             )}
-            {(result.artist || result.version) && (
-              <div style={artistStyle}>
-                {result.artist}
-                {result.version && (
-                  <span style={{ color: "#ff6b9d", marginLeft: 6 }}>[{result.version}]</span>
-                )}
-              </div>
+            {/* Artist */}
+            {result.artist && (
+              <div style={subtitleStyle}>oleh {result.artist}</div>
             )}
-          </div>
-          {/* Badges */}
-          <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end" }}>
-            {stars && <span style={{ ...badgeStyle, color: "#ffd700", borderColor: "#ffd700" }}>★ {stars}</span>}
-            {result.status && (
-              <span style={{ ...badgeStyle, color: statusColor, borderColor: statusColor }}>
-                {result.status}
-              </span>
-            )}
+            {/* Creator + difficulty */}
+            <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap", alignItems: "center" }}>
+              {result.creator && (
+                <span style={metaChipStyle}>dibuat oleh {result.creator}</span>
+              )}
+              {result.version && (
+                <span style={{ ...metaChipStyle, color: "#ff6b9d", borderColor: "rgba(255,107,157,0.4)" }}>
+                  [{result.version}]
+                </span>
+              )}
+              {stars && (
+                <span style={{ ...metaChipStyle, color: "#ffd700", borderColor: "rgba(255,215,0,0.4)" }}>
+                  ★ {stars}
+                </span>
+              )}
+              {result.status && (
+                <span style={{ ...metaChipStyle, color: statusColor, borderColor: `${statusColor}66` }}>
+                  {result.status}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
+      {/* Meta row: plays, favourites, date */}
+      {(result.play_count != null || result.favourite_count != null || displayDate) && (
+        <div style={metaRowStyle}>
+          {result.play_count != null && (
+            <span style={metaItemStyle}>▶ dimainkan: {result.play_count.toLocaleString()}</span>
+          )}
+          {result.favourite_count != null && (
+            <span style={metaItemStyle}>♥ disukai: {result.favourite_count.toLocaleString()}</span>
+          )}
+          {displayDate && (
+            <span style={metaItemStyle}>{dateLabel}: {formatDate(displayDate)}</span>
+          )}
+        </div>
+      )}
+
       {/* Stats row */}
       <div style={statsRowStyle}>
-        {stats.map(([k, v]) => (
+        {([
+          ["BPM", fmt(result.bpm, 0)],
+          ["AR", fmt(result.ar)],
+          ["CS", fmt(result.cs)],
+          ["OD", fmt(result.od)],
+          ["Objects", fmt(result.object_count, 0)],
+        ] as [string, string][]).map(([k, v]) => (
           <div key={k} style={statBoxStyle}>
             <span style={{ fontSize: 10, color: "#a7a9be", textTransform: "uppercase" }}>{k}</span>
-            <span style={{ fontSize: 18, fontWeight: 700 }}>{v ?? "—"}</span>
+            <span style={{ fontSize: 17, fontWeight: 700 }}>{v}</span>
           </div>
         ))}
       </div>
@@ -81,12 +122,12 @@ export default function ResultCard({ result }: Props) {
       {/* Predicted labels */}
       <div style={bodyStyle}>
         <p style={sectionLabelStyle}>
-          Predicted playstyles{" "}
-          <span style={{ color: "#a7a9be", fontWeight: 400 }}>(threshold ≥ 10%)</span>
+          Hasil Prediksi{" "}
+          <span style={{ color: "#a7a9be", fontWeight: 400, fontSize: 12 }}>(threshold ≥ 10%)</span>
         </p>
 
         {result.predicted_labels.length === 0 ? (
-          <p style={{ color: "#a7a9be", fontSize: 14 }}>No labels above threshold.</p>
+          <p style={{ color: "#a7a9be", fontSize: 14 }}>Tidak ada label di atas threshold.</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {result.predicted_labels.map(({ label, probability }) => (
@@ -94,19 +135,17 @@ export default function ResultCard({ result }: Props) {
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                   <span style={{ fontSize: 14 }}>{label}</span>
                   <span style={{ fontSize: 14, color: "#ff6b9d", fontWeight: 600 }}>
-                    {(probability * 100).toFixed(1)}%
+                    {(probability * 100).toFixed(0)}%
                   </span>
                 </div>
                 <div style={{ background: "#2e2d3d", borderRadius: 4, height: 6 }}>
-                  <div
-                    style={{
-                      width: `${probability * 100}%`,
-                      height: "100%",
-                      background: `hsl(${330 + probability * 60}, 80%, 60%)`,
-                      borderRadius: 4,
-                      transition: "width 0.4s ease",
-                    }}
-                  />
+                  <div style={{
+                    width: `${probability * 100}%`,
+                    height: "100%",
+                    background: `hsl(${330 + probability * 60}, 80%, 60%)`,
+                    borderRadius: 4,
+                    transition: "width 0.4s ease",
+                  }} />
                 </div>
               </div>
             ))}
@@ -115,7 +154,7 @@ export default function ResultCard({ result }: Props) {
 
         <details style={{ marginTop: 16 }}>
           <summary style={{ cursor: "pointer", color: "#a7a9be", fontSize: 12 }}>
-            All probabilities ({result.all_labels.length} labels)
+            Semua probabilitas ({result.all_labels.length} label)
           </summary>
           <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 3 }}>
             {result.all_labels.map(({ label, probability }) => (
@@ -141,7 +180,7 @@ const wrapperStyle: React.CSSProperties = {
 
 const bannerStyle: React.CSSProperties = {
   position: "relative",
-  minHeight: 80,
+  minHeight: 90,
 };
 
 const coverImgStyle: React.CSSProperties = {
@@ -156,21 +195,18 @@ const coverImgStyle: React.CSSProperties = {
 const bannerOverlayStyle: React.CSSProperties = {
   position: "absolute",
   inset: 0,
-  background: "linear-gradient(90deg, rgba(26,25,41,0.95) 35%, rgba(26,25,41,0.6) 100%)",
+  background: "linear-gradient(90deg, rgba(26,25,41,0.95) 35%, rgba(26,25,41,0.55) 100%)",
 };
 
 const bannerContentStyle: React.CSSProperties = {
   position: "relative",
-  display: "flex",
-  alignItems: "center",
-  gap: 12,
   padding: "16px 20px",
 };
 
-const titleLinkStyle: React.CSSProperties = {
+const titleStyle: React.CSSProperties = {
   color: "#fffffe",
   fontWeight: 700,
-  fontSize: 15,
+  fontSize: 16,
   textDecoration: "none",
   display: "block",
   whiteSpace: "nowrap",
@@ -178,26 +214,38 @@ const titleLinkStyle: React.CSSProperties = {
   textOverflow: "ellipsis",
 };
 
-const artistStyle: React.CSSProperties = {
+const subtitleStyle: React.CSSProperties = {
   color: "#a7a9be",
-  fontSize: 12,
-  marginTop: 3,
+  fontSize: 13,
+  marginTop: 2,
 };
 
-const badgeStyle: React.CSSProperties = {
-  fontSize: 10,
-  padding: "2px 7px",
+const metaChipStyle: React.CSSProperties = {
+  fontSize: 11,
+  padding: "2px 8px",
   borderRadius: 4,
-  border: "1px solid",
+  border: "1px solid #2e2d3d",
   background: "rgba(0,0,0,0.3)",
-  textTransform: "capitalize",
+  color: "#a7a9be",
   whiteSpace: "nowrap",
+};
+
+const metaRowStyle: React.CSSProperties = {
+  display: "flex",
+  gap: 16,
+  padding: "8px 20px",
+  borderBottom: "1px solid #2e2d3d",
+  flexWrap: "wrap",
+  background: "rgba(0,0,0,0.15)",
+};
+
+const metaItemStyle: React.CSSProperties = {
+  fontSize: 12,
+  color: "#a7a9be",
 };
 
 const statsRowStyle: React.CSSProperties = {
   display: "flex",
-  gap: 0,
-  borderTop: "1px solid #2e2d3d",
   borderBottom: "1px solid #2e2d3d",
 };
 
