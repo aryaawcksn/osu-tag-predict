@@ -1,47 +1,34 @@
 import { useState, useRef, DragEvent } from "react";
-import { predictFromLink, predictFromUpload } from "../api";
-import { PredictResult } from "../types";
 
 interface Props {
-  onResult: (r: PredictResult) => void;
+  onLinkSubmit: (url: string) => void;
+  onFileSubmit: (file: File) => void;
   onError: (e: string) => void;
   onLoading: (v: boolean) => void;
   loading: boolean;
+  disabled?: boolean;
 }
 
-export default function LinkInput({ onResult, onError, onLoading, loading }: Props) {
+export default function LinkInput({ onLinkSubmit, onFileSubmit, onError, loading, disabled }: Props) {
   const [link, setLink] = useState("");
   const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  async function handleLinkSubmit(e: React.FormEvent) {
+  const isDisabled = loading || !!disabled;
+
+  function handleLinkSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!link.trim()) return;
-    onLoading(true);
-    try {
-      const result = await predictFromLink(link.trim());
-      onResult(result);
-    } catch (err: unknown) {
-      onError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      onLoading(false);
-    }
+    onLinkSubmit(link.trim());
+    setLink("");
   }
 
-  async function handleFile(file: File) {
+  function handleFile(file: File) {
     if (!file.name.endsWith(".osu")) {
       onError("Hanya file .osu yang didukung.");
       return;
     }
-    onLoading(true);
-    try {
-      const result = await predictFromUpload(file);
-      onResult(result);
-    } catch (err: unknown) {
-      onError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      onLoading(false);
-    }
+    onFileSubmit(file);
   }
 
   function handleDrop(e: DragEvent<HTMLDivElement>) {
@@ -60,10 +47,10 @@ export default function LinkInput({ onResult, onError, onLoading, loading }: Pro
           placeholder="https://osu.ppy.sh/beatmapsets/123#osu/456"
           value={link}
           onChange={(e) => setLink(e.target.value)}
-          disabled={loading}
+          disabled={isDisabled}
           style={inputStyle}
         />
-        <button type="submit" disabled={loading || !link.trim()} style={btnStyle}>
+        <button type="submit" disabled={isDisabled || !link.trim()} style={btnStyle(isDisabled)}>
           {loading ? "Loading…" : "Predict"}
         </button>
       </form>
@@ -73,17 +60,17 @@ export default function LinkInput({ onResult, onError, onLoading, loading }: Pro
 
       {/* Drop zone */}
       <div
-        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragOver={(e) => { e.preventDefault(); if (!isDisabled) setDragging(true); }}
         onDragLeave={() => setDragging(false)}
-        onDrop={handleDrop}
-        onClick={() => fileRef.current?.click()}
+        onDrop={isDisabled ? undefined : handleDrop}
+        onClick={() => !isDisabled && fileRef.current?.click()}
         style={{
           border: `2px dashed ${dragging ? "#ff6b9d" : "#2e2d3d"}`,
           borderRadius: 12,
           padding: "32px 16px",
           textAlign: "center",
-          cursor: loading ? "not-allowed" : "pointer",
-          color: "#a7a9be",
+          cursor: isDisabled ? "not-allowed" : "pointer",
+          color: isDisabled ? "#555" : "#a7a9be",
           fontSize: 14,
           transition: "border-color 0.2s",
           background: dragging ? "#1a1929" : "transparent",
@@ -95,7 +82,7 @@ export default function LinkInput({ onResult, onError, onLoading, loading }: Pro
           type="file"
           accept=".osu"
           style={{ display: "none" }}
-          disabled={loading}
+          disabled={isDisabled}
           onChange={(e) => {
             const f = e.target.files?.[0];
             if (f) handleFile(f);
@@ -118,13 +105,16 @@ const inputStyle: React.CSSProperties = {
   outline: "none",
 };
 
-const btnStyle: React.CSSProperties = {
-  padding: "10px 20px",
-  borderRadius: 8,
-  border: "none",
-  background: "#ff6b9d",
-  color: "#fff",
-  fontWeight: 600,
-  cursor: "pointer",
-  fontSize: 14,
-};
+function btnStyle(disabled: boolean): React.CSSProperties {
+  return {
+    padding: "10px 20px",
+    borderRadius: 8,
+    border: "none",
+    background: disabled ? "#4a2030" : "#ff6b9d",
+    color: disabled ? "#a7a9be" : "#fff",
+    fontWeight: 600,
+    cursor: disabled ? "not-allowed" : "pointer",
+    fontSize: 14,
+    transition: "background 0.2s",
+  };
+}

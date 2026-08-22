@@ -2,13 +2,25 @@ import asyncio
 import os
 import tempfile
 from contextlib import asynccontextmanager
-from typing import Optional
+from typing import Literal, Optional
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Response
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, UploadFile, File, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from sqlalchemy import select
 
 import predictor
+from analysis import (
+    BeatmapScore,
+    DominantPlaystyle,
+    calculate_dominant_playstyle,
+    fetch_recent_plays,
+    fetch_top_plays,
+)
+from auth import router as auth_router
+from database import AsyncSessionFactory, engine
+from dependencies import require_user
+from models import Session, User
 from queue_manager import queue_manager
 
 MODEL_PATH = os.environ.get("MODEL_PATH", "model_lstm_osu_dataset_vXIII.keras")
@@ -17,6 +29,11 @@ MLB_PATH   = os.environ.get("MLB_PATH",   "pickle_mlb_VXIII.pkl")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Initialise DB connection pool (validates connectivity on startup)
+    async with engine.begin() as conn:
+        print("DB connection established")
+        _ = conn  # just ensuring pool is warm
+
     predictor.load_artifacts(MODEL_PATH, MLB_PATH)
     print(f"Model loaded: {MODEL_PATH}")
     try:
@@ -25,6 +42,8 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         print(f"Warning: could not restore queue from DB: {exc}")
     yield
+    # Dispose engine on shutdown to close all pooled connections
+    await engine.dispose()
 
 
 app = FastAPI(title="osu! Playstyle Predictor", lifespan=lifespan)
@@ -36,6 +55,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Auth router (Requirements: 2.1, 2.2, 2.3, 2.5, 2.6)
+app.include_router(auth_router)
 
 
 @app.options("/{full_path:path}")
@@ -219,3 +241,188 @@ def get_job(job_id: str):
         "result": job.result,
         "error": job.error,
     }
+
+
+# --------------------------------------------------------------------------- #
+# Analysis endpoint                                                             #
+# Requirements: 3.1, 3.2, 3.3, 3.6                                             #
+# --------------------------------------------------------------------------- #
+
+async def _get_access_token_for_user(user: User) -> str:
+    """
+    Retrieve a valid access token for the given user from their active session.
+    Raises HTTP 401 if no valid session is found.
+    Requirements: 2.6, 3.2
+    """
+    async with AsyncSessionFactory() as db:
+        result = await db.execute(
+            select(Session).where(Session.user_id == user.id)
+            .order_by(Session.created_at.desc())
+        )
+        session = result.scalar_one_or_none()
+
+    if session is None:
+        raise HTTPException(status_code=401, detail="No active session found")
+
+    return session.access_token
+
+
+@app.get("/analysis/playstyle", response_model=DominantPlaystyle)
+async def analysis_playstyle(
+    source: Literal["top", "recent"] = Query("top", description="Play history source: 'top' or 'recent'"),
+    current_user: User = Depends(require_user),
+):
+    """
+    Fetch play history, run predictions via queue, and return dominant playstyle.
+
+    - source=top   : uses top plays (best scores)
+    - source=recent: uses recent plays
+
+    Batches beatmap submissions to stay within the 5-slot queue limit.
+    Skips beatmaps that fail prediction (Requirement 3.6).
+
+    Requirements: 3.1, 3.2, 3.3, 3.6
+    """
+    access_token = await _get_access_token_for_user(current_user)
+
+    # Fetch play history from osu! API (Requirements 3.1, 3.2)
+    try:
+        if source == "top":
+            plays: list[BeatmapScore] = await fetch_top_plays(current_user.osu_id, access_token)
+        else:
+            plays = await fetch_recent_plays(current_user.osu_id, access_token)
+    except ValueError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+    if not plays:
+        raise HTTPException(status_code=404, detail="No play history found")
+
+    # Deduplicate beatmap IDs (a map may appear multiple times in history)
+    seen: set[str] = set()
+    unique_plays: list[BeatmapScore] = []
+    for p in plays:
+        if p.beatmap_id not in seen:
+            seen.add(p.beatmap_id)
+            unique_plays.append(p)
+
+    # Submit each beatmap to the queue in batches of up to MAX_CAPACITY slots.
+    # We wait for each batch to complete before submitting the next batch to
+    # avoid overflowing the 5-slot semaphore (Requirement 3.3).
+    BATCH_SIZE = 5
+    completed_results: list[dict] = []
+
+    for batch_start in range(0, len(unique_plays), BATCH_SIZE):
+        batch = unique_plays[batch_start: batch_start + BATCH_SIZE]
+        job_ids: list[str] = []
+
+        for play in batch:
+            beatmap_url = f"https://osu.ppy.sh/beatmaps/{play.beatmap_id}"
+            try:
+                job = await queue_manager.enqueue(
+                    input_type="link",
+                    input_value=beatmap_url,
+                    user_id=current_user.id,
+                    task_fn=_predict_link_task,
+                )
+                job_ids.append(job.id)
+            except ValueError:
+                # Queue full — wait briefly and retry once, then skip
+                await asyncio.sleep(1.0)
+                try:
+                    job = await queue_manager.enqueue(
+                        input_type="link",
+                        input_value=beatmap_url,
+                        user_id=current_user.id,
+                        task_fn=_predict_link_task,
+                    )
+                    job_ids.append(job.id)
+                except ValueError:
+                    # Still full — skip this beatmap (Requirement 3.6)
+                    pass
+
+        # Wait for all jobs in this batch to finish (done or failed)
+        POLL_INTERVAL = 0.5
+        MAX_WAIT = 120  # seconds per batch
+        waited = 0.0
+        while waited < MAX_WAIT:
+            all_done = all(
+                queue_manager.get_job(jid) is not None
+                and queue_manager.get_job(jid).status in ("done", "failed")
+                for jid in job_ids
+            )
+            if all_done:
+                break
+            await asyncio.sleep(POLL_INTERVAL)
+            waited += POLL_INTERVAL
+
+        # Collect successful results; skip failed ones (Requirement 3.6)
+        for jid in job_ids:
+            job = queue_manager.get_job(jid)
+            if job and job.status == "done" and job.result:
+                completed_results.append(job.result)
+
+    if not completed_results:
+        raise HTTPException(
+            status_code=422,
+            detail="All beatmap predictions failed. Cannot determine playstyle.",
+        )
+
+    # Calculate dominant playstyle (Requirement 3.4)
+    dominant = calculate_dominant_playstyle(completed_results)
+    return dominant
+
+
+# --------------------------------------------------------------------------- #
+# Recommendation endpoint                                                       #
+# Requirements: 4.1, 4.6                                                        #
+# --------------------------------------------------------------------------- #
+
+@app.get("/recommend")
+async def recommend(
+    playstyle: str = Query(..., description="Dominant playstyle label to get recommendations for"),
+    current_user: User = Depends(require_user),
+):
+    """
+    Return beatmap recommendations matching the given playstyle label.
+    Requires an authenticated session.
+    Requirements: 4.1, 4.6
+    """
+    from recommendation import get_recommendations
+    results = await get_recommendations(playstyle)
+    if not results:
+        return {"recommendations": [], "message": f"No recommendations available for playstyle '{playstyle}' yet."}
+    return {"recommendations": results}
+
+
+# --------------------------------------------------------------------------- #
+# Admin endpoint                                                                #
+# Requirements: 5.4                                                             #
+# --------------------------------------------------------------------------- #
+
+class AdminBeatmapRequest(BaseModel):
+    beatmap_id: str
+    bpm: Optional[float] = None
+    ar: Optional[float] = None
+    cs: Optional[float] = None
+    od: Optional[float] = None
+    object_count: Optional[int] = None
+    predicted_labels: list[dict] = []
+
+
+@app.post("/admin/beatmap", status_code=200)
+async def admin_upsert_beatmap(
+    payload: AdminBeatmapRequest,
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+):
+    """
+    Manually insert or update a beatmap record with playstyle labels.
+    Protected by X-Admin-Key header matching ADMIN_KEY env var.
+    Requirements: 5.4
+    """
+    admin_key = os.environ.get("ADMIN_KEY", "")
+    if not admin_key or x_admin_key != admin_key:
+        raise HTTPException(status_code=403, detail="Invalid or missing admin key")
+
+    from recommendation import upsert_beatmap
+    record = await upsert_beatmap(payload.model_dump())
+    return {"status": "ok", "beatmap": record}
