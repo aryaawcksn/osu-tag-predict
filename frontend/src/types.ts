@@ -31,17 +31,6 @@ export interface LabelResult {
   probability: number;
 }
 
-// Beatmap recommendation record (Requirements 4.2)
-export interface BeatmapRecord {
-  beatmap_id: string;
-  bpm: number | null;
-  ar: number | null;
-  cs: number | null;
-  od: number | null;
-  object_count: number | null;
-  labels: LabelResult[];
-}
-
 export interface PredictResult {
   bpm: number;
   ar: number;
@@ -52,4 +41,31 @@ export interface PredictResult {
   all_labels: LabelResult[];
   beatmap_id?: string;
   filename?: string;
+  // osu! metadata (present when predicted from link)
+  title?: string;
+  artist?: string;
+  version?: string;
+  difficulty_rating?: number;
+  status?: string;
+  cover_url?: string;
+  card_url?: string;
+}
+
+// Beatmap recommendation record (Requirements 4.2)
+export interface BeatmapRecord {
+  beatmap_id: string;
+  bpm: number | null;
+  ar: number | null;
+  cs: number | null;
+  od: number | null;
+  object_count: number | null;
+  title: string | null;
+  artist: string | null;
+  version: string | null;
+  difficulty_rating: number | null;
+  status: string | null;
+  cover_url: string | null;
+  card_url: string | null;
+  list_url: string | null;
+  labels: LabelResult[];
 }

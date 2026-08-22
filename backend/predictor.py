@@ -10,6 +10,7 @@ from tensorflow.keras.models import load_model
 N_TIMESTEPS = 1500
 N_FEATURES = 17
 THRESHOLD = 0.1
+MAX_OBJECTS = 2500  # hard cap before feature extraction
 
 _model = None
 _mlb = None
@@ -40,13 +41,25 @@ def parse_beatmap_id(link: str) -> str | None:
 def download_osu(beatmap_id: str, save_dir: str = "/tmp") -> str | None:
     url = f"https://osu.ppy.sh/osu/{beatmap_id}"
     try:
-        resp = requests.get(url, timeout=15)
-        if resp.status_code == 200 and resp.text.strip():
-            path = os.path.join(save_dir, f"{beatmap_id}.osu")
-            with open(path, "w", encoding="utf-8") as f:
-                f.write(resp.text)
-            return path
-        return None
+        resp = requests.get(url, timeout=15, stream=True)
+        if resp.status_code != 200:
+            return None
+        # Cap download size at 250KB to avoid huge beatmaps
+        MAX_BYTES = 250 * 1024
+        chunks = []
+        total = 0
+        for chunk in resp.iter_content(chunk_size=65536):
+            total += len(chunk)
+            if total > MAX_BYTES:
+                return None
+            chunks.append(chunk)
+        content = b"".join(chunks).decode("utf-8", errors="replace")
+        if not content.strip():
+            return None
+        path = os.path.join(save_dir, f"{beatmap_id}.osu")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(content)
+        return path
     except Exception:
         return None
 
@@ -62,6 +75,8 @@ def parse_osu_file(file_path: str) -> dict | None:
         hit_objects = list(bm.hit_objects())
         if not hit_objects or hit_objects[-1].time.total_seconds() * 1000 > 600000:
             return None
+        # Hard cap: truncate at MAX_OBJECTS to avoid OOM/slow processing
+        hit_objects = hit_objects[:MAX_OBJECTS]
 
         data["HP"] = float(bm.hp_drain_rate)
         data["CS"] = float(bm.circle_size)
@@ -77,7 +92,7 @@ def parse_osu_file(file_path: str) -> dict | None:
                 "uninherited": 1 if tp.parent is None else 0,
             })
 
-        for obj in bm.hit_objects():
+        for obj in hit_objects:
             t_ms = obj.time.total_seconds() * 1000
             t = int(round(t_ms))
             x, y = int(round(obj.position.x)), int(round(obj.position.y))

@@ -77,6 +77,16 @@ class Beatmap(Base):
     cs: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     od: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     object_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    # osu! metadata — lazily fetched on first recommendation query
+    title: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    artist: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    version: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    difficulty_rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    status: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    cover_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    card_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    list_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    model_version: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     predicted_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()

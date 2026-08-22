@@ -1,28 +1,120 @@
 """
-RecommendationService: query beatmap DB for recommendations and upsert beatmap records.
+RecommendationService: upsert beatmap records and serve recommendations with lazy metadata.
+
+Metadata (title, artist, cover, etc.) is NOT fetched at predict time.
+Instead, get_recommendations fetches it on first access and caches it in the DB.
+
 Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 5.2, 5.3
 """
 
+import asyncio
+import os
 from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy import select, delete
+import httpx
+from sqlalchemy import select, delete, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from database import AsyncSessionFactory
 from models import Beatmap, BeatmapLabel
 
+MODEL_VERSION = os.environ.get("MODEL_VERSION", "unknown")
+
+# --------------------------------------------------------------------------- #
+# osu! API client-credentials token (cached in memory)                         #
+# --------------------------------------------------------------------------- #
+
+_app_token: Optional[str] = None
+_app_token_lock = asyncio.Lock()
+
+
+async def _get_app_token() -> Optional[str]:
+    global _app_token
+    if _app_token:
+        return _app_token
+    async with _app_token_lock:
+        if _app_token:
+            return _app_token
+        client_id = os.environ.get("OSU_CLIENT_ID", "")
+        client_secret = os.environ.get("OSU_CLIENT_SECRET", "")
+        if not client_id or not client_secret:
+            return None
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(
+                    "https://osu.ppy.sh/oauth/token",
+                    json={
+                        "client_id": client_id,
+                        "client_secret": client_secret,
+                        "grant_type": "client_credentials",
+                        "scope": "public",
+                    },
+                    timeout=10,
+                )
+            if resp.status_code == 200:
+                _app_token = resp.json().get("access_token")
+                return _app_token
+        except Exception:
+            pass
+    return None
+
+
+async def _fetch_osu_metadata(beatmap_id: str) -> Optional[dict]:
+    """Fetch beatmap metadata from osu! API v2. Returns None on any failure."""
+    global _app_token
+    token = await _get_app_token()
+    if not token:
+        return None
+
+    async def _call(tok: str) -> Optional[httpx.Response]:
+        try:
+            async with httpx.AsyncClient() as client:
+                return await client.get(
+                    f"https://osu.ppy.sh/api/v2/beatmaps/{beatmap_id}",
+                    headers={"Authorization": f"Bearer {tok}"},
+                    timeout=10,
+                )
+        except Exception:
+            return None
+
+    resp = await _call(token)
+    if resp is None:
+        return None
+
+    # Token expired — reset and retry once
+    if resp.status_code == 401:
+        _app_token = None
+        token = await _get_app_token()
+        if not token:
+            return None
+        resp = await _call(token)
+
+    if resp is None or resp.status_code != 200:
+        return None
+
+    data = resp.json()
+    covers = data.get("beatmapset", {}).get("covers", {})
+    return {
+        "title": data.get("beatmapset", {}).get("title"),
+        "artist": data.get("beatmapset", {}).get("artist"),
+        "version": data.get("version"),
+        "difficulty_rating": data.get("difficulty_rating"),
+        "status": data.get("status"),
+        "cover_url": covers.get("cover"),
+        "card_url": covers.get("card"),
+        "list_url": covers.get("list"),
+    }
+
+
+# --------------------------------------------------------------------------- #
+# Upsert                                                                        #
+# --------------------------------------------------------------------------- #
 
 async def upsert_beatmap(result: dict) -> dict:
     """
     Insert or update a beatmap record and its labels from a prediction result.
-    Uses ON CONFLICT DO UPDATE (upsert) to satisfy Requirements 5.3.
-
-    Expected keys in result:
-      - beatmap_id (str, required)
-      - bpm, ar, cs, od, object_count (optional floats/ints)
-      - predicted_labels: list of {"label": str, "probability": float}
-
+    Metadata columns are left untouched if they already exist.
     Requirements: 4.4, 4.5, 5.2, 5.3
     """
     beatmap_id = result.get("beatmap_id")
@@ -30,41 +122,31 @@ async def upsert_beatmap(result: dict) -> dict:
         raise ValueError("result must contain 'beatmap_id'")
 
     beatmap_id = str(beatmap_id)
-    bpm = result.get("bpm")
-    ar = result.get("ar")
-    cs = result.get("cs")
-    od = result.get("od")
-    object_count = result.get("object_count")
+    now = datetime.utcnow()
     labels: List[dict] = result.get("predicted_labels", [])
 
-    now = datetime.utcnow()
+    core = dict(
+        bpm=result.get("bpm"),
+        ar=result.get("ar"),
+        cs=result.get("cs"),
+        od=result.get("od"),
+        object_count=result.get("object_count"),
+        model_version=MODEL_VERSION,
+        updated_at=now,
+    )
 
     async with AsyncSessionFactory() as session:
         async with session.begin():
-            # Upsert beatmap row
             stmt = pg_insert(Beatmap).values(
                 beatmap_id=beatmap_id,
-                bpm=bpm,
-                ar=ar,
-                cs=cs,
-                od=od,
-                object_count=object_count,
                 predicted_at=now,
-                updated_at=now,
+                **core,
             ).on_conflict_do_update(
                 index_elements=["beatmap_id"],
-                set_={
-                    "bpm": bpm,
-                    "ar": ar,
-                    "cs": cs,
-                    "od": od,
-                    "object_count": object_count,
-                    "updated_at": now,
-                },
+                set_=core,
             )
             await session.execute(stmt)
 
-            # Replace labels: delete existing then insert new ones
             await session.execute(
                 delete(BeatmapLabel).where(BeatmapLabel.beatmap_id == beatmap_id)
             )
@@ -75,58 +157,64 @@ async def upsert_beatmap(result: dict) -> dict:
                     probability=lbl["probability"],
                 ))
 
-    return {
-        "beatmap_id": beatmap_id,
-        "bpm": bpm,
-        "ar": ar,
-        "cs": cs,
-        "od": od,
-        "object_count": object_count,
-        "labels": labels,
-    }
+    return {"beatmap_id": beatmap_id, **core, "labels": labels}
 
+
+# --------------------------------------------------------------------------- #
+# Recommendations with lazy metadata fetch                                      #
+# --------------------------------------------------------------------------- #
 
 async def get_recommendations(playstyle: str, limit: int = 10) -> List[dict]:
     """
-    Query beatmap database for maps tagged with the given playstyle label.
-    Falls back to secondary label matches if primary results < 5.
+    Return beatmaps matching the given playstyle.
+    Metadata (title, artist, cover) is fetched from osu! API on first access
+    and cached in the DB — subsequent calls use the cached values.
     Requirements: 4.1, 4.2, 4.3
     """
     async with AsyncSessionFactory() as session:
-        # Primary: beatmaps where the given playstyle is the highest-probability label
-        primary_stmt = (
+        stmt = (
             select(Beatmap)
             .join(BeatmapLabel, Beatmap.beatmap_id == BeatmapLabel.beatmap_id)
             .where(BeatmapLabel.label == playstyle)
             .order_by(BeatmapLabel.probability.desc())
             .limit(limit)
         )
-        result = await session.execute(primary_stmt)
-        beatmaps = list(result.scalars().all())
+        beatmaps = list((await session.execute(stmt)).scalars().all())
 
-        if len(beatmaps) < 5:
-            # Secondary: any beatmap that has the label (already covered above, so
-            # just increase limit to fill up to `limit` total)
-            extra_needed = limit - len(beatmaps)
-            existing_ids = {b.beatmap_id for b in beatmaps}
-            secondary_stmt = (
-                select(Beatmap)
-                .join(BeatmapLabel, Beatmap.beatmap_id == BeatmapLabel.beatmap_id)
-                .where(
-                    BeatmapLabel.label == playstyle,
-                    ~Beatmap.beatmap_id.in_(existing_ids),
-                )
-                .limit(extra_needed)
-            )
-            extra_result = await session.execute(secondary_stmt)
-            beatmaps += list(extra_result.scalars().all())
+    # Lazy-fetch metadata for beatmaps that don't have it yet
+    missing = [bm for bm in beatmaps if bm.title is None]
+    if missing:
+        fetch_tasks = [_fetch_osu_metadata(bm.beatmap_id) for bm in missing]
+        metadata_results = await asyncio.gather(*fetch_tasks, return_exceptions=True)
 
-        records = []
+        updates = []
+        for bm, meta in zip(missing, metadata_results):
+            if isinstance(meta, dict) and meta:
+                updates.append({"beatmap_id": bm.beatmap_id, **meta})
+                # Update the in-memory object too so the response is fresh
+                for k, v in meta.items():
+                    setattr(bm, k, v)
+
+        if updates:
+            async with AsyncSessionFactory() as session:
+                async with session.begin():
+                    for u in updates:
+                        bid = u.pop("beatmap_id")
+                        await session.execute(
+                            update(Beatmap)
+                            .where(Beatmap.beatmap_id == bid)
+                            .values(**u)
+                        )
+
+    # Build response
+    records = []
+    async with AsyncSessionFactory() as session:
         for bm in beatmaps:
-            # Eager-load labels
-            labels_stmt = select(BeatmapLabel).where(BeatmapLabel.beatmap_id == bm.beatmap_id)
-            labels_result = await session.execute(labels_stmt)
-            lbl_rows = list(labels_result.scalars().all())
+            lbl_rows = list(
+                (await session.execute(
+                    select(BeatmapLabel).where(BeatmapLabel.beatmap_id == bm.beatmap_id)
+                )).scalars().all()
+            )
             records.append({
                 "beatmap_id": bm.beatmap_id,
                 "bpm": bm.bpm,
@@ -134,7 +222,63 @@ async def get_recommendations(playstyle: str, limit: int = 10) -> List[dict]:
                 "cs": bm.cs,
                 "od": bm.od,
                 "object_count": bm.object_count,
+                "title": bm.title,
+                "artist": bm.artist,
+                "version": bm.version,
+                "difficulty_rating": bm.difficulty_rating,
+                "status": bm.status,
+                "cover_url": bm.cover_url,
+                "card_url": bm.card_url,
+                "list_url": bm.list_url,
                 "labels": [{"label": l.label, "probability": l.probability} for l in lbl_rows],
             })
 
     return records
+
+
+async def get_cached_results(beatmap_ids: List[str]) -> dict[str, dict]:
+    """
+    Return cached prediction results for beatmap IDs that exist in DB
+    AND were predicted with the current MODEL_VERSION.
+
+    Returns a dict of {beatmap_id: result_dict} for cache hits only.
+    Beatmap IDs not in the result need to be predicted fresh.
+    """
+    if not beatmap_ids:
+        return {}
+
+    async with AsyncSessionFactory() as session:
+        stmt = (
+            select(Beatmap)
+            .where(
+                Beatmap.beatmap_id.in_(beatmap_ids),
+                Beatmap.model_version == MODEL_VERSION,
+            )
+        )
+        beatmaps = list((await session.execute(stmt)).scalars().all())
+
+        results = {}
+        for bm in beatmaps:
+            lbl_rows = list(
+                (await session.execute(
+                    select(BeatmapLabel).where(BeatmapLabel.beatmap_id == bm.beatmap_id)
+                )).scalars().all()
+            )
+            if not lbl_rows:
+                continue  # no labels = treat as cache miss
+            results[bm.beatmap_id] = {
+                "beatmap_id": bm.beatmap_id,
+                "bpm": bm.bpm,
+                "ar": bm.ar,
+                "cs": bm.cs,
+                "od": bm.od,
+                "object_count": bm.object_count,
+                "predicted_labels": [
+                    {"label": l.label, "probability": l.probability} for l in lbl_rows
+                ],
+                "all_labels": [
+                    {"label": l.label, "probability": l.probability} for l in lbl_rows
+                ],
+            }
+
+    return results

@@ -327,14 +327,20 @@ async def analysis_playstyle(
             seen.add(p.beatmap_id)
             unique_plays.append(p)
 
-    # Submit each beatmap to the queue in batches of up to MAX_CAPACITY slots.
-    # We wait for each batch to complete before submitting the next batch to
-    # avoid overflowing the 5-slot semaphore (Requirement 3.3).
-    BATCH_SIZE = 5
-    completed_results: list[dict] = []
+    # Check DB cache first — skip predict for beatmaps already predicted
+    # with the current model version (Requirements 3.3, 3.6)
+    from recommendation import get_cached_results
+    all_ids = [p.beatmap_id for p in unique_plays]
+    cached = await get_cached_results(all_ids)
 
-    for batch_start in range(0, len(unique_plays), BATCH_SIZE):
-        batch = unique_plays[batch_start: batch_start + BATCH_SIZE]
+    completed_results: list[dict] = list(cached.values())
+    plays_to_predict = [p for p in unique_plays if p.beatmap_id not in cached]
+
+    # Submit only uncached beatmaps to the queue in batches
+    BATCH_SIZE = 5
+
+    for batch_start in range(0, len(plays_to_predict), BATCH_SIZE):
+        batch = plays_to_predict[batch_start: batch_start + BATCH_SIZE]
         job_ids: list[str] = []
 
         for play in batch:
