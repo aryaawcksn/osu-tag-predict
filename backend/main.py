@@ -4,8 +4,9 @@ import tempfile
 from contextlib import asynccontextmanager
 from typing import Literal, Optional
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, UploadFile, File, Response
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, UploadFile, File, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy import select
 
@@ -63,6 +64,21 @@ app.add_middleware(
 
 # Auth router (Requirements: 2.1, 2.2, 2.3, 2.5, 2.6)
 app.include_router(auth_router)
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """Ensure CORS headers are present even on error responses."""
+    origin = request.headers.get("origin", "")
+    headers = {}
+    if origin in ALLOWED_ORIGINS:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers=headers,
+    )
 
 
 @app.options("/{full_path:path}")
