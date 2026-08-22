@@ -17,7 +17,7 @@ const STATUS_COLOR: Record<string, string> = {
 function formatDate(iso?: string): string {
   if (!iso) return "—";
   try {
-    return new Date(iso).toLocaleDateString("en-GB", {
+    return new Date(iso).toLocaleDateString("id-ID", {
       day: "numeric", month: "short", year: "numeric",
     });
   } catch {
@@ -39,6 +39,7 @@ export default function ResultCard({ result }: Props) {
   const stars = result.difficulty_rating != null ? result.difficulty_rating.toFixed(2) : null;
   const statusColor = STATUS_COLOR[result.status ?? ""] ?? "#a7a9be";
   const displayDate = result.ranked_date ?? result.submitted_date;
+  const dateLabel = result.ranked_date ? "Ranked" : "Submitted";
 
   return (
     <div style={wrapperStyle}>
@@ -97,9 +98,7 @@ export default function ResultCard({ result }: Props) {
             <span style={metaItemStyle}>♥ favourites: {result.favourite_count.toLocaleString()}</span>
           )}
           {displayDate && (
-            <span style={metaItemStyle}>
-              {result.ranked_date ? "Ranked" : "Submitted"}: {formatDate(displayDate)}
-            </span>
+            <span style={metaItemStyle}>{dateLabel}: {formatDate(displayDate)}</span>
           )}
         </div>
       )}

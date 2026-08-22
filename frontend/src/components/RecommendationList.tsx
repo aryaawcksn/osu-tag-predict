@@ -63,7 +63,7 @@ export default function RecommendationList({ playstyle }: Props) {
 
       {!loading && !error && records.length === 0 && (
         <div style={emptyStyle}>
-          {message ?? `No recommendations for "${playstyle}" yet. Predict more beatmaps first.`}
+          {message ?? `Belum ada rekomendasi untuk "${playstyle}". Coba predict lebih banyak beatmap dulu.`}
         </div>
       )}
 
@@ -108,7 +108,7 @@ function BeatmapCard({ record }: { record: BeatmapRecord }) {
             <div style={titleStyle}>{title}</div>
             {record.artist && (
               <div style={artistStyle}>
-                by {record.artist}
+                oleh {record.artist}
                 {record.version && (
                   <span style={{ color: "#ff6b9d", marginLeft: 6 }}>[{record.version}]</span>
                 )}

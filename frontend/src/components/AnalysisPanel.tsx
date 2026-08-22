@@ -91,17 +91,17 @@ function PlaystyleResult({ result }: { result: DominantPlaystyle }) {
             {result.label}
           </span>
           <span style={{ fontSize: 13, color: "#a7a9be" }}>
-            {(result.average_probability * 100).toFixed(1)}% rata-rata
+            {(result.average_probability * 100).toFixed(1)}% avg
           </span>
         </div>
         <div style={{ fontSize: 12, color: "#636e72", marginTop: 4 }}>
-          Berdasarkan {result.beatmaps_analyzed} beatmap
+          Based on {result.beatmaps_analyzed} beatmap{result.beatmaps_analyzed !== 1 ? "s" : ""}
         </div>
       </div>
 
       {/* Bubble distribution */}
       <div style={{ color: "#a7a9be", fontSize: 11, textTransform: "uppercase", marginBottom: 10 }}>
-        Distribusi Playstyle
+        Playstyle Distribution
       </div>
       <div style={bubbleContainerStyle}>
         {top.map((item) => (

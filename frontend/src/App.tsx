@@ -107,6 +107,8 @@ export default function App() {
       {/* Queue status bar */}
       <QueueBar />
 
+      {/* Info tooltip — bottom right */}
+      <InfoTooltip />
       {/* Main content */}
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "48px 16px" }}>
         {/* Header */}
@@ -219,4 +221,61 @@ const loginBtnStyle: React.CSSProperties = {
   fontWeight: 600,
   fontSize: 14,
   textDecoration: "none",
+};
+
+function InfoTooltip() {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div style={tooltipWrapStyle}
+      onMouseEnter={() => setVisible(true)}
+      onMouseLeave={() => setVisible(false)}
+    >
+      {visible && (
+        <div style={tooltipBoxStyle}>
+          Analysis results are not 100% accurate. Your contributions when rating beatmaps
+          in osu!lazer will greatly help improve the model.
+        </div>
+      )}
+      <div style={tooltipBtnStyle}>i</div>
+    </div>
+  );
+}
+
+const tooltipWrapStyle: React.CSSProperties = {
+  position: "fixed",
+  bottom: 20,
+  right: 20,
+  zIndex: 200,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-end",
+  gap: 8,
+};
+
+const tooltipBtnStyle: React.CSSProperties = {
+  width: 28,
+  height: 28,
+  borderRadius: "50%",
+  background: "#1a1929",
+  border: "1px solid #2e2d3d",
+  color: "#a7a9be",
+  fontSize: 13,
+  fontWeight: 700,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "default",
+  userSelect: "none",
+};
+
+const tooltipBoxStyle: React.CSSProperties = {
+  background: "#1a1929",
+  border: "1px solid #2e2d3d",
+  borderRadius: 8,
+  padding: "10px 14px",
+  fontSize: 12,
+  color: "#a7a9be",
+  maxWidth: 240,
+  lineHeight: 1.5,
+  boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
 };
