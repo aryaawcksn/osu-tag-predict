@@ -23,10 +23,10 @@ export default function App() {
       {/* Header */}
       <div style={{ textAlign: "center", marginBottom: 40 }}>
         <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>
-          osu! Playstyle Predictor
+          osu! Playstyle Analyzer
         </h1>
         <p style={{ color: "#a7a9be", fontSize: 15 }}>
-          Paste a beatmap link or upload a <code>.osu</code> file to classify its playstyle.
+          Paste a beatmap link or upload a <code>.osu</code> file to Analyzing its playstyle.
         </p>
       </div>
 
