@@ -86,7 +86,10 @@ def parse_osu_file(file_path: str) -> dict | None:
             slider_duration = 0.0; slider_complexity = 1.0; slider_ctrl_count = 0
             end_time = t; end_x, end_y = x, y; body_points = [(x, y)]
 
-            if isinstance(obj, slider.Slider):
+            # CEK NAMA CLASS SECARA DYNAMICAL (AMMAN DARI DEPRECATION)
+            class_name = obj.__class__.__name__
+
+            if class_name == "Slider":
                 obj_type = "S"
                 end_t_ms = obj.end_time.total_seconds() * 1000
                 end_time = int(round(end_t_ms))
@@ -114,7 +117,7 @@ def parse_osu_file(file_path: str) -> dict | None:
                     end_x, end_y = x, y
                     slider_complexity = 1.0; slider_ctrl_count = 0
 
-            elif isinstance(obj, slider.Spinner):
+            elif class_name == "Spinner":
                 obj_type = "SP"
                 end_t_ms = obj.end_time.total_seconds() * 1000
                 end_time = int(round(end_t_ms))

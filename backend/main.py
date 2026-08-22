@@ -2,7 +2,7 @@ import os
 import tempfile
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -24,9 +24,15 @@ app = FastAPI(title="osu! Playstyle Predictor", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Tangani HTTP OPTIONS (Preflight) secara eksplisit untuk semua rute /predict
+@app.options("/{full_path:path}")
+def options_handler(full_path: str):
+    return Response(status_code=200)
 
 
 class LinkRequest(BaseModel):
