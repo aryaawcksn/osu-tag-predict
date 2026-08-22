@@ -279,6 +279,7 @@ async def _get_access_token_for_user(user: User) -> str:
         result = await db.execute(
             select(Session).where(Session.user_id == user.id)
             .order_by(Session.created_at.desc())
+            .limit(1)
         )
         session = result.scalar_one_or_none()
 
