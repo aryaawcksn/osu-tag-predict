@@ -176,9 +176,9 @@ async def callback(code: Optional[str] = None, error: Optional[str] = None):
     # Create session
     session_id = await _create_session(user_id, access_token, refresh_token, expires_in)
 
-    # Redirect to frontend with session token in URL param
-    # Frontend will store it in localStorage and send via Authorization header
-    return RedirectResponse(url=f"{FRONTEND_URL}/?session_token={session_id}")
+    # Redirect to frontend with session token in URL hash
+    # Hash is not sent to server so it survives Vercel's routing
+    return RedirectResponse(url=f"{FRONTEND_URL}/#session_token={session_id}")
 
 
 @router.post("/logout")

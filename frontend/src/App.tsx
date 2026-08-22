@@ -18,11 +18,11 @@ export default function App() {
 
   // Handle session_token from OAuth redirect, then load user (Requirements 2.2, 2.4)
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get("session_token");
-    if (token) {
+    // Check URL hash for token (e.g. /#session_token=xxx)
+    const hash = window.location.hash;
+    if (hash.startsWith("#session_token=")) {
+      const token = hash.slice("#session_token=".length);
       setStoredToken(token);
-      // Clean URL
       window.history.replaceState({}, "", window.location.pathname);
     }
     getCurrentUser().then(setUser).catch(() => setUser(null));
