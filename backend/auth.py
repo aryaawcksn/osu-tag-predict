@@ -182,8 +182,8 @@ async def callback(code: Optional[str] = None, error: Optional[str] = None):
         key=SESSION_COOKIE_NAME,
         value=session_id,
         httponly=True,
-        samesite="lax",
-        secure=OSU_REDIRECT_URI.startswith("https"),
+        samesite="none",
+        secure=True,
         max_age=SESSION_TTL_SECONDS,
     )
     return response
