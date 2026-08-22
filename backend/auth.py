@@ -176,8 +176,17 @@ async def callback(code: Optional[str] = None, error: Optional[str] = None):
     # Create session
     session_id = await _create_session(user_id, access_token, refresh_token, expires_in)
 
-    # Redirect to /callback page which reads the hash token and stores it
-    return RedirectResponse(url=f"{FRONTEND_URL}/callback#session_token={session_id}")
+    # Redirect to frontend with session cookie set
+    response = RedirectResponse(url=f"{FRONTEND_URL}/")
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=session_id,
+        httponly=True,
+        samesite="none",
+        secure=True,
+        max_age=SESSION_TTL_SECONDS,
+    )
+    return response
 
 
 @router.post("/logout")

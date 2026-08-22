@@ -6,7 +6,7 @@ import QueueBar from "./components/QueueBar";
 import AnalysisPanel from "./components/AnalysisPanel";
 import RecommendationList from "./components/RecommendationList";
 import { PredictResult, CurrentUser, QueueState, DominantPlaystyle } from "./types";
-import { getCurrentUser, getQueueState, predictFromLink, predictFromUpload, pollJobResult, logout, setStoredToken } from "./api";
+import { getCurrentUser, getQueueState, predictFromLink, predictFromUpload, pollJobResult } from "./api";
 
 export default function App() {
   const [result, setResult] = useState<PredictResult | null>(null);
@@ -16,15 +16,8 @@ export default function App() {
   const [queueState, setQueueState] = useState<QueueState | null>(null);
   const [dominantPlaystyle, setDominantPlaystyle] = useState<DominantPlaystyle | null>(null);
 
-  // Handle session_token from OAuth redirect, then load user (Requirements 2.2, 2.4)
+  // Load current user on mount (Requirements 2.4)
   useEffect(() => {
-    // Check URL hash for token (e.g. /#session_token=xxx)
-    const hash = window.location.hash;
-    if (hash.startsWith("#session_token=")) {
-      const token = hash.slice("#session_token=".length);
-      setStoredToken(token);
-      window.history.replaceState({}, "", window.location.pathname);
-    }
     getCurrentUser().then(setUser).catch(() => setUser(null));
   }, []);
 
@@ -91,10 +84,8 @@ export default function App() {
   }
 
   function handleLogout() {
-    logout().finally(() => {
-      setUser(null);
-      window.location.reload();
-    });
+    setUser(null);
+    window.location.reload();
   }
 
   return (
