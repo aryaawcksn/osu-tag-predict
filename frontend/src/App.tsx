@@ -16,21 +16,16 @@ export default function App() {
   const [queueState, setQueueState] = useState<QueueState | null>(null);
   const [dominantPlaystyle, setDominantPlaystyle] = useState<DominantPlaystyle | null>(null);
 
-  // Read session_token from URL query param after OAuth redirect
+  // Read session_token from URL query param after OAuth redirect, then fetch user
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("session_token");
     if (token) {
       setSessionToken(token);
-      // Clean the token from URL without reloading
       const url = new URL(window.location.href);
       url.searchParams.delete("session_token");
       window.history.replaceState({}, "", url.toString());
     }
-  }, []);
-
-  // Load current user on mount (Requirements 2.4)
-  useEffect(() => {
     getCurrentUser().then(setUser).catch(() => setUser(null));
   }, []);
 

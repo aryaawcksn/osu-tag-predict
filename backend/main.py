@@ -59,7 +59,7 @@ app.add_middleware(
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*", "X-Session-Token", "Authorization", "Content-Type"],
 )
 
 # Auth router (Requirements: 2.1, 2.2, 2.3, 2.5, 2.6)
