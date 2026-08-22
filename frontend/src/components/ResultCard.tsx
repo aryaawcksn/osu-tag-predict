@@ -17,7 +17,7 @@ const STATUS_COLOR: Record<string, string> = {
 function formatDate(iso?: string): string {
   if (!iso) return "—";
   try {
-    return new Date(iso).toLocaleDateString("id-ID", {
+    return new Date(iso).toLocaleDateString("en-GB", {
       day: "numeric", month: "short", year: "numeric",
     });
   } catch {
@@ -39,7 +39,6 @@ export default function ResultCard({ result }: Props) {
   const stars = result.difficulty_rating != null ? result.difficulty_rating.toFixed(2) : null;
   const statusColor = STATUS_COLOR[result.status ?? ""] ?? "#a7a9be";
   const displayDate = result.ranked_date ?? result.submitted_date;
-  const dateLabel = result.ranked_date ? "Tanggal ranked" : "Tanggal submit";
 
   return (
     <div style={wrapperStyle}>
@@ -61,12 +60,12 @@ export default function ResultCard({ result }: Props) {
             )}
             {/* Artist */}
             {result.artist && (
-              <div style={subtitleStyle}>oleh {result.artist}</div>
+              <div style={subtitleStyle}>by {result.artist}</div>
             )}
             {/* Creator + difficulty */}
             <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap", alignItems: "center" }}>
               {result.creator && (
-                <span style={metaChipStyle}>dibuat oleh {result.creator}</span>
+                <span style={metaChipStyle}>mapped by {result.creator}</span>
               )}
               {result.version && (
                 <span style={{ ...metaChipStyle, color: "#ff6b9d", borderColor: "rgba(255,107,157,0.4)" }}>
@@ -92,13 +91,15 @@ export default function ResultCard({ result }: Props) {
       {(result.play_count != null || result.favourite_count != null || displayDate) && (
         <div style={metaRowStyle}>
           {result.play_count != null && (
-            <span style={metaItemStyle}>▶ dimainkan: {result.play_count.toLocaleString()}</span>
+            <span style={metaItemStyle}>▶ plays: {result.play_count.toLocaleString()}</span>
           )}
           {result.favourite_count != null && (
-            <span style={metaItemStyle}>♥ disukai: {result.favourite_count.toLocaleString()}</span>
+            <span style={metaItemStyle}>♥ favourites: {result.favourite_count.toLocaleString()}</span>
           )}
           {displayDate && (
-            <span style={metaItemStyle}>{dateLabel}: {formatDate(displayDate)}</span>
+            <span style={metaItemStyle}>
+              {result.ranked_date ? "Ranked" : "Submitted"}: {formatDate(displayDate)}
+            </span>
           )}
         </div>
       )}
@@ -122,12 +123,12 @@ export default function ResultCard({ result }: Props) {
       {/* Predicted labels */}
       <div style={bodyStyle}>
         <p style={sectionLabelStyle}>
-          Hasil Prediksi{" "}
+          Predicted Playstyles{" "}
           <span style={{ color: "#a7a9be", fontWeight: 400, fontSize: 12 }}>(threshold ≥ 10%)</span>
         </p>
 
         {result.predicted_labels.length === 0 ? (
-          <p style={{ color: "#a7a9be", fontSize: 14 }}>Tidak ada label di atas threshold.</p>
+          <p style={{ color: "#a7a9be", fontSize: 14 }}>No labels above threshold.</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {result.predicted_labels.map(({ label, probability }) => (
@@ -154,7 +155,7 @@ export default function ResultCard({ result }: Props) {
 
         <details style={{ marginTop: 16 }}>
           <summary style={{ cursor: "pointer", color: "#a7a9be", fontSize: 12 }}>
-            Semua probabilitas ({result.all_labels.length} label)
+            All probabilities ({result.all_labels.length} labels)
           </summary>
           <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 3 }}>
             {result.all_labels.map(({ label, probability }) => (

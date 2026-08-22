@@ -158,6 +158,7 @@ async def callback(code: Optional[str] = None, error: Optional[str] = None):
     me_data = me_resp.json()
     osu_id: int = me_data["id"]
     username: str = me_data["username"]
+    avatar_url: str = me_data.get("avatar_url", "")
 
     # Upsert user
     async with AsyncSessionFactory() as db:
@@ -165,11 +166,12 @@ async def callback(code: Optional[str] = None, error: Optional[str] = None):
             result = await db.execute(select(User).where(User.osu_id == osu_id))
             user: Optional[User] = result.scalar_one_or_none()
             if user is None:
-                user = User(osu_id=osu_id, username=username)
+                user = User(osu_id=osu_id, username=username, avatar_url=avatar_url)
                 db.add(user)
                 await db.flush()
             else:
                 user.username = username
+                user.avatar_url = avatar_url
             await db.refresh(user)
             user_id = user.id
 
@@ -242,4 +244,4 @@ async def me(
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
 
-    return {"osu_id": user.osu_id, "username": user.username}
+    return {"osu_id": user.osu_id, "username": user.username, "avatar_url": user.avatar_url}

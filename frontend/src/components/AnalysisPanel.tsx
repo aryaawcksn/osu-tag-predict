@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DominantPlaystyle } from "../types";
+import { DominantPlaystyle, PlaystyleDistribution } from "../types";
 import { getPlaystyleAnalysis } from "../api";
 
 interface Props {
@@ -8,8 +8,6 @@ interface Props {
 
 type Source = "top" | "recent";
 
-// AnalysisPanel: select play source, trigger analysis, show dominant playstyle
-// Requirements: 3.1, 3.5
 export default function AnalysisPanel({ onPlaystyleResult }: Props) {
   const [source, setSource] = useState<Source>("top");
   const [loading, setLoading] = useState(false);
@@ -38,7 +36,6 @@ export default function AnalysisPanel({ onPlaystyleResult }: Props) {
         Analyze your play history to determine your dominant playstyle.
       </p>
 
-      {/* Source dropdown (Requirements 3.1) */}
       <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 16 }}>
         <label htmlFor="source-select" style={{ color: "#a7a9be", fontSize: 13, flexShrink: 0 }}>
           Data source
@@ -53,7 +50,6 @@ export default function AnalysisPanel({ onPlaystyleResult }: Props) {
           <option value="top">Top Plays</option>
           <option value="recent">Recent Plays</option>
         </select>
-
         <button
           onClick={handleAnalyze}
           disabled={loading}
@@ -63,9 +59,8 @@ export default function AnalysisPanel({ onPlaystyleResult }: Props) {
         </button>
       </div>
 
-      {/* Progress indicator while loading (Requirements 3.5) */}
       {loading && (
-        <div style={progressStyle}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0" }}>
           <div style={spinnerStyle} />
           <span style={{ color: "#a7a9be", fontSize: 13 }}>
             Fetching play history and running predictions…
@@ -73,34 +68,118 @@ export default function AnalysisPanel({ onPlaystyleResult }: Props) {
         </div>
       )}
 
-      {/* Error */}
       {error && <div style={errorStyle}>{error}</div>}
 
-      {/* Result: dominant playstyle label + average probability (Requirements 3.5) */}
-      {result && (
-        <div style={resultStyle}>
-          <div style={{ marginBottom: 4 }}>
-            <span style={{ color: "#a7a9be", fontSize: 12, textTransform: "uppercase" }}>
-              Dominant Playstyle
-            </span>
-          </div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 24, fontWeight: 800, color: "#ff6b9d" }}>
-              {result.label}
-            </span>
-            <span style={{ fontSize: 14, color: "#a7a9be" }}>
-              {(result.average_probability * 100).toFixed(1)}% avg probability
-            </span>
-          </div>
-          <div style={{ marginTop: 8, fontSize: 13, color: "#a7a9be" }}>
-            Based on {result.beatmaps_analyzed} beatmap
-            {result.beatmaps_analyzed !== 1 ? "s" : ""}
-          </div>
-        </div>
-      )}
+      {result && <PlaystyleResult result={result} />}
     </div>
   );
 }
+
+function PlaystyleResult({ result }: { result: DominantPlaystyle }) {
+  const top = result.distribution.slice(0, 8);
+  const max = top[0]?.average_probability ?? 1;
+
+  return (
+    <div style={resultStyle}>
+      {/* Dominant label */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ color: "#a7a9be", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>
+          Dominant Playstyle
+        </div>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 26, fontWeight: 800, color: "#ff6b9d" }}>
+            {result.label}
+          </span>
+          <span style={{ fontSize: 13, color: "#a7a9be" }}>
+            {(result.average_probability * 100).toFixed(1)}% rata-rata
+          </span>
+        </div>
+        <div style={{ fontSize: 12, color: "#636e72", marginTop: 4 }}>
+          Berdasarkan {result.beatmaps_analyzed} beatmap
+        </div>
+      </div>
+
+      {/* Bubble distribution */}
+      <div style={{ color: "#a7a9be", fontSize: 11, textTransform: "uppercase", marginBottom: 10 }}>
+        Distribusi Playstyle
+      </div>
+      <div style={bubbleContainerStyle}>
+        {top.map((item) => (
+          <Bubble key={item.label} item={item} max={max} isDominant={item.label === result.label} />
+        ))}
+      </div>
+
+      {/* Bar chart for rest */}
+      <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 5 }}>
+        {top.map((item) => (
+          <div key={item.label}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+              <span style={{ fontSize: 12, color: item.label === result.label ? "#ff6b9d" : "#a7a9be" }}>
+                {item.label}
+              </span>
+              <span style={{ fontSize: 12, color: "#fffffe", fontWeight: item.label === result.label ? 700 : 400 }}>
+                {(item.average_probability * 100).toFixed(1)}%
+              </span>
+            </div>
+            <div style={{ background: "#2e2d3d", borderRadius: 3, height: 4 }}>
+              <div style={{
+                width: `${(item.average_probability / max) * 100}%`,
+                height: "100%",
+                borderRadius: 3,
+                background: item.label === result.label
+                  ? "#ff6b9d"
+                  : `rgba(255,107,157,${0.25 + (item.average_probability / max) * 0.4})`,
+                transition: "width 0.5s ease",
+              }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Bubble({ item, max, isDominant }: {
+  item: PlaystyleDistribution;
+  max: number;
+  isDominant: boolean;
+}) {
+  const ratio = item.average_probability / max;
+  const size = Math.round(36 + ratio * 52); // 36px to 88px
+  const alpha = 0.12 + ratio * 0.35;
+
+  return (
+    <div style={{
+      width: size,
+      height: size,
+      borderRadius: "50%",
+      background: `rgba(255,107,157,${alpha})`,
+      border: `${isDominant ? 2 : 1}px solid rgba(255,107,157,${0.3 + ratio * 0.5})`,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 4,
+      flexShrink: 0,
+      transition: "all 0.3s ease",
+    }}>
+      <span style={{
+        fontSize: Math.max(8, Math.round(8 + ratio * 5)),
+        fontWeight: isDominant ? 700 : 500,
+        color: isDominant ? "#ff6b9d" : "#fffffe",
+        textAlign: "center",
+        lineHeight: 1.2,
+        wordBreak: "break-word",
+        overflow: "hidden",
+        maxWidth: size - 10,
+      }}>
+        {item.label}
+      </span>
+    </div>
+  );
+}
+
+// Styles
 
 const panelStyle: React.CSSProperties = {
   background: "#1a1929",
@@ -146,13 +225,6 @@ const btnStyle: React.CSSProperties = {
   flexShrink: 0,
 };
 
-const progressStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 10,
-  padding: "10px 0",
-};
-
 const spinnerStyle: React.CSSProperties = {
   width: 16,
   height: 16,
@@ -175,8 +247,15 @@ const errorStyle: React.CSSProperties = {
 
 const resultStyle: React.CSSProperties = {
   marginTop: 16,
-  padding: "14px 16px",
+  padding: "16px",
   background: "#0f0e17",
   border: "1px solid #2e2d3d",
   borderRadius: 8,
+};
+
+const bubbleContainerStyle: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 8,
+  alignItems: "center",
 };

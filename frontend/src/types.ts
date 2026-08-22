@@ -17,13 +17,20 @@ export interface QueueState {
 export interface CurrentUser {
   osu_id: number;
   username: string;
+  avatar_url?: string;
 }
 
 // Analysis types
+export interface PlaystyleDistribution {
+  label: string;
+  average_probability: number;
+}
+
 export interface DominantPlaystyle {
   label: string;
   average_probability: number;
   beatmaps_analyzed: number;
+  distribution: PlaystyleDistribution[];
 }
 
 export interface LabelResult {

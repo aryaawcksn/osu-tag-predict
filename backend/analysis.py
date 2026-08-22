@@ -25,17 +25,23 @@ class BeatmapScore(BaseModel):
     beatmap_id: str
 
 
+class PlaystyleDistribution(BaseModel):
+    label: str
+    average_probability: float
+
+
 class DominantPlaystyle(BaseModel):
     label: str
     average_probability: float
     beatmaps_analyzed: int
+    distribution: list[PlaystyleDistribution]
 
 
 # --------------------------------------------------------------------------- #
 # osu! API helpers                                                              #
 # --------------------------------------------------------------------------- #
 
-async def fetch_top_plays(user_id: int, token: str, limit: int = 20) -> List[BeatmapScore]:
+async def fetch_top_plays(user_id: int, token: str, limit: int = 50) -> List[BeatmapScore]:
     """
     Fetch the user's top plays from osu! API.
     Returns a list of BeatmapScore containing beatmap_id strings.
@@ -61,7 +67,7 @@ async def fetch_top_plays(user_id: int, token: str, limit: int = 20) -> List[Bea
     return result
 
 
-async def fetch_recent_plays(user_id: int, token: str, limit: int = 20) -> List[BeatmapScore]:
+async def fetch_recent_plays(user_id: int, token: str, limit: int = 50) -> List[BeatmapScore]:
     """
     Fetch the user's recent plays from osu! API.
     Returns a list of BeatmapScore containing beatmap_id strings.
@@ -127,9 +133,14 @@ def calculate_dominant_playstyle(predictions: List[dict]) -> DominantPlaystyle:
     averages = {lbl: label_sums[lbl] / n for lbl in label_sums}
 
     dominant_label = max(averages, key=lambda l: averages[l])
+    distribution = [
+        PlaystyleDistribution(label=lbl, average_probability=round(avg, 4))
+        for lbl, avg in sorted(averages.items(), key=lambda x: x[1], reverse=True)
+    ]
 
     return DominantPlaystyle(
         label=dominant_label,
         average_probability=round(averages[dominant_label], 4),
         beatmaps_analyzed=n,
+        distribution=distribution,
     )

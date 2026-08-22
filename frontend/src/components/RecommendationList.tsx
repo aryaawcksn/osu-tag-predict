@@ -6,8 +6,21 @@ interface Props {
   playstyle: string;
 }
 
-// RecommendationList: fetch and display beatmap recommendations for a playstyle
-// Requirements: 4.2, 4.6
+const STATUS_COLOR: Record<string, string> = {
+  ranked: "#b8e994",
+  approved: "#b8e994",
+  loved: "#ff6b9d",
+  qualified: "#74b9ff",
+  pending: "#fbbf24",
+  wip: "#fbbf24",
+  graveyard: "#636e72",
+};
+
+function fmt(n?: number | null, decimals = 1): string {
+  if (n == null) return "—";
+  return Number.isInteger(n) ? String(n) : n.toFixed(decimals);
+}
+
 export default function RecommendationList({ playstyle }: Props) {
   const [records, setRecords] = useState<BeatmapRecord[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -48,16 +61,14 @@ export default function RecommendationList({ playstyle }: Props) {
 
       {error && <div style={errorStyle}>{error}</div>}
 
-      {/* Empty state (Requirements 4.6) */}
       {!loading && !error && records.length === 0 && (
         <div style={emptyStyle}>
-          {message ?? `No recommendations available for playstyle "${playstyle}" yet. Try predicting more beatmaps first.`}
+          {message ?? `No recommendations for "${playstyle}" yet. Predict more beatmaps first.`}
         </div>
       )}
 
-      {/* Beatmap cards (Requirements 4.2) */}
       {records.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
           {records.map((bm) => (
             <BeatmapCard key={bm.beatmap_id} record={bm} />
           ))}
@@ -68,57 +79,76 @@ export default function RecommendationList({ playstyle }: Props) {
 }
 
 function BeatmapCard({ record }: { record: BeatmapRecord }) {
-  const stats: [string, number | null][] = [
-    ["BPM", record.bpm],
-    ["AR", record.ar],
-    ["CS", record.cs],
-    ["OD", record.od],
-    ["Objects", record.object_count],
+  const href = `https://osu.ppy.sh/beatmaps/${record.beatmap_id}`;
+  const title = record.title ?? `Beatmap #${record.beatmap_id}`;
+  const stars = record.difficulty_rating != null ? record.difficulty_rating.toFixed(2) : null;
+  const statusColor = STATUS_COLOR[record.status ?? ""] ?? "#a7a9be";
+
+  const stats: [string, string][] = [
+    ["BPM", fmt(record.bpm, 0)],
+    ["AR", fmt(record.ar)],
+    ["CS", fmt(record.cs)],
+    ["OD", fmt(record.od)],
+    ["Objects", fmt(record.object_count, 0)],
   ];
 
   return (
-    <div style={cardStyle}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-        <a
-          href={`https://osu.ppy.sh/beatmaps/${record.beatmap_id}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={beatmapLinkStyle}
-        >
-          Beatmap #{record.beatmap_id}
-        </a>
-      </div>
+    <a href={href} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", display: "block" }}>
+      <div style={cardStyle}>
+        {/* Cover */}
+        {record.card_url && (
+          <img src={record.card_url} alt="" style={coverImgStyle} loading="lazy" />
+        )}
+        <div style={overlayStyle} />
 
-      {/* Stats row */}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-        {stats.map(([k, v]) => (
-          <div key={k} style={statBoxStyle}>
-            <span style={{ fontSize: 10, color: "#a7a9be", textTransform: "uppercase" }}>{k}</span>
-            <span style={{ fontSize: 15, fontWeight: 700 }}>
-              {v != null ? v : "—"}
-            </span>
+        {/* Content */}
+        <div style={contentStyle}>
+          {/* Left */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={titleStyle}>{title}</div>
+            {record.artist && (
+              <div style={artistStyle}>
+                by {record.artist}
+                {record.version && (
+                  <span style={{ color: "#ff6b9d", marginLeft: 6 }}>[{record.version}]</span>
+                )}
+              </div>
+            )}
+
+            {/* Badges + stats */}
+            <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 7, alignItems: "center" }}>
+              {stars && (
+                <span style={{ ...badgeStyle, color: "#ffd700", borderColor: "rgba(255,215,0,0.4)" }}>
+                  ★ {stars}
+                </span>
+              )}
+              {record.status && (
+                <span style={{ ...badgeStyle, color: statusColor, borderColor: `${statusColor}66` }}>
+                  {record.status}
+                </span>
+              )}
+              {stats.map(([k, v]) => (
+                <span key={k} style={statBadgeStyle}>{k} {v}</span>
+              ))}
+            </div>
           </div>
-        ))}
-      </div>
 
-      {/* Playstyle tags */}
-      {record.labels.length > 0 && (
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {record.labels
-            .sort((a, b) => b.probability - a.probability)
-            .map(({ label, probability }) => (
-              <span key={label} style={tagStyle(probability)}>
-                {label} {(probability * 100).toFixed(0)}%
-              </span>
-            ))}
+          {/* Right: top 3 labels */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
+            {record.labels
+              .sort((a, b) => b.probability - a.probability)
+              .slice(0, 3)
+              .map(({ label, probability }) => (
+                <span key={label} style={tagStyle(probability)}>
+                  {label} {(probability * 100).toFixed(0)}%
+                </span>
+              ))}
+          </div>
         </div>
-      )}
-    </div>
+      </div>
+    </a>
   );
 }
-
-// Style helpers
 
 const containerStyle: React.CSSProperties = {
   background: "#1a1929",
@@ -161,35 +191,73 @@ const emptyStyle: React.CSSProperties = {
 };
 
 const cardStyle: React.CSSProperties = {
-  background: "#0f0e17",
-  border: "1px solid #2e2d3d",
+  position: "relative",
   borderRadius: 10,
-  padding: "14px 16px",
-};
-
-const beatmapLinkStyle: React.CSSProperties = {
-  color: "#ff6b9d",
-  fontSize: 15,
-  fontWeight: 600,
-  textDecoration: "none",
-};
-
-const statBoxStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
+  overflow: "hidden",
   background: "#1a1929",
   border: "1px solid #2e2d3d",
-  borderRadius: 6,
-  padding: "6px 12px",
-  minWidth: 52,
+  minHeight: 85,
+};
+
+const coverImgStyle: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+  objectPosition: "center",
+};
+
+const overlayStyle: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  background: "linear-gradient(90deg, rgba(15,14,23,0.93) 40%, rgba(15,14,23,0.6) 100%)",
+};
+
+const contentStyle: React.CSSProperties = {
+  position: "relative",
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+  padding: "12px 16px",
+};
+
+const titleStyle: React.CSSProperties = {
+  color: "#fffffe",
+  fontWeight: 700,
+  fontSize: 14,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
+const artistStyle: React.CSSProperties = {
+  color: "#a7a9be",
+  fontSize: 12,
+  marginTop: 2,
+};
+
+const badgeStyle: React.CSSProperties = {
+  fontSize: 10,
+  padding: "2px 6px",
+  borderRadius: 4,
+  border: "1px solid",
+  background: "rgba(0,0,0,0.3)",
+  textTransform: "capitalize",
+  whiteSpace: "nowrap",
+};
+
+const statBadgeStyle: React.CSSProperties = {
+  ...badgeStyle,
+  color: "#a7a9be",
+  borderColor: "#2e2d3d",
 };
 
 function tagStyle(probability: number): React.CSSProperties {
   const alpha = 0.15 + probability * 0.4;
   return {
-    fontSize: 11,
-    padding: "2px 8px",
+    fontSize: 10,
+    padding: "2px 7px",
     borderRadius: 4,
     background: `rgba(255, 107, 157, ${alpha})`,
     border: "1px solid rgba(255, 107, 157, 0.4)",

@@ -30,9 +30,11 @@ export default function App() {
   }, []);
 
   // Keep a local copy of queue state so App knows if queue is full (Requirements 1.3)
+  // Polling pauses when tab is hidden to avoid unnecessary requests
   useEffect(() => {
     let cancelled = false;
     async function fetchQ() {
+      if (document.hidden) return; // skip if tab is not visible
       try {
         const s = await getQueueState();
         if (!cancelled) setQueueState(s);
@@ -106,7 +108,7 @@ export default function App() {
       <QueueBar />
 
       {/* Main content */}
-      <div style={{ maxWidth: 640, margin: "0 auto", padding: "48px 16px" }}>
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "48px 16px" }}>
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>

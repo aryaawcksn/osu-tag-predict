@@ -21,6 +21,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     osu_id: Mapped[int] = mapped_column(Integer, unique=True, nullable=False)
     username: Mapped[str] = mapped_column(String(255), nullable=False)
+    avatar_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     sessions: Mapped[list["Session"]] = relationship(

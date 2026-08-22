@@ -6,7 +6,6 @@ interface Props {
   onLogout: () => void;
 }
 
-// NavBar displays username when authenticated, login button when guest (Requirements 2.4, 6.3)
 export default function NavBar({ user, onLogout }: Props) {
   const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -20,10 +19,19 @@ export default function NavBar({ user, onLogout }: Props) {
       <span style={{ fontWeight: 700, fontSize: 16, color: "#ff6b9d" }}>
         osu! Playstyle
       </span>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         {user ? (
           <>
-            <span style={{ color: "#fffffe", fontSize: 14 }}>{user.username}</span>
+            {user.avatar_url && (
+              <img
+                src={user.avatar_url}
+                alt={user.username}
+                style={avatarStyle}
+              />
+            )}
+            <span style={{ color: "#fffffe", fontSize: 14, fontWeight: 600 }}>
+              {user.username}
+            </span>
             <button onClick={handleLogout} style={btnSecondaryStyle}>
               Logout
             </button>
@@ -42,7 +50,7 @@ const navStyle: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  padding: "12px 24px",
+  padding: "10px 24px",
   background: "#0f0e17",
   borderBottom: "1px solid #2e2d3d",
   position: "sticky",
@@ -50,8 +58,16 @@ const navStyle: React.CSSProperties = {
   zIndex: 100,
 };
 
+const avatarStyle: React.CSSProperties = {
+  width: 30,
+  height: 30,
+  borderRadius: "50%",
+  objectFit: "cover",
+  border: "2px solid #2e2d3d",
+};
+
 const btnSecondaryStyle: React.CSSProperties = {
-  padding: "6px 14px",
+  padding: "5px 12px",
   borderRadius: 6,
   border: "1px solid #2e2d3d",
   background: "transparent",
