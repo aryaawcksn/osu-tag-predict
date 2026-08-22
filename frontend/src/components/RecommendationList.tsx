@@ -12,13 +12,9 @@ export default function RecommendationList({ playstyle }: Props) {
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [minStars, setMinStars] = useState<number>(0);
-  const [maxStars, setMaxStars] = useState<number>(10);
-  const [applied, setApplied] = useState<[number, number]>([0, 10]);
-
-  function handleApply() {
-    setApplied([minStars, maxStars]);
-  }
+  // single target star value; backend finds closest if no exact match
+  const [targetStars, setTargetStars] = useState<number>(5);
+  const [appliedStars, setAppliedStars] = useState<number | null>(null);
 
   useEffect(() => {
     if (!playstyle) return;
@@ -27,12 +23,11 @@ export default function RecommendationList({ playstyle }: Props) {
     setMessage(null);
     setRecords([]);
 
-    const [mn, mx] = applied;
-    getRecommendations(
-      playstyle,
-      mn > 0 ? mn : undefined,
-      mx < 10 ? mx : undefined,
-    )
+    // If filter applied, search ±0.5 around target; backend expands if needed
+    const minS = appliedStars != null ? appliedStars - 0.5 : undefined;
+    const maxS = appliedStars != null ? appliedStars + 0.5 : undefined;
+
+    getRecommendations(playstyle, minS, maxS)
       .then((res) => {
         setRecords(res.recommendations);
         if (res.message) setMessage(res.message);
@@ -41,7 +36,7 @@ export default function RecommendationList({ playstyle }: Props) {
         setError(err instanceof Error ? err.message : "Failed to load recommendations");
       })
       .finally(() => setLoading(false));
-  }, [playstyle, applied]);
+  }, [playstyle, appliedStars]);
 
   return (
     <div style={containerStyle}>
@@ -51,24 +46,32 @@ export default function RecommendationList({ playstyle }: Props) {
         <strong style={{ color: "#ff6b9d" }}>{playstyle}</strong>
       </p>
 
-      {/* Difficulty range filter */}
+      {/* Single difficulty slider */}
       <div style={filterRowStyle}>
         <span style={filterLabelStyle}>Difficulty</span>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#a7a9be" }}>
-            <span>★ {minStars.toFixed(1)}</span>
-            <span>★ {maxStars.toFixed(1)}</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#a7a9be", marginBottom: 4 }}>
+            <span>★ 1</span>
+            <span style={{ color: "#ff6b9d", fontWeight: 600 }}>
+              {appliedStars != null ? `★ ${appliedStars.toFixed(1)}` : "Any"}
+            </span>
+            <span>★ 10</span>
           </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <input type="range" min={0} max={10} step={0.5} value={minStars}
-              onChange={e => setMinStars(Math.min(Number(e.target.value), maxStars - 0.5))}
-              style={rangeStyle} />
-            <input type="range" min={0} max={10} step={0.5} value={maxStars}
-              onChange={e => setMaxStars(Math.max(Number(e.target.value), minStars + 0.5))}
-              style={rangeStyle} />
-          </div>
+          <input
+            type="range" min={1} max={10} step={0.5}
+            value={targetStars}
+            onChange={e => setTargetStars(Number(e.target.value))}
+            style={{ width: "100%", accentColor: "#ff6b9d", cursor: "pointer" }}
+          />
         </div>
-        <button onClick={handleApply} style={applyBtnStyle}>Apply</button>
+        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+          <button onClick={() => setAppliedStars(targetStars)} style={applyBtnStyle}>
+            Apply
+          </button>
+          {appliedStars != null && (
+            <button onClick={() => setAppliedStars(null)} style={clearBtnStyle}>✕</button>
+          )}
+        </div>
       </div>
 
       {loading && (
@@ -109,13 +112,15 @@ const filterRowStyle: React.CSSProperties = {
 const filterLabelStyle: React.CSSProperties = {
   fontSize: 12, color: "#a7a9be", flexShrink: 0,
 };
-const rangeStyle: React.CSSProperties = {
-  flex: 1, accentColor: "#ff6b9d", cursor: "pointer",
-};
 const applyBtnStyle: React.CSSProperties = {
-  padding: "5px 12px", borderRadius: 6, border: "none",
-  background: "#ff6b9d", color: "#fff", fontSize: 12,
-  fontWeight: 600, cursor: "pointer", flexShrink: 0,
+  padding: "4px 10px", borderRadius: 6, border: "none",
+  background: "#ff6b9d", color: "#fff", fontSize: 11,
+  fontWeight: 600, cursor: "pointer",
+};
+const clearBtnStyle: React.CSSProperties = {
+  padding: "4px 8px", borderRadius: 6,
+  border: "1px solid #2e2d3d", background: "transparent",
+  color: "#a7a9be", fontSize: 11, cursor: "pointer",
 };
 const errorStyle: React.CSSProperties = {
   padding: "10px 14px", background: "#2a0a14",

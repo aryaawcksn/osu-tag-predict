@@ -126,7 +126,7 @@ export async function getRecommendations(
   minStars?: number,
   maxStars?: number,
 ): Promise<{ recommendations: BeatmapRecord[]; message?: string }> {
-  const params = new URLSearchParams({ playstyle: encodeURIComponent(playstyle) });
+  const params = new URLSearchParams({ playstyle });
   if (minStars != null) params.set("min_stars", String(minStars));
   if (maxStars != null) params.set("max_stars", String(maxStars));
   const res = await fetch(`${BASE_URL}/recommend?${params}`,

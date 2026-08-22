@@ -3,24 +3,26 @@ import { BeatmapRecord } from "../types";
 import { getBeatmapsByTags } from "../api";
 import { BeatmapCard } from "./BeatmapCard";
 
-// All 57 known playstyle tags
+// All tags from pickle model — exact names
 const ALL_TAGS = [
-  "aim/flow", "aim/precise", "aim/wide-angle", "aim/cut-stream", "aim/high-bpm",
-  "aim/slider-aim", "aim/technical", "aim/reading",
-  "skillset/jumps", "skillset/streams", "skillset/alt", "skillset/finger-control",
-  "skillset/stamina", "skillset/burst", "skillset/speed", "skillset/tech",
-  "pattern/stack", "pattern/overlap", "pattern/cross", "pattern/zigzag",
-  "pattern/square", "pattern/back-and-forth", "pattern/spiral", "pattern/linear",
-  "pattern/deathstream", "pattern/triplet", "pattern/quintuplet",
-  "expression/simple", "expression/complex", "expression/difficulty spike",
-  "expression/gimmick", "expression/SV", "expression/weird",
-  "jumps/sharp", "jumps/wide", "jumps/spaced", "jumps/flow",
-  "streams/burst", "streams/deathstream", "streams/speed", "streams/stamina",
-  "streams/alt", "streams/finger-control",
-  "reading/hidden", "reading/HD", "reading/DT", "reading/overlap",
-  "reading/high-density", "reading/memorization",
-  "misc/low-AR", "misc/high-AR", "misc/low-OD", "misc/high-OD",
-  "misc/one-handed", "misc/nomod", "misc/FC-friendly",
+  "skillset/jumps", "jumps/sharp", "expression/simple", "skillset/alt",
+  "tech/aim control", "expression/difficulty spike", "style/clean",
+  "expression/repetition", "jumps/back and forth", "jumps/wide",
+  "jumps/stamina", "streams/speed", "jumps/cross-screen", "jumps/triangles",
+  "skillset/reading", "streams/flow aim", "expression/chaotic",
+  "expression/progression", "tech/finger control", "jumps/linear",
+  "jumps/freeform", "skillset/tech", "reading/overlaps", "style/messy",
+  "streams/doubles", "streams/bursts", "meta/variable timing",
+  "reading/visually dense", "skillset/precision", "expression/high contrast",
+  "meta/swing", "tech/slider tech", "sliders/complex sv", "style/freeform",
+  "style/geometric", "reading/perfect stacks", "style/hexgrid",
+  "sliders/high sv", "sliders/complex slidershapes", "streams/stamina",
+  "meta/accelerating bpm", "expression/playfield usage", "jumps/squares",
+  "sliders/low sv", "style/symmetrical", "meta/time signatures",
+  "style/avant-garde", "expression/conceptual", "gimmick/ninja spinners",
+  "style/grid snap", "skillset/streams", "style/distance snap",
+  "expression/old-style revival", "streams/cutstreams", "gimmick/circle only",
+  "streams/spaced streams", "expression/iNiS-style",
 ].sort();
 
 const INITIAL_SHOW = 24;
@@ -32,8 +34,8 @@ interface Props {
 export default function BeatmapTagSearch({ requireAuth }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showAll, setShowAll] = useState(false);
-  const [minStars, setMinStars] = useState(0);
-  const [maxStars, setMaxStars] = useState(10);
+  const [targetStars, setTargetStars] = useState(5);
+  const [appliedStars, setAppliedStars] = useState<number | null>(null);
   const [results, setResults] = useState<BeatmapRecord[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,8 +58,8 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
     try {
       const res = await getBeatmapsByTags(
         Array.from(selected),
-        minStars > 0 ? minStars : undefined,
-        maxStars < 10 ? maxStars : undefined,
+        appliedStars != null ? appliedStars - 0.5 : undefined,
+        appliedStars != null ? appliedStars + 0.5 : undefined,
       );
       setResults(res.beatmaps);
     } catch (err: unknown) {
@@ -110,22 +112,30 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
         </div>
       )}
 
-      {/* Difficulty slider */}
+      {/* Difficulty slider — single target value */}
       <div style={filterRowStyle}>
         <span style={{ fontSize: 12, color: "#a7a9be", flexShrink: 0 }}>Difficulty</span>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#a7a9be" }}>
-            <span>★ {minStars.toFixed(1)}</span>
-            <span>★ {maxStars.toFixed(1)}</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#a7a9be", marginBottom: 4 }}>
+            <span>★ 1</span>
+            <span style={{ color: "#ff6b9d", fontWeight: 600 }}>
+              {appliedStars != null ? `★ ${appliedStars.toFixed(1)}` : "Any"}
+            </span>
+            <span>★ 10</span>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input type="range" min={0} max={10} step={0.5} value={minStars}
-              onChange={e => setMinStars(Math.min(Number(e.target.value), maxStars - 0.5))}
-              style={{ flex: 1, accentColor: "#ff6b9d" }} />
-            <input type="range" min={0} max={10} step={0.5} value={maxStars}
-              onChange={e => setMaxStars(Math.max(Number(e.target.value), minStars + 0.5))}
-              style={{ flex: 1, accentColor: "#ff6b9d" }} />
-          </div>
+          <input type="range" min={1} max={10} step={0.5} value={targetStars}
+            onChange={e => setTargetStars(Number(e.target.value))}
+            style={{ width: "100%", accentColor: "#ff6b9d", cursor: "pointer" }} />
+        </div>
+        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+          <button onClick={() => setAppliedStars(targetStars)} style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: "#ff6b9d", color: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+            Apply
+          </button>
+          {appliedStars != null && (
+            <button onClick={() => setAppliedStars(null)} style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #2e2d3d", background: "transparent", color: "#a7a9be", fontSize: 11, cursor: "pointer" }}>
+              ✕
+            </button>
+          )}
         </div>
       </div>
 
