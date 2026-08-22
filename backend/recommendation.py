@@ -164,23 +164,85 @@ async def upsert_beatmap(result: dict) -> dict:
 # Recommendations with lazy metadata fetch                                      #
 # --------------------------------------------------------------------------- #
 
-async def get_recommendations(playstyle: str, limit: int = 10) -> List[dict]:
+async def get_recommendations(
+    playstyle: str,
+    limit: int = 10,
+    min_stars: float | None = None,
+    max_stars: float | None = None,
+) -> List[dict]:
     """
-    Return beatmaps matching the given playstyle.
-    Metadata (title, artist, cover) is fetched from osu! API on first access
-    and cached in the DB — subsequent calls use the cached values.
+    Return beatmaps matching the given playstyle, optionally filtered by difficulty.
+    If no exact match found within range, expands range by ±0.5 until results found.
     Requirements: 4.1, 4.2, 4.3
     """
+    async def _query(mn: float | None, mx: float | None) -> list:
+        async with AsyncSessionFactory() as session:
+            stmt = (
+                select(Beatmap)
+                .join(BeatmapLabel, Beatmap.beatmap_id == BeatmapLabel.beatmap_id)
+                .where(BeatmapLabel.label == playstyle)
+            )
+            if mn is not None:
+                stmt = stmt.where(Beatmap.difficulty_rating >= mn)
+            if mx is not None:
+                stmt = stmt.where(Beatmap.difficulty_rating <= mx)
+            stmt = stmt.order_by(BeatmapLabel.probability.desc()).limit(limit)
+            return list((await session.execute(stmt)).scalars().all())
+
+    beatmaps = await _query(min_stars, max_stars)
+
+    # Fallback: expand range by ±0.5 up to 3 times if no results
+    if not beatmaps and (min_stars is not None or max_stars is not None):
+        for expansion in [0.5, 1.0, 1.5]:
+            mn = (min_stars - expansion) if min_stars is not None else None
+            mx = (max_stars + expansion) if max_stars is not None else None
+            beatmaps = await _query(mn, mx)
+            if beatmaps:
+                break
+
+    # If still empty, return without star filter
+    if not beatmaps and (min_stars is not None or max_stars is not None):
+        beatmaps = await _query(None, None)
+
+    return await _build_records(beatmaps)
+
+
+async def get_beatmaps_by_tags(
+    tags: List[str],
+    limit: int = 20,
+    min_stars: float | None = None,
+    max_stars: float | None = None,
+) -> List[dict]:
+    """
+    Return beatmaps that have ALL of the given tags above threshold.
+    Filtered by difficulty range if provided.
+    """
+    if not tags:
+        return []
+
     async with AsyncSessionFactory() as session:
-        stmt = (
-            select(Beatmap)
-            .join(BeatmapLabel, Beatmap.beatmap_id == BeatmapLabel.beatmap_id)
-            .where(BeatmapLabel.label == playstyle)
-            .order_by(BeatmapLabel.probability.desc())
-            .limit(limit)
+        # Find beatmap_ids that have all requested tags
+        from sqlalchemy import func as sqlfunc
+        subq = (
+            select(BeatmapLabel.beatmap_id)
+            .where(BeatmapLabel.label.in_(tags))
+            .group_by(BeatmapLabel.beatmap_id)
+            .having(sqlfunc.count(BeatmapLabel.label.distinct()) >= len(tags))
+            .subquery()
         )
+        stmt = select(Beatmap).where(Beatmap.beatmap_id.in_(select(subq)))
+        if min_stars is not None:
+            stmt = stmt.where(Beatmap.difficulty_rating >= min_stars)
+        if max_stars is not None:
+            stmt = stmt.where(Beatmap.difficulty_rating <= max_stars)
+        stmt = stmt.order_by(Beatmap.difficulty_rating).limit(limit)
         beatmaps = list((await session.execute(stmt)).scalars().all())
 
+    return await _build_records(beatmaps)
+
+
+async def _build_records(beatmaps: list) -> List[dict]:
+    """Lazy-fetch metadata and build response dicts."""
     # Lazy-fetch metadata for beatmaps that don't have it yet
     missing = [bm for bm in beatmaps if bm.title is None]
     if missing:
@@ -191,7 +253,6 @@ async def get_recommendations(playstyle: str, limit: int = 10) -> List[dict]:
         for bm, meta in zip(missing, metadata_results):
             if isinstance(meta, dict) and meta:
                 updates.append({"beatmap_id": bm.beatmap_id, **meta})
-                # Update the in-memory object too so the response is fresh
                 for k, v in meta.items():
                     setattr(bm, k, v)
 
@@ -201,12 +262,9 @@ async def get_recommendations(playstyle: str, limit: int = 10) -> List[dict]:
                     for u in updates:
                         bid = u.pop("beatmap_id")
                         await session.execute(
-                            update(Beatmap)
-                            .where(Beatmap.beatmap_id == bid)
-                            .values(**u)
+                            update(Beatmap).where(Beatmap.beatmap_id == bid).values(**u)
                         )
 
-    # Build response
     records = []
     async with AsyncSessionFactory() as session:
         for bm in beatmaps:
@@ -232,7 +290,6 @@ async def get_recommendations(playstyle: str, limit: int = 10) -> List[dict]:
                 "list_url": bm.list_url,
                 "labels": [{"label": l.label, "probability": l.probability} for l in lbl_rows],
             })
-
     return records
 
 

@@ -122,11 +122,30 @@ export async function getPlaystyleAnalysis(source: "top" | "recent"): Promise<Do
 
 // Get beatmap recommendations for a given playstyle (Requirements 4.1, 4.6)
 export async function getRecommendations(
-  playstyle: string
+  playstyle: string,
+  minStars?: number,
+  maxStars?: number,
 ): Promise<{ recommendations: BeatmapRecord[]; message?: string }> {
-  const res = await fetch(
-    `${BASE_URL}/recommend?playstyle=${encodeURIComponent(playstyle)}`,
+  const params = new URLSearchParams({ playstyle: encodeURIComponent(playstyle) });
+  if (minStars != null) params.set("min_stars", String(minStars));
+  if (maxStars != null) params.set("max_stars", String(maxStars));
+  const res = await fetch(`${BASE_URL}/recommend?${params}`,
     { headers: { ...authHeaders() }, credentials: "include" }
   );
   return handleResponse<{ recommendations: BeatmapRecord[]; message?: string }>(res);
+}
+
+// Get beatmaps by multiple tags
+export async function getBeatmapsByTags(
+  tags: string[],
+  minStars?: number,
+  maxStars?: number,
+): Promise<{ beatmaps: BeatmapRecord[]; tags: string[] }> {
+  const params = new URLSearchParams({ tags: tags.join(",") });
+  if (minStars != null) params.set("min_stars", String(minStars));
+  if (maxStars != null) params.set("max_stars", String(maxStars));
+  const res = await fetch(`${BASE_URL}/beatmaps/by-tags?${params}`,
+    { headers: { ...authHeaders() }, credentials: "include" }
+  );
+  return handleResponse<{ beatmaps: BeatmapRecord[]; tags: string[] }>(res);
 }

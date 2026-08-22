@@ -408,18 +408,38 @@ async def analysis_playstyle(
 @app.get("/recommend")
 async def recommend(
     playstyle: str = Query(..., description="Dominant playstyle label to get recommendations for"),
+    min_stars: Optional[float] = Query(None, description="Minimum difficulty rating"),
+    max_stars: Optional[float] = Query(None, description="Maximum difficulty rating"),
     current_user: User = Depends(require_user),
 ):
     """
     Return beatmap recommendations matching the given playstyle label.
-    Requires an authenticated session.
+    Optionally filter by difficulty range (min_stars, max_stars).
     Requirements: 4.1, 4.6
     """
     from recommendation import get_recommendations
-    results = await get_recommendations(playstyle)
+    results = await get_recommendations(playstyle, min_stars=min_stars, max_stars=max_stars)
     if not results:
         return {"recommendations": [], "message": f"No recommendations available for playstyle '{playstyle}' yet."}
     return {"recommendations": results}
+
+
+@app.get("/beatmaps/by-tags")
+async def beatmaps_by_tags(
+    tags: str = Query(..., description="Comma-separated list of playstyle tags"),
+    min_stars: Optional[float] = Query(None),
+    max_stars: Optional[float] = Query(None),
+    current_user: User = Depends(require_user),
+):
+    """
+    Return beatmaps matching ALL of the given tags, optionally filtered by difficulty.
+    """
+    from recommendation import get_beatmaps_by_tags
+    tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+    if not tag_list:
+        raise HTTPException(status_code=400, detail="At least one tag required")
+    results = await get_beatmaps_by_tags(tag_list, min_stars=min_stars, max_stars=max_stars)
+    return {"beatmaps": results, "tags": tag_list}
 
 
 # --------------------------------------------------------------------------- #

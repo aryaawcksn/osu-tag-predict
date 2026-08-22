@@ -5,6 +5,7 @@ import NavBar from "./components/NavBar";
 import QueueBar from "./components/QueueBar";
 import AnalysisPanel from "./components/AnalysisPanel";
 import RecommendationList from "./components/RecommendationList";
+import BeatmapTagSearch from "./components/BeatmapTagSearch";
 import { PredictResult, CurrentUser, QueueState, DominantPlaystyle } from "./types";
 import { getCurrentUser, getQueueState, predictFromLink, predictFromUpload, pollJobResult, setSessionToken, clearSessionToken } from "./api";
 
@@ -175,6 +176,7 @@ export default function App() {
             {dominantPlaystyle && (
               <RecommendationList playstyle={dominantPlaystyle.label} />
             )}
+            <BeatmapTagSearch />
           </>
         )}
       </div>
