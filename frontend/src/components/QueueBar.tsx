@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { getQueueState } from "../api";
+import { getQueueState, getStats } from "../api";
 import { QueueState, QueueJob } from "../types";
 
-// Status badge colors
 const STATUS_COLORS: Record<QueueJob["status"], string> = {
   waiting: "#a7a9be",
   processing: "#f59e0b",
@@ -10,29 +9,36 @@ const STATUS_COLORS: Record<QueueJob["status"], string> = {
   failed: "#f87171",
 };
 
-// QueueBar polls /queue/state every 2 seconds and displays slot usage + active jobs
-// Requirements 1.1, 1.5, 1.6
 export default function QueueBar() {
   const [queueState, setQueueState] = useState<QueueState | null>(null);
+  const [stats, setStats] = useState<{ total_users: number; total_beatmaps: number } | null>(null);
 
+  // Queue polling — every 2s
   useEffect(() => {
     let cancelled = false;
-
-    async function fetchState() {
+    async function fetchQ() {
       try {
-        const state = await getQueueState();
-        if (!cancelled) setQueueState(state);
-      } catch {
-        // Silently ignore fetch errors — backend may be starting up
-      }
+        const s = await getQueueState();
+        if (!cancelled) setQueueState(s);
+      } catch {}
     }
+    fetchQ();
+    const id = setInterval(fetchQ, 2000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
 
-    fetchState();
-    const interval = setInterval(fetchState, 2000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
+  // Stats polling — every 5 minutes
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchStats() {
+      try {
+        const s = await getStats();
+        if (!cancelled) setStats(s);
+      } catch {}
+    }
+    fetchStats();
+    const id = setInterval(fetchStats, 5 * 60 * 1000);
+    return () => { cancelled = true; clearInterval(id); };
   }, []);
 
   if (!queueState) return null;
@@ -42,21 +48,16 @@ export default function QueueBar() {
 
   return (
     <div style={barStyle}>
-      {/* Slot indicator */}
+      {/* Queue slots */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
         <span style={{ fontSize: 12, color: "#a7a9be" }}>Queue</span>
         <div style={{ display: "flex", gap: 4 }}>
           {Array.from({ length: total_capacity }).map((_, i) => (
-            <div
-              key={i}
-              style={{
-                width: 10,
-                height: 10,
-                borderRadius: 2,
-                background: i < occupied_slots ? "#ff6b9d" : "#2e2d3d",
-                transition: "background 0.3s",
-              }}
-            />
+            <div key={i} style={{
+              width: 10, height: 10, borderRadius: 2,
+              background: i < occupied_slots ? "#ff6b9d" : "#2e2d3d",
+              transition: "background 0.3s",
+            }} />
           ))}
         </div>
         <span style={{ fontSize: 12, color: "#a7a9be" }}>
@@ -64,7 +65,7 @@ export default function QueueBar() {
         </span>
       </div>
 
-      {/* Active job list */}
+      {/* Active jobs */}
       {activeJobs.length > 0 && (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           {activeJobs.map((job) => (
@@ -77,6 +78,22 @@ export default function QueueBar() {
 
       {occupied_slots >= total_capacity && (
         <span style={{ fontSize: 12, color: "#f87171", flexShrink: 0 }}>Queue full</span>
+      )}
+
+      {/* Spacer */}
+      <div style={{ flex: 1 }} />
+
+      {/* Stats */}
+      {stats && (
+        <div style={statsStyle}>
+          <span title="Total registered users">
+            👤 {stats.total_users.toLocaleString()}
+          </span>
+          <span style={{ color: "#2e2d3d" }}>|</span>
+          <span title="Total beatmaps processed">
+            🗂 {stats.total_beatmaps.toLocaleString()}
+          </span>
+        </div>
       )}
     </div>
   );
@@ -91,6 +108,15 @@ const barStyle: React.CSSProperties = {
   borderBottom: "1px solid #2e2d3d",
   overflowX: "auto",
   flexWrap: "wrap",
+};
+
+const statsStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  fontSize: 12,
+  color: "#636e72",
+  flexShrink: 0,
 };
 
 function badgeStyle(status: QueueJob["status"]): React.CSSProperties {

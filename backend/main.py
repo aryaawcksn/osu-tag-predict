@@ -154,6 +154,21 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/stats")
+async def get_stats():
+    """Public endpoint: total users and total beatmaps processed."""
+    from sqlalchemy import func as sqlfunc
+    from models import User as UserModel, Beatmap as BeatmapModel
+    async with AsyncSessionFactory() as db:
+        total_users = (await db.execute(
+            select(sqlfunc.count()).select_from(UserModel)
+        )).scalar_one()
+        total_beatmaps = (await db.execute(
+            select(sqlfunc.count()).select_from(BeatmapModel)
+        )).scalar_one()
+    return {"total_users": total_users, "total_beatmaps": total_beatmaps}
+
+
 # --------------------------------------------------------------------------- #
 # Predict endpoints (queue-aware)                                               #
 # Requirements: 1.2, 1.3, 6.1                                                  #
