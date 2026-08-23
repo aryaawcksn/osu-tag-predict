@@ -111,3 +111,17 @@ class BeatmapLabel(Base):
     __table_args__ = (UniqueConstraint("beatmap_id", "label", name="uq_beatmap_label"),)
 
     beatmap: Mapped["Beatmap"] = relationship("Beatmap", back_populates="labels")
+
+
+class HiddenBeatmap(Base):
+    """Beatmaps hidden by a user from their recommendations."""
+    __tablename__ = "hidden_beatmaps"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    beatmap_id: Mapped[str] = mapped_column(String(20), nullable=False)
+    hidden_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    __table_args__ = (UniqueConstraint("user_id", "beatmap_id", name="uq_hidden_beatmap"),)

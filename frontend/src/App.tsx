@@ -6,6 +6,7 @@ import QueueBar from "./components/QueueBar";
 import AnalysisPanel from "./components/AnalysisPanel";
 import RecommendationList from "./components/RecommendationList";
 import BeatmapTagSearch from "./components/BeatmapTagSearch";
+import ProfilePage from "./components/ProfilePage";
 import { PredictResult, CurrentUser, QueueState, DominantPlaystyle } from "./types";
 import { getCurrentUser, getQueueState, predictFromLink, predictFromUpload, pollJobResult, setSessionToken, clearSessionToken } from "./api";
 
@@ -16,6 +17,7 @@ export default function App() {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [queueState, setQueueState] = useState<QueueState | null>(null);
   const [dominantPlaystyle, setDominantPlaystyle] = useState<DominantPlaystyle | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
 
   // Read session_token from URL query param after OAuth redirect, then fetch user
   useEffect(() => {
@@ -100,10 +102,20 @@ export default function App() {
     window.location.reload();
   }
 
+  if (showProfile && user) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#0f0e17", color: "#fffffe" }}>
+        <NavBar user={user} onLogout={handleLogout} onProfile={() => setShowProfile(false)} />
+        <ProfilePage user={user} onBack={() => setShowProfile(false)} />
+        <InfoTooltip />
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: "#0f0e17", color: "#fffffe" }}>
       {/* Nav */}
-      <NavBar user={user} onLogout={handleLogout} />
+      <NavBar user={user} onLogout={handleLogout} onProfile={() => setShowProfile(true)} />
 
       {/* Queue status bar */}
       <QueueBar />

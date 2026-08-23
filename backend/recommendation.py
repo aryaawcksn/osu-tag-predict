@@ -164,12 +164,24 @@ async def upsert_beatmap(result: dict) -> dict:
 # Recommendations with lazy metadata fetch                                      #
 # --------------------------------------------------------------------------- #
 
+async def get_hidden_ids(user_id: int) -> list[str]:
+    """Return list of beatmap_ids hidden by the user."""
+    from models import HiddenBeatmap
+    async with AsyncSessionFactory() as session:
+        rows = list((await session.execute(
+            select(HiddenBeatmap.beatmap_id).where(HiddenBeatmap.user_id == user_id)
+        )).scalars().all())
+    return rows
+
+
 async def get_recommendations(
     playstyle: str,
     limit: int = 10,
+    offset: int = 0,
     min_stars: float | None = None,
     max_stars: float | None = None,
     status: str | None = None,
+    exclude_ids: list[str] | None = None,
 ) -> List[dict]:
     """
     Return beatmaps matching the given playstyle, optionally filtered by difficulty.
@@ -189,7 +201,9 @@ async def get_recommendations(
                 stmt = stmt.where(Beatmap.difficulty_rating <= mx)
             if status:
                 stmt = stmt.where(Beatmap.status == status)
-            stmt = stmt.order_by(BeatmapLabel.probability.desc()).limit(limit)
+            if exclude_ids:
+                stmt = stmt.where(~Beatmap.beatmap_id.in_(exclude_ids))
+            stmt = stmt.order_by(BeatmapLabel.probability.desc()).limit(limit).offset(offset)
             return list((await session.execute(stmt)).scalars().all())
 
     beatmaps = await _query(min_stars, max_stars)

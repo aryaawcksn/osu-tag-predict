@@ -4,9 +4,10 @@ import { logout } from "../api";
 interface Props {
   user: CurrentUser | null;
   onLogout: () => void;
+  onProfile: () => void;
 }
 
-export default function NavBar({ user, onLogout }: Props) {
+export default function NavBar({ user, onLogout, onProfile }: Props) {
   const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
   async function handleLogout() {
@@ -29,9 +30,12 @@ export default function NavBar({ user, onLogout }: Props) {
                 style={avatarStyle}
               />
             )}
-            <span style={{ color: "#fffffe", fontSize: 14, fontWeight: 600 }}>
+            <button
+              onClick={onProfile}
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#fffffe", fontSize: 14, fontWeight: 600 }}
+            >
               {user.username}
-            </span>
+            </button>
             <button onClick={handleLogout} style={btnSecondaryStyle}>
               Logout
             </button>

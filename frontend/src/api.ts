@@ -126,15 +126,35 @@ export async function getRecommendations(
   minStars?: number,
   maxStars?: number,
   status?: string,
-): Promise<{ recommendations: BeatmapRecord[]; message?: string }> {
-  const params = new URLSearchParams({ playstyle });
+  offset = 0,
+): Promise<{ recommendations: BeatmapRecord[]; has_more: boolean; message?: string }> {
+  const params = new URLSearchParams({ playstyle, offset: String(offset) });
   if (minStars != null) params.set("min_stars", String(minStars));
   if (maxStars != null) params.set("max_stars", String(maxStars));
   if (status) params.set("status", status);
   const res = await fetch(`${BASE_URL}/recommend?${params}`,
     { headers: { ...authHeaders() }, credentials: "include" }
   );
-  return handleResponse<{ recommendations: BeatmapRecord[]; message?: string }>(res);
+  return handleResponse<{ recommendations: BeatmapRecord[]; has_more: boolean; message?: string }>(res);
+}
+
+export async function hideBeatmap(beatmapId: string): Promise<void> {
+  await fetch(`${BASE_URL}/hidden/${beatmapId}`, {
+    method: "POST", headers: { ...authHeaders() }, credentials: "include",
+  });
+}
+
+export async function unhideBeatmap(beatmapId: string): Promise<void> {
+  await fetch(`${BASE_URL}/hidden/${beatmapId}`, {
+    method: "DELETE", headers: { ...authHeaders() }, credentials: "include",
+  });
+}
+
+export async function getHiddenBeatmaps(): Promise<{ hidden: BeatmapRecord[] }> {
+  const res = await fetch(`${BASE_URL}/hidden`, {
+    headers: { ...authHeaders() }, credentials: "include",
+  });
+  return handleResponse<{ hidden: BeatmapRecord[] }>(res);
 }
 
 // Get beatmaps by multiple tags

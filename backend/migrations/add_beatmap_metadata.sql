@@ -13,3 +13,12 @@ ALTER TABLE beatmaps ADD COLUMN IF NOT EXISTS model_version     VARCHAR(20);
 
 -- Add avatar_url to users table
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+
+-- Hidden beatmaps per user (for recommendation blacklist)
+CREATE TABLE IF NOT EXISTS hidden_beatmaps (
+    id          SERIAL PRIMARY KEY,
+    user_id     INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    beatmap_id  VARCHAR(20) NOT NULL,
+    hidden_at   TIMESTAMP DEFAULT NOW(),
+    UNIQUE (user_id, beatmap_id)
+);

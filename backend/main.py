@@ -411,13 +411,72 @@ async def recommend(
     min_stars: Optional[float] = Query(None),
     max_stars: Optional[float] = Query(None),
     status: Optional[str] = Query(None),
+    offset: int = Query(0, ge=0),
     current_user: User = Depends(require_user),
 ):
-    from recommendation import get_recommendations
-    results = await get_recommendations(playstyle, min_stars=min_stars, max_stars=max_stars, status=status)
-    if not results:
-        return {"recommendations": [], "message": f"No recommendations available for playstyle '{playstyle}' yet."}
-    return {"recommendations": results}
+    from recommendation import get_recommendations, get_hidden_ids
+    hidden = await get_hidden_ids(current_user.id)
+    results = await get_recommendations(
+        playstyle, min_stars=min_stars, max_stars=max_stars,
+        status=status, exclude_ids=hidden, offset=offset,
+    )
+    has_more = len(results) == 10
+    if not results and offset == 0:
+        return {"recommendations": [], "has_more": False, "message": f"No recommendations available for playstyle '{playstyle}' yet."}
+    return {"recommendations": results, "has_more": has_more}
+
+
+# --------------------------------------------------------------------------- #
+# Hidden beatmaps endpoints                                                     #
+# --------------------------------------------------------------------------- #
+
+@app.post("/hidden/{beatmap_id}", status_code=200)
+async def hide_beatmap(beatmap_id: str, current_user: User = Depends(require_user)):
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
+    from models import HiddenBeatmap
+    async with AsyncSessionFactory() as db:
+        async with db.begin():
+            stmt = pg_insert(HiddenBeatmap).values(
+                user_id=current_user.id, beatmap_id=beatmap_id
+            ).on_conflict_do_nothing()
+            await db.execute(stmt)
+    return {"ok": True, "beatmap_id": beatmap_id}
+
+
+@app.delete("/hidden/{beatmap_id}", status_code=200)
+async def unhide_beatmap(beatmap_id: str, current_user: User = Depends(require_user)):
+    from sqlalchemy import delete
+    from models import HiddenBeatmap
+    async with AsyncSessionFactory() as db:
+        async with db.begin():
+            await db.execute(
+                delete(HiddenBeatmap).where(
+                    HiddenBeatmap.user_id == current_user.id,
+                    HiddenBeatmap.beatmap_id == beatmap_id,
+                )
+            )
+    return {"ok": True, "beatmap_id": beatmap_id}
+
+
+@app.get("/hidden")
+async def list_hidden(current_user: User = Depends(require_user)):
+    from models import HiddenBeatmap
+    from recommendation import _build_records
+    async with AsyncSessionFactory() as db:
+        rows = list((await db.execute(
+            select(HiddenBeatmap).where(HiddenBeatmap.user_id == current_user.id)
+            .order_by(HiddenBeatmap.hidden_at.desc())
+        )).scalars().all())
+    hidden_ids = [r.beatmap_id for r in rows]
+    if not hidden_ids:
+        return {"hidden": []}
+    from models import Beatmap
+    async with AsyncSessionFactory() as db:
+        beatmaps = list((await db.execute(
+            select(Beatmap).where(Beatmap.beatmap_id.in_(hidden_ids))
+        )).scalars().all())
+    records = await _build_records(beatmaps)
+    return {"hidden": records}
 
 
 @app.get("/beatmaps/by-tags")
