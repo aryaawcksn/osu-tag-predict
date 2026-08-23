@@ -27,6 +27,11 @@ const ALL_TAGS = [
 
 const INITIAL_SHOW = 24;
 
+const STATUS_COLORS: Record<string, string> = {
+  ranked: "#b8e994", loved: "#ff6b9d", approved: "#b8e994",
+  qualified: "#74b9ff", pending: "#fbbf24", graveyard: "#636e72", wip: "#fbbf24",
+};
+
 interface Props {
   requireAuth?: boolean;
 }
@@ -36,6 +41,7 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
   const [showAll, setShowAll] = useState(false);
   const [targetStars, setTargetStars] = useState(5);
   const [appliedStars, setAppliedStars] = useState<number | null>(null);
+  const [status, setStatus] = useState<string>("");
   const [results, setResults] = useState<BeatmapRecord[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -65,7 +71,7 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
     const searchParams = { tags: Array.from(selected), minStars: minS, maxStars: maxS };
     setActiveSearch(searchParams);
     try {
-      const res = await getBeatmapsByTags(searchParams.tags, minS, maxS, 0);
+      const res = await getBeatmapsByTags(searchParams.tags, minS, maxS, 0, status || undefined);
       setResults(res.beatmaps);
       setHasMore(res.has_more);
       setOffset(res.beatmaps.length);
@@ -80,7 +86,7 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
     if (!activeSearch) return;
     setLoadingMore(true);
     try {
-      const res = await getBeatmapsByTags(activeSearch.tags, activeSearch.minStars, activeSearch.maxStars, offset);
+      const res = await getBeatmapsByTags(activeSearch.tags, activeSearch.minStars, activeSearch.maxStars, offset, status || undefined);
       setResults(prev => [...(prev ?? []), ...res.beatmaps]);
       setHasMore(res.has_more);
       setOffset(prev => prev + res.beatmaps.length);
@@ -162,6 +168,21 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
             </button>
           )}
         </div>
+      </div>
+
+      {/* Status filter */}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+        {["ranked", "loved", "approved", "qualified", "pending", "graveyard", "wip"].map(s => (
+          <button key={s} onClick={() => setStatus(status === s ? "" : s)}
+            style={{
+              padding: "4px 10px", borderRadius: 20, fontSize: 11, cursor: "pointer",
+              border: "1px solid", textTransform: "capitalize" as const,
+              background: status === s ? `${STATUS_COLORS[s]}22` : "transparent",
+              color: status === s ? STATUS_COLORS[s] : "#636e72",
+              borderColor: status === s ? STATUS_COLORS[s] : "#2e2d3d",
+            }}
+          >{s}</button>
+        ))}
       </div>
 
       {/* Actions */}

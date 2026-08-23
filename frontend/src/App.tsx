@@ -174,7 +174,7 @@ export default function App() {
           <>
             <AnalysisPanel onPlaystyleResult={setDominantPlaystyle} />
             {dominantPlaystyle && (
-              <RecommendationList playstyle={dominantPlaystyle.label} />
+              <RecommendationList playstyle={dominantPlaystyle.label} avgDifficulty={dominantPlaystyle.avg_difficulty} />
             )}
             <BeatmapTagSearch />
           </>

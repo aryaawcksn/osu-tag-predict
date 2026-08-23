@@ -31,6 +31,7 @@ export interface DominantPlaystyle {
   average_probability: number;
   beatmaps_analyzed: number;
   distribution: PlaystyleDistribution[];
+  avg_difficulty?: number;
 }
 
 export interface LabelResult {

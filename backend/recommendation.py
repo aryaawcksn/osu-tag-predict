@@ -169,6 +169,7 @@ async def get_recommendations(
     limit: int = 10,
     min_stars: float | None = None,
     max_stars: float | None = None,
+    status: str | None = None,
 ) -> List[dict]:
     """
     Return beatmaps matching the given playstyle, optionally filtered by difficulty.
@@ -186,6 +187,8 @@ async def get_recommendations(
                 stmt = stmt.where(Beatmap.difficulty_rating >= mn)
             if mx is not None:
                 stmt = stmt.where(Beatmap.difficulty_rating <= mx)
+            if status:
+                stmt = stmt.where(Beatmap.status == status)
             stmt = stmt.order_by(BeatmapLabel.probability.desc()).limit(limit)
             return list((await session.execute(stmt)).scalars().all())
 
@@ -213,6 +216,7 @@ async def get_beatmaps_by_tags(
     offset: int = 0,
     min_stars: float | None = None,
     max_stars: float | None = None,
+    status: str | None = None,
 ) -> List[dict]:
     """
     Return beatmaps that have ALL of the given tags, sorted by average probability
@@ -253,6 +257,8 @@ async def get_beatmaps_by_tags(
             stmt = stmt.where(Beatmap.difficulty_rating >= min_stars)
         if max_stars is not None:
             stmt = stmt.where(Beatmap.difficulty_rating <= max_stars)
+        if status:
+            stmt = stmt.where(Beatmap.status == status)
         stmt = stmt.order_by(avg_subq.c.avg_prob.desc()).limit(limit).offset(offset)
 
         rows = (await session.execute(stmt)).all()

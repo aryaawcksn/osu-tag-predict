@@ -5,16 +5,19 @@ import { BeatmapCard } from "./BeatmapCard";
 
 interface Props {
   playstyle: string;
+  avgDifficulty?: number;
 }
 
-export default function RecommendationList({ playstyle }: Props) {
+const STATUSES = ["ranked", "loved", "approved", "qualified", "pending", "graveyard", "wip"];
+
+export default function RecommendationList({ playstyle, avgDifficulty }: Props) {
   const [records, setRecords] = useState<BeatmapRecord[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // single target star value; backend finds closest if no exact match
-  const [targetStars, setTargetStars] = useState<number>(5);
-  const [appliedStars, setAppliedStars] = useState<number | null>(null);
+  const [targetStars, setTargetStars] = useState<number>(avgDifficulty ?? 5);
+  const [appliedStars, setAppliedStars] = useState<number | null>(avgDifficulty ?? null);
+  const [status, setStatus] = useState<string>("");
 
   useEffect(() => {
     if (!playstyle) return;
@@ -27,7 +30,7 @@ export default function RecommendationList({ playstyle }: Props) {
     const minS = appliedStars != null ? appliedStars - 0.5 : undefined;
     const maxS = appliedStars != null ? appliedStars + 0.5 : undefined;
 
-    getRecommendations(playstyle, minS, maxS)
+    getRecommendations(playstyle, minS, maxS, status || undefined)
       .then((res) => {
         setRecords(res.recommendations);
         if (res.message) setMessage(res.message);
@@ -36,7 +39,7 @@ export default function RecommendationList({ playstyle }: Props) {
         setError(err instanceof Error ? err.message : "Failed to load recommendations");
       })
       .finally(() => setLoading(false));
-  }, [playstyle, appliedStars]);
+  }, [playstyle, appliedStars, status]);
 
   return (
     <div style={containerStyle}>
@@ -46,7 +49,7 @@ export default function RecommendationList({ playstyle }: Props) {
         <strong style={{ color: "#ff6b9d" }}>{playstyle}</strong>
       </p>
 
-      {/* Single difficulty slider */}
+      {/* Filters row */}
       <div style={filterRowStyle}>
         <span style={filterLabelStyle}>Difficulty</span>
         <div style={{ flex: 1 }}>
@@ -65,13 +68,20 @@ export default function RecommendationList({ playstyle }: Props) {
           />
         </div>
         <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-          <button onClick={() => setAppliedStars(targetStars)} style={applyBtnStyle}>
-            Apply
-          </button>
+          <button onClick={() => setAppliedStars(targetStars)} style={applyBtnStyle}>Apply</button>
           {appliedStars != null && (
             <button onClick={() => setAppliedStars(null)} style={clearBtnStyle}>✕</button>
           )}
         </div>
+      </div>
+
+      {/* Status filter */}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+        {STATUSES.map(s => (
+          <button key={s} onClick={() => setStatus(status === s ? "" : s)} style={statusBtnStyle(status === s, s)}>
+            {s}
+          </button>
+        ))}
       </div>
 
       {loading && (
@@ -130,3 +140,20 @@ const emptyStyle: React.CSSProperties = {
   padding: "20px 16px", textAlign: "center", color: "#a7a9be",
   fontSize: 14, background: "#0f0e17", borderRadius: 8, border: "1px solid #2e2d3d",
 };
+
+const STATUS_COLORS: Record<string, string> = {
+  ranked: "#b8e994", loved: "#ff6b9d", approved: "#b8e994",
+  qualified: "#74b9ff", pending: "#fbbf24", graveyard: "#636e72", wip: "#fbbf24",
+};
+
+function statusBtnStyle(active: boolean, s: string): React.CSSProperties {
+  const c = STATUS_COLORS[s] ?? "#a7a9be";
+  return {
+    padding: "4px 10px", borderRadius: 20, fontSize: 11,
+    cursor: "pointer", border: "1px solid",
+    background: active ? `${c}22` : "transparent",
+    color: active ? c : "#636e72",
+    borderColor: active ? c : "#2e2d3d",
+    textTransform: "capitalize",
+  };
+}

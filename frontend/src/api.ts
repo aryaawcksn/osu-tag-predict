@@ -125,10 +125,12 @@ export async function getRecommendations(
   playstyle: string,
   minStars?: number,
   maxStars?: number,
+  status?: string,
 ): Promise<{ recommendations: BeatmapRecord[]; message?: string }> {
   const params = new URLSearchParams({ playstyle });
   if (minStars != null) params.set("min_stars", String(minStars));
   if (maxStars != null) params.set("max_stars", String(maxStars));
+  if (status) params.set("status", status);
   const res = await fetch(`${BASE_URL}/recommend?${params}`,
     { headers: { ...authHeaders() }, credentials: "include" }
   );
@@ -141,10 +143,12 @@ export async function getBeatmapsByTags(
   minStars?: number,
   maxStars?: number,
   offset = 0,
+  status?: string,
 ): Promise<{ beatmaps: BeatmapRecord[]; tags: string[]; has_more: boolean }> {
   const params = new URLSearchParams({ tags: tags.join(","), offset: String(offset) });
   if (minStars != null) params.set("min_stars", String(minStars));
   if (maxStars != null) params.set("max_stars", String(maxStars));
+  if (status) params.set("status", status);
   const res = await fetch(`${BASE_URL}/beatmaps/by-tags?${params}`,
     { headers: { ...authHeaders() }, credentials: "include" }
   );

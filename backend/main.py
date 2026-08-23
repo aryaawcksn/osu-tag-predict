@@ -396,7 +396,7 @@ async def analysis_playstyle(
         )
 
     # Calculate dominant playstyle (Requirement 3.4)
-    dominant = calculate_dominant_playstyle(completed_results)
+    dominant = calculate_dominant_playstyle(completed_results, plays=unique_plays)
     return dominant
 
 
@@ -407,18 +407,14 @@ async def analysis_playstyle(
 
 @app.get("/recommend")
 async def recommend(
-    playstyle: str = Query(..., description="Dominant playstyle label to get recommendations for"),
-    min_stars: Optional[float] = Query(None, description="Minimum difficulty rating"),
-    max_stars: Optional[float] = Query(None, description="Maximum difficulty rating"),
+    playstyle: str = Query(...),
+    min_stars: Optional[float] = Query(None),
+    max_stars: Optional[float] = Query(None),
+    status: Optional[str] = Query(None),
     current_user: User = Depends(require_user),
 ):
-    """
-    Return beatmap recommendations matching the given playstyle label.
-    Optionally filter by difficulty range (min_stars, max_stars).
-    Requirements: 4.1, 4.6
-    """
     from recommendation import get_recommendations
-    results = await get_recommendations(playstyle, min_stars=min_stars, max_stars=max_stars)
+    results = await get_recommendations(playstyle, min_stars=min_stars, max_stars=max_stars, status=status)
     if not results:
         return {"recommendations": [], "message": f"No recommendations available for playstyle '{playstyle}' yet."}
     return {"recommendations": results}
@@ -426,21 +422,18 @@ async def recommend(
 
 @app.get("/beatmaps/by-tags")
 async def beatmaps_by_tags(
-    tags: str = Query(..., description="Comma-separated list of playstyle tags"),
+    tags: str = Query(...),
     min_stars: Optional[float] = Query(None),
     max_stars: Optional[float] = Query(None),
+    status: Optional[str] = Query(None),
     offset: int = Query(0, ge=0),
     current_user: User = Depends(require_user),
 ):
-    """
-    Return beatmaps matching ALL of the given tags, sorted by avg tag probability.
-    Supports pagination via offset.
-    """
     from recommendation import get_beatmaps_by_tags
     tag_list = [t.strip() for t in tags.split(",") if t.strip()]
     if not tag_list:
         raise HTTPException(status_code=400, detail="At least one tag required")
-    results = await get_beatmaps_by_tags(tag_list, offset=offset, min_stars=min_stars, max_stars=max_stars)
+    results = await get_beatmaps_by_tags(tag_list, offset=offset, min_stars=min_stars, max_stars=max_stars, status=status)
     return {"beatmaps": results, "tags": tag_list, "offset": offset, "has_more": len(results) == 20}
 
 

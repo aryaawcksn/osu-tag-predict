@@ -23,6 +23,7 @@ OSU_API_BASE = "https://osu.ppy.sh/api/v2"
 
 class BeatmapScore(BaseModel):
     beatmap_id: str
+    difficulty_rating: float | None = None  # no-mod difficulty, None if mods applied
 
 
 class PlaystyleDistribution(BaseModel):
@@ -35,16 +36,37 @@ class DominantPlaystyle(BaseModel):
     average_probability: float
     beatmaps_analyzed: int
     distribution: list[PlaystyleDistribution]
+    avg_difficulty: float | None = None  # avg no-mod difficulty from play history
 
 
 # --------------------------------------------------------------------------- #
 # osu! API helpers                                                              #
 # --------------------------------------------------------------------------- #
 
+DIFF_CHANGING_MODS = {"DT", "NC", "HT", "HR", "EZ", "FL", "DA", "CL"}
+
+
+def _parse_scores(scores: list) -> List[BeatmapScore]:
+    result = []
+    for score in scores:
+        beatmap = score.get("beatmap") or {}
+        beatmap_id = beatmap.get("id")
+        if beatmap_id is None:
+            continue
+        mods = score.get("mods") or []
+        has_diff_mod = any(
+            (m if isinstance(m, str) else m.get("acronym", "")).upper() in DIFF_CHANGING_MODS
+            for m in mods
+        )
+        diff = beatmap.get("difficulty_rating") if not has_diff_mod else None
+        result.append(BeatmapScore(beatmap_id=str(beatmap_id), difficulty_rating=diff))
+    return result
+
+
 async def fetch_top_plays(user_id: int, token: str, limit: int = 50) -> List[BeatmapScore]:
     """
     Fetch the user's top plays from osu! API.
-    Returns a list of BeatmapScore containing beatmap_id strings.
+    Returns a list of BeatmapScore containing beatmap_id and no-mod difficulty.
     Requirements: 3.1, 3.2
     """
     url = f"{OSU_API_BASE}/users/{user_id}/scores/best"
@@ -57,20 +79,13 @@ async def fetch_top_plays(user_id: int, token: str, limit: int = 50) -> List[Bea
     if resp.status_code != 200:
         raise ValueError(f"osu! API error {resp.status_code}: {resp.text}")
 
-    scores = resp.json()
-    result = []
-    for score in scores:
-        beatmap = score.get("beatmap") or {}
-        beatmap_id = beatmap.get("id")
-        if beatmap_id is not None:
-            result.append(BeatmapScore(beatmap_id=str(beatmap_id)))
-    return result
+    return _parse_scores(resp.json())
 
 
 async def fetch_recent_plays(user_id: int, token: str, limit: int = 50) -> List[BeatmapScore]:
     """
     Fetch the user's recent plays from osu! API.
-    Returns a list of BeatmapScore containing beatmap_id strings.
+    Returns a list of BeatmapScore containing beatmap_id and no-mod difficulty.
     Requirements: 3.1, 3.2
     """
     url = f"{OSU_API_BASE}/users/{user_id}/scores/recent"
@@ -83,21 +98,17 @@ async def fetch_recent_plays(user_id: int, token: str, limit: int = 50) -> List[
     if resp.status_code != 200:
         raise ValueError(f"osu! API error {resp.status_code}: {resp.text}")
 
-    scores = resp.json()
-    result = []
-    for score in scores:
-        beatmap = score.get("beatmap") or {}
-        beatmap_id = beatmap.get("id")
-        if beatmap_id is not None:
-            result.append(BeatmapScore(beatmap_id=str(beatmap_id)))
-    return result
+    return _parse_scores(resp.json())
 
 
 # --------------------------------------------------------------------------- #
 # Dominant playstyle calculation                                                #
 # --------------------------------------------------------------------------- #
 
-def calculate_dominant_playstyle(predictions: List[dict]) -> DominantPlaystyle:
+def calculate_dominant_playstyle(
+    predictions: List[dict],
+    plays: List[BeatmapScore] | None = None,
+) -> DominantPlaystyle:
     """
     Given a list of prediction result dicts (each with 'all_labels' or
     'predicted_labels' key containing [{'label': str, 'probability': float}]),
@@ -138,9 +149,17 @@ def calculate_dominant_playstyle(predictions: List[dict]) -> DominantPlaystyle:
         for lbl, avg in sorted(averages.items(), key=lambda x: x[1], reverse=True)
     ]
 
+    # Avg no-mod difficulty from play history (exclude mods-affected plays)
+    avg_difficulty: float | None = None
+    if plays:
+        diffs = [p.difficulty_rating for p in plays if p.difficulty_rating is not None]
+        if diffs:
+            avg_difficulty = round(sum(diffs) / len(diffs), 2)
+
     return DominantPlaystyle(
         label=dominant_label,
         average_probability=round(averages[dominant_label], 4),
         beatmaps_analyzed=n,
         distribution=distribution,
+        avg_difficulty=avg_difficulty,
     )
