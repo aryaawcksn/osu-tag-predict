@@ -190,11 +190,15 @@ export async function getBeatmapsByTags(
   maxStars?: number,
   offset = 0,
   status?: string,
+  yearFrom?: number,
+  yearTo?: number,
 ): Promise<{ beatmaps: BeatmapRecord[]; tags: string[]; has_more: boolean }> {
   const params = new URLSearchParams({ tags: tags.join(","), offset: String(offset) });
   if (minStars != null) params.set("min_stars", String(minStars));
   if (maxStars != null) params.set("max_stars", String(maxStars));
   if (status) params.set("status", status);
+  if (yearFrom != null) params.set("year_from", String(yearFrom));
+  if (yearTo != null) params.set("year_to", String(yearTo));
   const res = await fetch(`${BASE_URL}/beatmaps/by-tags?${params}`,
     { headers: { ...authHeaders() }, credentials: "include" }
   );

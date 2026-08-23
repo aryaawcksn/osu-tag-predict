@@ -42,7 +42,18 @@ async def lifespan(app: FastAPI):
         print("Queue state restored from DB")
     except Exception as exc:
         print(f"Warning: could not restore queue from DB: {exc}")
+
+    # Start daily beatmap crawler in background (non-blocking)
+    from crawler import start_daily_crawler
+    crawler_task = asyncio.create_task(start_daily_crawler())
+
     yield
+
+    crawler_task.cancel()
+    try:
+        await crawler_task
+    except asyncio.CancelledError:
+        pass
     # Dispose engine on shutdown to close all pooled connections
     await engine.dispose()
 
@@ -167,6 +178,30 @@ async def get_stats():
             select(sqlfunc.count()).select_from(BeatmapModel)
         )).scalar_one()
     return {"total_users": total_users, "total_beatmaps": total_beatmaps}
+
+
+@app.get("/crawler/status")
+async def crawler_status(
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+):
+    admin_key = os.environ.get("ADMIN_KEY", "")
+    if not admin_key or x_admin_key != admin_key:
+        raise HTTPException(status_code=403, detail="Invalid or missing admin key")
+    from crawler import get_crawler_status
+    return get_crawler_status()
+
+
+@app.post("/crawler/run", status_code=200)
+async def crawler_run_now(
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+):
+    """Manually trigger a crawler run (admin only)."""
+    admin_key = os.environ.get("ADMIN_KEY", "")
+    if not admin_key or x_admin_key != admin_key:
+        raise HTTPException(status_code=403, detail="Invalid or missing admin key")
+    from crawler import run_crawl
+    asyncio.create_task(run_crawl())
+    return {"ok": True, "message": "Crawler run started in background"}
 
 
 # --------------------------------------------------------------------------- #
@@ -600,13 +635,18 @@ async def beatmaps_by_tags(
     max_stars: Optional[float] = Query(None),
     status: Optional[str] = Query(None),
     offset: int = Query(0, ge=0),
+    year_from: Optional[int] = Query(None),
+    year_to: Optional[int] = Query(None),
     current_user: User = Depends(require_user),
 ):
     from recommendation import get_beatmaps_by_tags
     tag_list = [t.strip() for t in tags.split(",") if t.strip()]
     if not tag_list:
         raise HTTPException(status_code=400, detail="At least one tag required")
-    results = await get_beatmaps_by_tags(tag_list, offset=offset, min_stars=min_stars, max_stars=max_stars, status=status)
+    results = await get_beatmaps_by_tags(
+        tag_list, offset=offset, min_stars=min_stars, max_stars=max_stars,
+        status=status, year_from=year_from, year_to=year_to,
+    )
     return {"beatmaps": results, "tags": tag_list, "offset": offset, "has_more": len(results) == 20}
 
 

@@ -89,6 +89,7 @@ class Beatmap(Base):
     list_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     model_version: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     beatmapset_id: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    ranked_date: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)  # ISO date string
     predicted_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()

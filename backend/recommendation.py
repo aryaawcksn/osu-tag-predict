@@ -106,6 +106,7 @@ async def _fetch_osu_metadata(beatmap_id: str) -> Optional[dict]:
         "card_url": covers.get("card"),
         "list_url": covers.get("list"),
         "beatmapset_id": str(bset["id"]) if bset.get("id") is not None else None,
+        "ranked_date": bset.get("ranked_date"),
         # Stats available from osu! API — fill in if not already stored
         "bpm": data.get("bpm"),
         "ar": data.get("ar"),
@@ -142,6 +143,7 @@ async def upsert_beatmap(result: dict) -> dict:
         model_version=MODEL_VERSION,
         updated_at=now,
         beatmapset_id=result.get("beatmapset_id"),
+        ranked_date=result.get("ranked_date"),
     )
 
     async with AsyncSessionFactory() as session:
@@ -253,6 +255,8 @@ async def get_beatmaps_by_tags(
     min_stars: float | None = None,
     max_stars: float | None = None,
     status: str | None = None,
+    year_from: int | None = None,
+    year_to: int | None = None,
 ) -> List[dict]:
     """
     Return beatmaps that have ALL of the given tags, sorted by average probability
@@ -295,6 +299,10 @@ async def get_beatmaps_by_tags(
             stmt = stmt.where(Beatmap.difficulty_rating <= max_stars)
         if status:
             stmt = stmt.where(Beatmap.status == status)
+        if year_from is not None:
+            stmt = stmt.where(Beatmap.ranked_date >= f"{year_from}-01-01")
+        if year_to is not None:
+            stmt = stmt.where(Beatmap.ranked_date <= f"{year_to}-12-31")
         stmt = stmt.order_by(avg_subq.c.avg_prob.desc()).limit(limit).offset(offset)
 
         rows = (await session.execute(stmt)).all()
@@ -351,6 +359,7 @@ async def _build_records(beatmaps: list) -> List[dict]:
             records.append({
                 "beatmap_id": bm.beatmap_id,
                 "beatmapset_id": bm.beatmapset_id,
+                "ranked_date": bm.ranked_date,
                 "bpm": bm.bpm,
                 "ar": bm.ar,
                 "cs": bm.cs,

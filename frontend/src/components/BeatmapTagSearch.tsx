@@ -27,6 +27,9 @@ const ALL_TAGS = [
 
 const INITIAL_SHOW = 24;
 
+const CURRENT_YEAR = new Date().getFullYear();
+const YEARS = Array.from({ length: CURRENT_YEAR - 2007 + 1 }, (_, i) => CURRENT_YEAR - i);
+
 const STATUS_COLORS: Record<string, string> = {
   ranked: "#b8e994", loved: "#ff6b9d", approved: "#b8e994",
   qualified: "#74b9ff", pending: "#fbbf24", graveyard: "#636e72", wip: "#fbbf24",
@@ -42,13 +45,18 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
   const [targetStars, setTargetStars] = useState(5);
   const [appliedStars, setAppliedStars] = useState<number | null>(null);
   const [status, setStatus] = useState<string>("");
+  const [yearFrom, setYearFrom] = useState<number | null>(null);
+  const [yearTo, setYearTo] = useState<number | null>(null);
   const [results, setResults] = useState<BeatmapRecord[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [offset, setOffset] = useState(0);
-  const [activeSearch, setActiveSearch] = useState<{ tags: string[]; minStars?: number; maxStars?: number } | null>(null);
+  const [activeSearch, setActiveSearch] = useState<{
+    tags: string[]; minStars?: number; maxStars?: number;
+    yearFrom?: number; yearTo?: number;
+  } | null>(null);
 
   const visibleTags = showAll ? ALL_TAGS : ALL_TAGS.slice(0, INITIAL_SHOW);
 
@@ -68,10 +76,16 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
     setOffset(0);
     const minS = appliedStars != null ? appliedStars - 0.5 : undefined;
     const maxS = appliedStars != null ? appliedStars + 0.5 : undefined;
-    const searchParams = { tags: Array.from(selected), minStars: minS, maxStars: maxS };
+    const searchParams = {
+      tags: Array.from(selected), minStars: minS, maxStars: maxS,
+      yearFrom: yearFrom ?? undefined, yearTo: yearTo ?? undefined,
+    };
     setActiveSearch(searchParams);
     try {
-      const res = await getBeatmapsByTags(searchParams.tags, minS, maxS, 0, status || undefined);
+      const res = await getBeatmapsByTags(
+        searchParams.tags, minS, maxS, 0, status || undefined,
+        searchParams.yearFrom, searchParams.yearTo,
+      );
       setResults(res.beatmaps);
       setHasMore(res.has_more);
       setOffset(res.beatmaps.length);
@@ -86,7 +100,10 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
     if (!activeSearch) return;
     setLoadingMore(true);
     try {
-      const res = await getBeatmapsByTags(activeSearch.tags, activeSearch.minStars, activeSearch.maxStars, offset, status || undefined);
+      const res = await getBeatmapsByTags(
+        activeSearch.tags, activeSearch.minStars, activeSearch.maxStars,
+        offset, status || undefined, activeSearch.yearFrom, activeSearch.yearTo,
+      );
       setResults(prev => [...(prev ?? []), ...res.beatmaps]);
       setHasMore(res.has_more);
       setOffset(prev => prev + res.beatmaps.length);
@@ -104,6 +121,8 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
     setHasMore(false);
     setOffset(0);
     setActiveSearch(null);
+    setYearFrom(null);
+    setYearTo(null);
   }
 
   return (
@@ -183,6 +202,34 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
             }}
           >{s}</button>
         ))}
+      </div>
+
+      {/* Year range filter */}
+      <div style={{ ...filterRowStyle, marginTop: 10, gap: 10 }}>
+        <span style={{ fontSize: 12, color: "#a7a9be", flexShrink: 0 }}>Year</span>
+        <select
+          value={yearFrom ?? ""}
+          onChange={e => setYearFrom(e.target.value ? Number(e.target.value) : null)}
+          style={yearSelectStyle}
+        >
+          <option value="">From</option>
+          {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+        </select>
+        <span style={{ color: "#636e72", fontSize: 12 }}>–</span>
+        <select
+          value={yearTo ?? ""}
+          onChange={e => setYearTo(e.target.value ? Number(e.target.value) : null)}
+          style={yearSelectStyle}
+        >
+          <option value="">To</option>
+          {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+        </select>
+        {(yearFrom != null || yearTo != null) && (
+          <button
+            onClick={() => { setYearFrom(null); setYearTo(null); }}
+            style={{ padding: "3px 8px", borderRadius: 5, border: "1px solid #2e2d3d", background: "transparent", color: "#a7a9be", fontSize: 11, cursor: "pointer" }}
+          >✕</button>
+        )}
       </div>
 
       {/* Actions */}
@@ -300,4 +347,9 @@ const loadMoreStyle: React.CSSProperties = {
   border: "1px solid #2e2d3d", background: "transparent",
   color: "#a7a9be", fontSize: 13, cursor: "pointer",
   textAlign: "center",
+};
+
+const yearSelectStyle: React.CSSProperties = {
+  padding: "4px 8px", borderRadius: 6, border: "1px solid #2e2d3d",
+  background: "#0f0e17", color: "#a7a9be", fontSize: 12, cursor: "pointer",
 };

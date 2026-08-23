@@ -68,6 +68,7 @@ export interface PredictResult {
 export interface BeatmapRecord {
   beatmap_id: string;
   beatmapset_id: string | null;
+  ranked_date: string | null;
   bpm: number | null;
   ar: number | null;
   cs: number | null;
