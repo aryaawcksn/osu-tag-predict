@@ -150,11 +150,32 @@ export async function unhideBeatmap(beatmapId: string): Promise<void> {
   });
 }
 
-export async function getHiddenBeatmaps(): Promise<{ hidden: BeatmapRecord[] }> {
+export async function hideBeatmapset(beatmapsetId: string): Promise<void> {
+  await fetch(`${BASE_URL}/hidden/set/${beatmapsetId}`, {
+    method: "POST", headers: { ...authHeaders() }, credentials: "include",
+  });
+}
+
+export async function unhideBeatmapset(beatmapsetId: string): Promise<void> {
+  await fetch(`${BASE_URL}/hidden/set/${beatmapsetId}`, {
+    method: "DELETE", headers: { ...authHeaders() }, credentials: "include",
+  });
+}
+
+export async function multiUnhide(beatmapIds: string[], beatmapsetIds: string[]): Promise<void> {
+  await fetch(`${BASE_URL}/hidden/multi-unhide`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    credentials: "include",
+    body: JSON.stringify({ beatmap_ids: beatmapIds, beatmapset_ids: beatmapsetIds }),
+  });
+}
+
+export async function getHiddenBeatmaps(): Promise<{ hidden: BeatmapRecord[]; hidden_sets: string[] }> {
   const res = await fetch(`${BASE_URL}/hidden`, {
     headers: { ...authHeaders() }, credentials: "include",
   });
-  return handleResponse<{ hidden: BeatmapRecord[] }>(res);
+  return handleResponse<{ hidden: BeatmapRecord[]; hidden_sets: string[] }>(res);
 }
 
 // Get beatmaps by multiple tags

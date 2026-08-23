@@ -430,6 +430,108 @@ async def recommend(
 # Hidden beatmaps endpoints                                                     #
 # --------------------------------------------------------------------------- #
 
+# NOTE: specific routes MUST come before parametric /{beatmap_id} routes
+
+@app.get("/hidden")
+async def list_hidden(current_user: User = Depends(require_user)):
+    from models import HiddenBeatmap, HiddenBeatmapset
+    from recommendation import _build_records
+    async with AsyncSessionFactory() as db:
+        indiv_rows = list((await db.execute(
+            select(HiddenBeatmap).where(HiddenBeatmap.user_id == current_user.id)
+            .order_by(HiddenBeatmap.hidden_at.desc())
+        )).scalars().all())
+        set_rows = list((await db.execute(
+            select(HiddenBeatmapset).where(HiddenBeatmapset.user_id == current_user.id)
+            .order_by(HiddenBeatmapset.hidden_at.desc())
+        )).scalars().all())
+
+    hidden_beatmap_ids = [r.beatmap_id for r in indiv_rows]
+    hidden_set_ids = [r.beatmapset_id for r in set_rows]
+
+    set_beatmap_ids: list[str] = []
+    if hidden_set_ids:
+        from models import Beatmap as BeatmapModel
+        async with AsyncSessionFactory() as db:
+            set_beatmap_ids = list((await db.execute(
+                select(BeatmapModel.beatmap_id).where(BeatmapModel.beatmapset_id.in_(hidden_set_ids))
+            )).scalars().all())
+
+    all_hidden_ids = list(set(hidden_beatmap_ids + set_beatmap_ids))
+    if not all_hidden_ids:
+        return {"hidden": [], "hidden_sets": hidden_set_ids}
+
+    from models import Beatmap as BeatmapModel
+    async with AsyncSessionFactory() as db:
+        beatmaps = list((await db.execute(
+            select(BeatmapModel).where(BeatmapModel.beatmap_id.in_(all_hidden_ids))
+        )).scalars().all())
+    records = await _build_records(beatmaps)
+
+    for r in records:
+        bm_setid = r.get("beatmapset_id")
+        r["hidden_by"] = "set" if (bm_setid and bm_setid in hidden_set_ids) else "beatmap"
+
+    return {"hidden": records, "hidden_sets": hidden_set_ids}
+
+
+@app.post("/hidden/set/{beatmapset_id}", status_code=200)
+async def hide_beatmapset(beatmapset_id: str, current_user: User = Depends(require_user)):
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
+    from models import HiddenBeatmapset
+    async with AsyncSessionFactory() as db:
+        async with db.begin():
+            stmt = pg_insert(HiddenBeatmapset).values(
+                user_id=current_user.id, beatmapset_id=beatmapset_id
+            ).on_conflict_do_nothing()
+            await db.execute(stmt)
+    return {"ok": True, "beatmapset_id": beatmapset_id}
+
+
+@app.delete("/hidden/set/{beatmapset_id}", status_code=200)
+async def unhide_beatmapset(beatmapset_id: str, current_user: User = Depends(require_user)):
+    from sqlalchemy import delete
+    from models import HiddenBeatmapset
+    async with AsyncSessionFactory() as db:
+        async with db.begin():
+            await db.execute(
+                delete(HiddenBeatmapset).where(
+                    HiddenBeatmapset.user_id == current_user.id,
+                    HiddenBeatmapset.beatmapset_id == beatmapset_id,
+                )
+            )
+    return {"ok": True, "beatmapset_id": beatmapset_id}
+
+
+@app.post("/hidden/multi-unhide", status_code=200)
+async def multi_unhide(
+    payload: dict,
+    current_user: User = Depends(require_user),
+):
+    """Unhide multiple beatmaps and/or beatmapsets at once."""
+    from sqlalchemy import delete
+    from models import HiddenBeatmap, HiddenBeatmapset
+    beatmap_ids: list[str] = payload.get("beatmap_ids", [])
+    beatmapset_ids: list[str] = payload.get("beatmapset_ids", [])
+    async with AsyncSessionFactory() as db:
+        async with db.begin():
+            if beatmap_ids:
+                await db.execute(
+                    delete(HiddenBeatmap).where(
+                        HiddenBeatmap.user_id == current_user.id,
+                        HiddenBeatmap.beatmap_id.in_(beatmap_ids),
+                    )
+                )
+            if beatmapset_ids:
+                await db.execute(
+                    delete(HiddenBeatmapset).where(
+                        HiddenBeatmapset.user_id == current_user.id,
+                        HiddenBeatmapset.beatmapset_id.in_(beatmapset_ids),
+                    )
+                )
+    return {"ok": True}
+
+
 @app.post("/hidden/{beatmap_id}", status_code=200)
 async def hide_beatmap(beatmap_id: str, current_user: User = Depends(require_user)):
     from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -444,7 +546,7 @@ async def hide_beatmap(beatmap_id: str, current_user: User = Depends(require_use
 
 
 @app.delete("/hidden/{beatmap_id}", status_code=200)
-async def unhide_beatmap(beatmap_id: str, current_user: User = Depends(require_user)):
+async def unhide_beatmap_single(beatmap_id: str, current_user: User = Depends(require_user)):
     from sqlalchemy import delete
     from models import HiddenBeatmap
     async with AsyncSessionFactory() as db:
@@ -458,25 +560,22 @@ async def unhide_beatmap(beatmap_id: str, current_user: User = Depends(require_u
     return {"ok": True, "beatmap_id": beatmap_id}
 
 
-@app.get("/hidden")
-async def list_hidden(current_user: User = Depends(require_user)):
-    from models import HiddenBeatmap
-    from recommendation import _build_records
+@app.delete("/admin/beatmaps/no-set", status_code=200)
+async def delete_beatmaps_without_set(
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+):
+    """Delete all beatmaps that have no beatmapset_id (orphaned records)."""
+    admin_key = os.environ.get("ADMIN_KEY", "")
+    if not admin_key or x_admin_key != admin_key:
+        raise HTTPException(status_code=403, detail="Invalid or missing admin key")
+    from sqlalchemy import delete as sa_delete
+    from models import Beatmap as BeatmapModel
     async with AsyncSessionFactory() as db:
-        rows = list((await db.execute(
-            select(HiddenBeatmap).where(HiddenBeatmap.user_id == current_user.id)
-            .order_by(HiddenBeatmap.hidden_at.desc())
-        )).scalars().all())
-    hidden_ids = [r.beatmap_id for r in rows]
-    if not hidden_ids:
-        return {"hidden": []}
-    from models import Beatmap
-    async with AsyncSessionFactory() as db:
-        beatmaps = list((await db.execute(
-            select(Beatmap).where(Beatmap.beatmap_id.in_(hidden_ids))
-        )).scalars().all())
-    records = await _build_records(beatmaps)
-    return {"hidden": records}
+        async with db.begin():
+            result = await db.execute(
+                sa_delete(BeatmapModel).where(BeatmapModel.beatmapset_id.is_(None))
+            )
+    return {"ok": True, "deleted": result.rowcount}
 
 
 @app.get("/beatmaps/by-tags")

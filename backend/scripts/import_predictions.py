@@ -45,11 +45,13 @@ async def import_file(path: str) -> None:
             skipped += 1
             continue
 
+        set_id = item.get("set_id")
         core = dict(
             difficulty_rating=item.get("star_rating"),
             version=item.get("diff_name"),
             model_version=MODEL_VERSION,
             updated_at=now,
+            beatmapset_id=str(set_id) if set_id is not None else None,
         )
 
         async with AsyncSessionFactory() as session:

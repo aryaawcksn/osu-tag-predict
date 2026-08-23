@@ -88,6 +88,7 @@ class Beatmap(Base):
     card_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     list_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     model_version: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    beatmapset_id: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     predicted_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
@@ -125,3 +126,17 @@ class HiddenBeatmap(Base):
     hidden_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     __table_args__ = (UniqueConstraint("user_id", "beatmap_id", name="uq_hidden_beatmap"),)
+
+
+class HiddenBeatmapset(Base):
+    """Beatmapsets hidden by a user — hides all diffs of that set."""
+    __tablename__ = "hidden_beatmapsets"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    beatmapset_id: Mapped[str] = mapped_column(String(20), nullable=False)
+    hidden_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    __table_args__ = (UniqueConstraint("user_id", "beatmapset_id", name="uq_hidden_beatmapset"),)

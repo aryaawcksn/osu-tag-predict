@@ -95,15 +95,23 @@ async def _fetch_osu_metadata(beatmap_id: str) -> Optional[dict]:
 
     data = resp.json()
     covers = data.get("beatmapset", {}).get("covers", {})
+    bset = data.get("beatmapset") or {}
     return {
-        "title": data.get("beatmapset", {}).get("title"),
-        "artist": data.get("beatmapset", {}).get("artist"),
+        "title": bset.get("title"),
+        "artist": bset.get("artist"),
         "version": data.get("version"),
         "difficulty_rating": data.get("difficulty_rating"),
         "status": data.get("status"),
         "cover_url": covers.get("cover"),
         "card_url": covers.get("card"),
         "list_url": covers.get("list"),
+        "beatmapset_id": str(bset["id"]) if bset.get("id") is not None else None,
+        # Stats available from osu! API — fill in if not already stored
+        "bpm": data.get("bpm"),
+        "ar": data.get("ar"),
+        "cs": data.get("cs"),
+        "od": data.get("accuracy"),   # osu! API: "accuracy" field = OD
+        "object_count": data.get("count_circles", 0) + data.get("count_sliders", 0) + data.get("count_spinners", 0) or None,
     }
 
 
@@ -133,6 +141,7 @@ async def upsert_beatmap(result: dict) -> dict:
         object_count=result.get("object_count"),
         model_version=MODEL_VERSION,
         updated_at=now,
+        beatmapset_id=result.get("beatmapset_id"),
     )
 
     async with AsyncSessionFactory() as session:
@@ -165,13 +174,26 @@ async def upsert_beatmap(result: dict) -> dict:
 # --------------------------------------------------------------------------- #
 
 async def get_hidden_ids(user_id: int) -> list[str]:
-    """Return list of beatmap_ids hidden by the user."""
-    from models import HiddenBeatmap
+    """Return list of beatmap_ids hidden by the user (individual + set-level)."""
+    from models import HiddenBeatmap, HiddenBeatmapset
     async with AsyncSessionFactory() as session:
-        rows = list((await session.execute(
+        # Individual hidden beatmaps
+        individual = list((await session.execute(
             select(HiddenBeatmap.beatmap_id).where(HiddenBeatmap.user_id == user_id)
         )).scalars().all())
-    return rows
+
+        # Hidden beatmapsets → resolve to beatmap_ids
+        hidden_sets = list((await session.execute(
+            select(HiddenBeatmapset.beatmapset_id).where(HiddenBeatmapset.user_id == user_id)
+        )).scalars().all())
+
+        set_beatmap_ids: list[str] = []
+        if hidden_sets:
+            set_beatmap_ids = list((await session.execute(
+                select(Beatmap.beatmap_id).where(Beatmap.beatmapset_id.in_(hidden_sets))
+            )).scalars().all())
+
+    return list(set(individual + set_beatmap_ids))
 
 
 async def get_recommendations(
@@ -283,24 +305,37 @@ async def get_beatmaps_by_tags(
 
 async def _build_records(beatmaps: list) -> List[dict]:
     """Lazy-fetch metadata and build response dicts."""
-    # Lazy-fetch metadata for beatmaps that don't have it yet
-    missing = [bm for bm in beatmaps if bm.title is None]
+    # Lazy-fetch metadata for beatmaps missing title OR missing stats (imported from JSON)
+    missing = [bm for bm in beatmaps if bm.title is None or bm.bpm is None]
     if missing:
         fetch_tasks = [_fetch_osu_metadata(bm.beatmap_id) for bm in missing]
         metadata_results = await asyncio.gather(*fetch_tasks, return_exceptions=True)
 
         updates = []
+        stats_keys = {"bpm", "ar", "cs", "od", "object_count"}
         for bm, meta in zip(missing, metadata_results):
             if isinstance(meta, dict) and meta:
-                updates.append({"beatmap_id": bm.beatmap_id, **meta})
+                update_dict = {"beatmap_id": bm.beatmap_id}
                 for k, v in meta.items():
+                    if k in stats_keys and getattr(bm, k, None) is not None:
+                        continue  # keep existing predicted value
+                    update_dict[k] = v
                     setattr(bm, k, v)
+                updates.append(update_dict)
 
         if updates:
             async with AsyncSessionFactory() as session:
                 async with session.begin():
                     for u in updates:
                         bid = u.pop("beatmap_id")
+                        # Only update stats columns if currently null in DB
+                        # (predicted values from .osu file are more accurate than API)
+                        stats_keys = {"bpm", "ar", "cs", "od", "object_count"}
+                        bm_obj = next((b for b in missing if b.beatmap_id == bid), None)
+                        if bm_obj:
+                            for k in stats_keys:
+                                if k in u and getattr(bm_obj, k, None) is not None:
+                                    u.pop(k)  # don't overwrite existing predicted value
                         await session.execute(
                             update(Beatmap).where(Beatmap.beatmap_id == bid).values(**u)
                         )
@@ -315,6 +350,7 @@ async def _build_records(beatmaps: list) -> List[dict]:
             )
             records.append({
                 "beatmap_id": bm.beatmap_id,
+                "beatmapset_id": bm.beatmapset_id,
                 "bpm": bm.bpm,
                 "ar": bm.ar,
                 "cs": bm.cs,

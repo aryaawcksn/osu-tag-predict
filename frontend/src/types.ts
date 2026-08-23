@@ -67,6 +67,7 @@ export interface PredictResult {
 // Beatmap recommendation record (Requirements 4.2)
 export interface BeatmapRecord {
   beatmap_id: string;
+  beatmapset_id: string | null;
   bpm: number | null;
   ar: number | null;
   cs: number | null;
@@ -81,4 +82,5 @@ export interface BeatmapRecord {
   card_url: string | null;
   list_url: string | null;
   labels: LabelResult[];
+  hidden_by?: "beatmap" | "set";
 }

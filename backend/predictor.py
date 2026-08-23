@@ -81,6 +81,7 @@ def fetch_beatmap_metadata(beatmap_id: str) -> dict:
         "cover_url": covers.get("cover"),
         "card_url": covers.get("card"),
         "list_url": covers.get("list"),
+        "beatmapset_id": str(bset["id"]) if bset.get("id") is not None else None,
         "play_count": data.get("playcount"),
         "favourite_count": bset.get("favourite_count"),
         "ranked_date": bset.get("ranked_date"),

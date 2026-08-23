@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { BeatmapRecord } from "../types";
-import { getRecommendations, hideBeatmap } from "../api";
+import { getRecommendations, hideBeatmap, hideBeatmapset } from "../api";
 import { BeatmapCard } from "./BeatmapCard";
 
 interface Props {
@@ -23,7 +23,6 @@ export default function RecommendationList({ playstyle, avgDifficulty }: Props) 
   const [status, setStatus] = useState<string>("");
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
-  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
 
   async function fetchRecs(off: number, replace: boolean) {
     if (!playstyle) return;
@@ -50,19 +49,17 @@ export default function RecommendationList({ playstyle, avgDifficulty }: Props) 
   }, [playstyle, appliedStars, status]);
 
   function handleRefresh() {
-    const newOffset = offset;
-    fetchRecs(newOffset, false);
+    fetchRecs(offset, false);
   }
 
   async function handleHide(beatmapId: string) {
-    setHiddenIds(prev => new Set([...prev, beatmapId]));
     setRecords(prev => prev.filter(r => r.beatmap_id !== beatmapId));
-    try {
-      await hideBeatmap(beatmapId);
-    } catch {
-      // revert on failure
-      setHiddenIds(prev => { const n = new Set(prev); n.delete(beatmapId); return n; });
-    }
+    await hideBeatmap(beatmapId).catch(() => {});
+  }
+
+  async function handleHideSet(beatmapsetId: string) {
+    setRecords(prev => prev.filter(r => r.beatmapset_id !== beatmapsetId));
+    await hideBeatmapset(beatmapsetId).catch(() => {});
   }
 
   return (
@@ -76,7 +73,7 @@ export default function RecommendationList({ playstyle, avgDifficulty }: Props) 
       <p style={subtextStyle}>
         Maps matching your dominant playstyle:{" "}
         <strong style={{ color: "#ff6b9d" }}>{playstyle}</strong>
-        <span style={{ color: "#636e72", fontSize: 11, marginLeft: 8 }}>swipe right to hide</span>
+        <span style={{ color: "#636e72", fontSize: 11, marginLeft: 8 }}>right-click a card to hide</span>
       </p>
 
       {/* Difficulty filter */}
@@ -126,7 +123,13 @@ export default function RecommendationList({ playstyle, avgDifficulty }: Props) 
       {records.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {records.map((bm) => (
-            <SwipeableCard key={bm.beatmap_id} record={bm} onHide={handleHide} />
+            <BeatmapCard
+              key={bm.beatmap_id}
+              record={bm}
+              highlightTags={[playstyle]}
+              onHide={handleHide}
+              onHideSet={handleHideSet}
+            />
           ))}
         </div>
       )}
@@ -136,76 +139,6 @@ export default function RecommendationList({ playstyle, avgDifficulty }: Props) 
           {loading ? "Loading…" : "↓ Load more"}
         </button>
       )}
-    </div>
-  );
-}
-
-// -------------------------------------------------------------------------- //
-// Swipeable card wrapper                                                       //
-// -------------------------------------------------------------------------- //
-
-function SwipeableCard({ record, onHide }: { record: BeatmapRecord; onHide: (id: string) => void }) {
-  const [translateX, setTranslateX] = useState(0);
-  const [hiding, setHiding] = useState(false);
-  const startX = useRef<number | null>(null);
-  const isDragging = useRef(false);
-
-  const THRESHOLD = 80; // px to trigger hide
-
-  function onPointerDown(e: React.PointerEvent) {
-    startX.current = e.clientX;
-    isDragging.current = true;
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  }
-
-  function onPointerMove(e: React.PointerEvent) {
-    if (!isDragging.current || startX.current == null) return;
-    const delta = e.clientX - startX.current;
-    if (delta > 0) setTranslateX(delta); // only right swipe
-  }
-
-  function onPointerUp() {
-    if (!isDragging.current) return;
-    isDragging.current = false;
-    if (translateX >= THRESHOLD) {
-      setHiding(true);
-      setTimeout(() => onHide(record.beatmap_id), 300);
-    } else {
-      setTranslateX(0);
-    }
-    startX.current = null;
-  }
-
-  const opacity = hiding ? 0 : Math.max(0, 1 - translateX / 200);
-  const showHideLabel = translateX > 20;
-
-  return (
-    <div style={{ position: "relative", overflow: "hidden", borderRadius: 10 }}>
-      {/* Hide indicator behind card */}
-      <div style={{
-        position: "absolute", inset: 0, display: "flex", alignItems: "center",
-        paddingLeft: 20, background: "rgba(255,107,157,0.15)",
-        borderRadius: 10, border: "1px solid rgba(255,107,157,0.3)",
-        opacity: showHideLabel ? 1 : 0, transition: "opacity 0.1s",
-      }}>
-        <span style={{ fontSize: 12, color: "#ff6b9d", fontWeight: 600 }}>👋 Hide</span>
-      </div>
-
-      <div
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-        style={{
-          transform: `translateX(${translateX}px)`,
-          opacity,
-          transition: hiding ? "transform 0.3s ease, opacity 0.3s ease" : isDragging.current ? "none" : "transform 0.2s ease",
-          cursor: "grab",
-          userSelect: "none",
-        }}
-      >
-        <BeatmapCard record={record} />
-      </div>
     </div>
   );
 }
