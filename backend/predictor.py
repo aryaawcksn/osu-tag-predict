@@ -137,6 +137,19 @@ def download_osu(beatmap_id: str, save_dir: str = "/tmp") -> str | None:
         return None
 
 
+def _patch_osu_file(file_path: str) -> None:
+    """Inject missing optional fields that slider library requires but model doesn't use."""
+    with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+        content = f.read()
+    modified = False
+    if "PreviewTime" not in content:
+        content = content.replace("[General]", "[General]\nPreviewTime:0", 1)
+        modified = True
+    if modified:
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(content)
+
+
 def parse_osu_file(file_path: str) -> dict | None:
     data = {
         "HP": 5.0, "CS": 4.0, "OD": 5.0, "AR": 5.0,
@@ -144,6 +157,7 @@ def parse_osu_file(file_path: str) -> dict | None:
         "BPM": 120.0, "hit_objects": [], "timing_points": [],
     }
     try:
+        _patch_osu_file(file_path)
         bm = slider.Beatmap.from_path(file_path)
         hit_objects = list(bm.hit_objects())
         if not hit_objects or hit_objects[-1].time.total_seconds() * 1000 > 600000:
@@ -225,7 +239,7 @@ def parse_osu_file(file_path: str) -> dict | None:
                 data["BPM"] = 60000 / tp["beat_len"]
                 break
         return data
-    except OSError:
+    except Exception:
         return None
 
 
