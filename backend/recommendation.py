@@ -210,19 +210,21 @@ async def get_recommendations(
 async def get_beatmaps_by_tags(
     tags: List[str],
     limit: int = 20,
+    offset: int = 0,
     min_stars: float | None = None,
     max_stars: float | None = None,
 ) -> List[dict]:
     """
-    Return beatmaps that have ALL of the given tags above threshold.
-    Filtered by difficulty range if provided.
+    Return beatmaps that have ALL of the given tags, sorted by average probability
+    of the selected tags (highest first). Supports pagination via offset.
     """
     if not tags:
         return []
 
+    from sqlalchemy import func as sqlfunc
+
     async with AsyncSessionFactory() as session:
-        # Find beatmap_ids that have all requested tags
-        from sqlalchemy import func as sqlfunc
+        # Subquery: beatmap_ids that have ALL requested tags
         subq = (
             select(BeatmapLabel.beatmap_id)
             .where(BeatmapLabel.label.in_(tags))
@@ -230,13 +232,31 @@ async def get_beatmaps_by_tags(
             .having(sqlfunc.count(BeatmapLabel.label.distinct()) >= len(tags))
             .subquery()
         )
-        stmt = select(Beatmap).where(Beatmap.beatmap_id.in_(select(subq)))
+
+        # Subquery: average probability of selected tags per beatmap (for sorting)
+        avg_subq = (
+            select(
+                BeatmapLabel.beatmap_id,
+                sqlfunc.avg(BeatmapLabel.probability).label("avg_prob"),
+            )
+            .where(BeatmapLabel.label.in_(tags))
+            .group_by(BeatmapLabel.beatmap_id)
+            .subquery()
+        )
+
+        stmt = (
+            select(Beatmap, avg_subq.c.avg_prob)
+            .where(Beatmap.beatmap_id.in_(select(subq)))
+            .join(avg_subq, Beatmap.beatmap_id == avg_subq.c.beatmap_id)
+        )
         if min_stars is not None:
             stmt = stmt.where(Beatmap.difficulty_rating >= min_stars)
         if max_stars is not None:
             stmt = stmt.where(Beatmap.difficulty_rating <= max_stars)
-        stmt = stmt.order_by(Beatmap.difficulty_rating).limit(limit)
-        beatmaps = list((await session.execute(stmt)).scalars().all())
+        stmt = stmt.order_by(avg_subq.c.avg_prob.desc()).limit(limit).offset(offset)
+
+        rows = (await session.execute(stmt)).all()
+        beatmaps = [row[0] for row in rows]
 
     return await _build_records(beatmaps)
 

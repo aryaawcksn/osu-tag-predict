@@ -140,12 +140,13 @@ export async function getBeatmapsByTags(
   tags: string[],
   minStars?: number,
   maxStars?: number,
-): Promise<{ beatmaps: BeatmapRecord[]; tags: string[] }> {
-  const params = new URLSearchParams({ tags: tags.join(",") });
+  offset = 0,
+): Promise<{ beatmaps: BeatmapRecord[]; tags: string[]; has_more: boolean }> {
+  const params = new URLSearchParams({ tags: tags.join(","), offset: String(offset) });
   if (minStars != null) params.set("min_stars", String(minStars));
   if (maxStars != null) params.set("max_stars", String(maxStars));
   const res = await fetch(`${BASE_URL}/beatmaps/by-tags?${params}`,
     { headers: { ...authHeaders() }, credentials: "include" }
   );
-  return handleResponse<{ beatmaps: BeatmapRecord[]; tags: string[] }>(res);
+  return handleResponse<{ beatmaps: BeatmapRecord[]; tags: string[]; has_more: boolean }>(res);
 }

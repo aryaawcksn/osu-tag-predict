@@ -10,7 +10,7 @@ function fmt(n?: number | null, decimals = 1): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(decimals);
 }
 
-export function BeatmapCard({ record }: { record: BeatmapRecord }) {
+export function BeatmapCard({ record, highlightTags }: { record: BeatmapRecord; highlightTags?: string[] }) {
   const href = `https://osu.ppy.sh/beatmaps/${record.beatmap_id}`;
   const title = record.title ?? `Beatmap #${record.beatmap_id}`;
   const stars = record.difficulty_rating != null ? record.difficulty_rating.toFixed(2) : null;
@@ -62,13 +62,21 @@ export function BeatmapCard({ record }: { record: BeatmapRecord }) {
             </div>
           </div>
 
-          {/* Right: top 3 tags with dark bg */}
+          {/* Right: highlighted tags first, then top others */}
           <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
-            {record.labels
-              .sort((a, b) => b.probability - a.probability)
-              .slice(0, 3)
+            {[
+              // highlighted tags first (sorted by probability)
+              ...record.labels
+                .filter(l => highlightTags?.includes(l.label))
+                .sort((a, b) => b.probability - a.probability),
+              // then remaining top tags
+              ...record.labels
+                .filter(l => !highlightTags?.includes(l.label))
+                .sort((a, b) => b.probability - a.probability),
+            ]
+              .slice(0, 4)
               .map(({ label, probability }) => (
-                <span key={label} style={tagStyle(probability)}>
+                <span key={label} style={tagStyle(probability, highlightTags?.includes(label))}>
                   {label} {(probability * 100).toFixed(0)}%
                 </span>
               ))}
@@ -110,11 +118,12 @@ const statBadgeStyle: React.CSSProperties = {
   ...badgeStyle, color: "#c8cad8", borderColor: "rgba(46,45,61,0.8)", background: "rgba(0,0,0,0.55)",
 };
 
-function tagStyle(probability: number): React.CSSProperties {
+function tagStyle(probability: number, highlighted = false): React.CSSProperties {
   return {
     fontSize: 10, padding: "2px 7px", borderRadius: 4,
-    background: "rgba(0,0,0,0.65)",
-    border: "1px solid rgba(255,107,157,0.5)",
+    background: highlighted ? "rgba(255,107,157,0.25)" : "rgba(0,0,0,0.65)",
+    border: highlighted ? "1px solid rgba(255,107,157,0.8)" : "1px solid rgba(255,107,157,0.5)",
     color: "#ff6b9d", whiteSpace: "nowrap",
+    fontWeight: highlighted ? 700 : 400,
   };
 }

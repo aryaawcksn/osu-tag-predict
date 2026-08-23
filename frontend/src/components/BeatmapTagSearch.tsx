@@ -38,7 +38,11 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
   const [appliedStars, setAppliedStars] = useState<number | null>(null);
   const [results, setResults] = useState<BeatmapRecord[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [activeSearch, setActiveSearch] = useState<{ tags: string[]; minStars?: number; maxStars?: number } | null>(null);
 
   const visibleTags = showAll ? ALL_TAGS : ALL_TAGS.slice(0, INITIAL_SHOW);
 
@@ -55,13 +59,16 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
     setLoading(true);
     setError(null);
     setResults(null);
+    setOffset(0);
+    const minS = appliedStars != null ? appliedStars - 0.5 : undefined;
+    const maxS = appliedStars != null ? appliedStars + 0.5 : undefined;
+    const searchParams = { tags: Array.from(selected), minStars: minS, maxStars: maxS };
+    setActiveSearch(searchParams);
     try {
-      const res = await getBeatmapsByTags(
-        Array.from(selected),
-        appliedStars != null ? appliedStars - 0.5 : undefined,
-        appliedStars != null ? appliedStars + 0.5 : undefined,
-      );
+      const res = await getBeatmapsByTags(searchParams.tags, minS, maxS, 0);
       setResults(res.beatmaps);
+      setHasMore(res.has_more);
+      setOffset(res.beatmaps.length);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Search failed");
     } finally {
@@ -69,10 +76,28 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
     }
   }
 
+  async function handleLoadMore() {
+    if (!activeSearch) return;
+    setLoadingMore(true);
+    try {
+      const res = await getBeatmapsByTags(activeSearch.tags, activeSearch.minStars, activeSearch.maxStars, offset);
+      setResults(prev => [...(prev ?? []), ...res.beatmaps]);
+      setHasMore(res.has_more);
+      setOffset(prev => prev + res.beatmaps.length);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Load more failed");
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
   function handleClear() {
     setSelected(new Set());
     setResults(null);
     setError(null);
+    setHasMore(false);
+    setOffset(0);
+    setActiveSearch(null);
   }
 
   return (
@@ -172,8 +197,19 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
                 {results.length} beatmap{results.length !== 1 ? "s" : ""} found
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {results.map(bm => <BeatmapCard key={bm.beatmap_id} record={bm} />)}
+                {results.map(bm => (
+                  <BeatmapCard key={bm.beatmap_id} record={bm} highlightTags={Array.from(selected)} />
+                ))}
               </div>
+              {hasMore && (
+                <button
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  style={loadMoreStyle}
+                >
+                  {loadingMore ? "Loading…" : "↓ Load more"}
+                </button>
+              )}
             </>
           )}
         </div>
@@ -236,4 +272,11 @@ const errorStyle: React.CSSProperties = {
 const emptyStyle: React.CSSProperties = {
   padding: "20px 16px", textAlign: "center", color: "#a7a9be",
   fontSize: 14, background: "#0f0e17", borderRadius: 8, border: "1px solid #2e2d3d",
+};
+const loadMoreStyle: React.CSSProperties = {
+  display: "block", width: "100%", marginTop: 12,
+  padding: "10px 0", borderRadius: 8,
+  border: "1px solid #2e2d3d", background: "transparent",
+  color: "#a7a9be", fontSize: 13, cursor: "pointer",
+  textAlign: "center",
 };

@@ -429,17 +429,19 @@ async def beatmaps_by_tags(
     tags: str = Query(..., description="Comma-separated list of playstyle tags"),
     min_stars: Optional[float] = Query(None),
     max_stars: Optional[float] = Query(None),
+    offset: int = Query(0, ge=0),
     current_user: User = Depends(require_user),
 ):
     """
-    Return beatmaps matching ALL of the given tags, optionally filtered by difficulty.
+    Return beatmaps matching ALL of the given tags, sorted by avg tag probability.
+    Supports pagination via offset.
     """
     from recommendation import get_beatmaps_by_tags
     tag_list = [t.strip() for t in tags.split(",") if t.strip()]
     if not tag_list:
         raise HTTPException(status_code=400, detail="At least one tag required")
-    results = await get_beatmaps_by_tags(tag_list, min_stars=min_stars, max_stars=max_stars)
-    return {"beatmaps": results, "tags": tag_list}
+    results = await get_beatmaps_by_tags(tag_list, offset=offset, min_stars=min_stars, max_stars=max_stars)
+    return {"beatmaps": results, "tags": tag_list, "offset": offset, "has_more": len(results) == 20}
 
 
 # --------------------------------------------------------------------------- #
