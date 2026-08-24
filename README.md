@@ -10,7 +10,7 @@
 7. User login required to access recommendations and tag search
 
 ## Future Development
-1. Add difficulty filtering based on player skill level
+1. New skillset prediction
 
 # Architecture
 
