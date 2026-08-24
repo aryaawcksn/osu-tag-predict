@@ -4,7 +4,7 @@ A web app that analyzes your osu! standard play history and recommends beatmaps 
 
 ![Tech Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20React%20%2B%20PostgreSQL-blueviolet)
 ![Model](https://img.shields.io/badge/model-LSTM%20v13-ff6b9d)
-![License](https://img.shields.io/github/license/aryaawcksn/osu-predict)
+![License](https://img.shields.io/github/license/aryaawcksn/osu-tag-predict)
 
 ---
 
