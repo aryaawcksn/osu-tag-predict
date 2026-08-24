@@ -5,12 +5,11 @@ import { BeatmapCard } from "./BeatmapCard";
 
 interface Props {
   user: CurrentUser;
-  onBack: () => void;
 }
 
 type SortMode = "set" | "beatmap";
 
-export default function ProfilePage({ user, onBack }: Props) {
+export default function ProfilePage({ user }: Props) {
   const [hidden, setHidden] = useState<BeatmapRecord[]>([]);
   const [hiddenSets, setHiddenSets] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,7 +109,7 @@ export default function ProfilePage({ user, onBack }: Props) {
 
   return (
     <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 16px" }}>
-      <button onClick={onBack} style={backBtnStyle}>← Back</button>
+      <a href="#" style={backBtnStyle}>← Back</a>
 
       {/* Profile header */}
       <div style={profileHeaderStyle}>
@@ -167,7 +166,7 @@ export default function ProfilePage({ user, onBack }: Props) {
 
         {/* SORT BY BEATMAP: show individually hidden beatmaps */}
         {sortMode === "beatmap" && !loading && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ ...scrollableHiddenStyle, display: "flex", flexDirection: "column", gap: 8 }}>
             {hiddenByBeatmap.length === 0 && hidden.length > 0 && (
               <div style={{ ...emptyStyle, marginBottom: 0 }}>
                 No individually hidden beatmaps. Switch to "By set" to see set-hidden entries.
@@ -194,7 +193,7 @@ export default function ProfilePage({ user, onBack }: Props) {
 
         {/* SORT BY SET */}
         {sortMode === "set" && !loading && grouped && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ ...scrollableHiddenStyle, display: "flex", flexDirection: "column", gap: 16 }}>
             {/* Set-hidden groups */}
             {hiddenSets.map(setId => {
               const maps = grouped.bySet[setId] ?? [];
@@ -293,9 +292,9 @@ export default function ProfilePage({ user, onBack }: Props) {
 }
 
 const backBtnStyle: React.CSSProperties = {
-  padding: "6px 14px", borderRadius: 6, border: "1px solid #2e2d3d",
+  display: "inline-block", padding: "6px 14px", borderRadius: 6, border: "1px solid #2e2d3d",
   background: "transparent", color: "#a7a9be", fontSize: 13,
-  cursor: "pointer", marginBottom: 24,
+  cursor: "pointer", marginBottom: 24, textDecoration: "none",
 };
 const profileHeaderStyle: React.CSSProperties = {
   display: "flex", alignItems: "center", gap: 16,
@@ -333,6 +332,12 @@ const unhideSelectedBtnStyle: React.CSSProperties = {
 };
 const setGroupStyle: React.CSSProperties = {
   background: "#0f0e17", borderRadius: 8, border: "1px solid #2e2d3d", padding: "12px 14px",
+};
+
+const scrollableHiddenStyle: React.CSSProperties = {
+  maxHeight: 520,
+  overflowY: "auto",
+  paddingRight: 4,
 };
 
 function sortBtnStyle(active: boolean): React.CSSProperties {

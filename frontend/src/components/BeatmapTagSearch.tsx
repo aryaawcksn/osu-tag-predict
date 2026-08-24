@@ -264,20 +264,16 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
               <p style={{ fontSize: 12, color: "#a7a9be", marginBottom: 10 }}>
                 {results.length} beatmap{results.length !== 1 ? "s" : ""} found
               </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={scrollableResultsStyle}>
                 {results.map(bm => (
                   <BeatmapCard key={bm.beatmap_id} record={bm} highlightTags={Array.from(selected)} />
                 ))}
+                {hasMore && (
+                  <button onClick={handleLoadMore} disabled={loadingMore} style={loadMoreStyle}>
+                    {loadingMore ? "Loading…" : "↓ Load more"}
+                  </button>
+                )}
               </div>
-              {hasMore && (
-                <button
-                  onClick={handleLoadMore}
-                  disabled={loadingMore}
-                  style={loadMoreStyle}
-                >
-                  {loadingMore ? "Loading…" : "↓ Load more"}
-                </button>
-              )}
             </>
           )}
         </div>
@@ -352,4 +348,13 @@ const loadMoreStyle: React.CSSProperties = {
 const yearSelectStyle: React.CSSProperties = {
   padding: "4px 8px", borderRadius: 6, border: "1px solid #2e2d3d",
   background: "#0f0e17", color: "#a7a9be", fontSize: 12, cursor: "pointer",
+};
+
+const scrollableResultsStyle: React.CSSProperties = {
+  maxHeight: 520,
+  overflowY: "auto",
+  display: "flex",
+  flexDirection: "column",
+  gap: 10,
+  paddingRight: 4,
 };

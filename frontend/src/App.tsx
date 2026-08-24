@@ -8,18 +8,30 @@ import RecommendationList from "./components/RecommendationList";
 import BeatmapTagSearch from "./components/BeatmapTagSearch";
 import ProfilePage from "./components/ProfilePage";
 import { PredictResult, CurrentUser, QueueState, DominantPlaystyle } from "./types";
-import { getCurrentUser, getQueueState, predictFromLink, predictFromUpload, pollJobResult, setSessionToken, clearSessionToken } from "./api";
+import {
+  getCurrentUser, getQueueState, predictFromLink, predictFromUpload,
+  pollJobResult, setSessionToken, clearSessionToken,
+} from "./api";
+
+function useRoute() {
+  const [hash, setHash] = useState(window.location.hash);
+  useEffect(() => {
+    const handler = () => setHash(window.location.hash);
+    window.addEventListener("hashchange", handler);
+    return () => window.removeEventListener("hashchange", handler);
+  }, []);
+  return hash;
+}
 
 export default function App() {
+  const route = useRoute();
   const [result, setResult] = useState<PredictResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [queueState, setQueueState] = useState<QueueState | null>(null);
   const [dominantPlaystyle, setDominantPlaystyle] = useState<DominantPlaystyle | null>(null);
-  const [showProfile, setShowProfile] = useState(false);
 
-  // Read session_token from URL query param after OAuth redirect, then fetch user
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("session_token");
@@ -32,12 +44,10 @@ export default function App() {
     getCurrentUser().then(setUser).catch(() => setUser(null));
   }, []);
 
-  // Keep a local copy of queue state so App knows if queue is full (Requirements 1.3)
-  // Polling pauses when tab is hidden to avoid unnecessary requests
   useEffect(() => {
     let cancelled = false;
     async function fetchQ() {
-      if (document.hidden) return; // skip if tab is not visible
+      if (document.hidden) return;
       try {
         const s = await getQueueState();
         if (!cancelled) setQueueState(s);
@@ -52,198 +62,115 @@ export default function App() {
     ? queueState.occupied_slots >= queueState.total_capacity
     : false;
 
-  // Queue-aware submission: enqueue then poll (Requirements 1.2, 1.3)
   async function handleLinkSubmit(url: string) {
-    if (queueFull) {
-      setError("Queue is full. Please wait for a slot to open.");
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    setResult(null);
+    if (queueFull) { setError("Queue is full. Please wait for a slot to open."); return; }
+    setLoading(true); setError(null); setResult(null);
     try {
       const { job_id } = await predictFromLink(url);
-      const r = await pollJobResult(job_id);
-      setResult(r);
+      setResult(await pollJobResult(job_id));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }
 
   async function handleFileSubmit(file: File) {
-    if (queueFull) {
-      setError("Queue is full. Please wait for a slot to open.");
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    setResult(null);
+    if (queueFull) { setError("Queue is full. Please wait for a slot to open."); return; }
+    setLoading(true); setError(null); setResult(null);
     try {
       const { job_id } = await predictFromUpload(file);
-      const r = await pollJobResult(job_id);
-      setResult(r);
+      setResult(await pollJobResult(job_id));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function handleError(e: string) {
-    setError(e);
-    setResult(null);
+    } finally { setLoading(false); }
   }
 
   function handleLogout() {
     clearSessionToken();
     setUser(null);
+    window.location.hash = "";
     window.location.reload();
   }
 
-  if (showProfile && user) {
-    return (
-      <div style={{ minHeight: "100vh", background: "#0f0e17", color: "#fffffe" }}>
-        <NavBar user={user} onLogout={handleLogout} onProfile={() => setShowProfile(false)} />
-        <ProfilePage user={user} onBack={() => setShowProfile(false)} />
-        <InfoTooltip />
-      </div>
-    );
-  }
+  const isProfile = route === "#/profile";
 
   return (
     <div style={{ minHeight: "100vh", background: "#0f0e17", color: "#fffffe" }}>
-      {/* Nav */}
-      <NavBar user={user} onLogout={handleLogout} onProfile={() => setShowProfile(true)} />
-
-      {/* Queue status bar */}
+      <NavBar user={user} onLogout={handleLogout} />
       <QueueBar />
-
-      {/* Info tooltip — bottom right */}
       <InfoTooltip />
-      {/* Main content */}
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: "48px 16px" }}>
-        {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>
-            osu! Playstyle Analyzer
-          </h1>
-          <p style={{ color: "#a7a9be", fontSize: 15 }}>
-            Paste a beatmap link or upload a <code>.osu</code> file to analyze its playstyle.
-          </p>
-        </div>
 
-        {/* Queue full notice (Requirements 1.3) */}
-        {queueFull && (
-          <div style={noticeBannerStyle}>
-            Queue is currently full (5/5 slots). New predictions are temporarily disabled.
-          </div>
-        )}
-
-        {/* Prediction input — disabled when queue is full */}
-        <LinkInput
-          onLinkSubmit={handleLinkSubmit}
-          onFileSubmit={handleFileSubmit}
-          onError={handleError}
-          onLoading={setLoading}
-          loading={loading}
-          disabled={queueFull}
-        />
-
-        {/* Loading state while polling */}
-        {loading && (
-          <p style={{ textAlign: "center", color: "#a7a9be", marginTop: 24 }}>
-            Analyzing beatmap… waiting for result
-          </p>
-        )}
-
-        {/* Error */}
-        {error && (
-          <div style={errorStyle}>{error}</div>
-        )}
-
-        {/* Prediction result */}
-        {result && <ResultCard result={result} />}
-
-        {/* Auth-gated features — analysis & recommendations (Requirements 2.4, 6.3) */}
-        {!user && (
-          <div style={loginPromptStyle}>
-            <p style={{ marginBottom: 12, color: "#a7a9be", fontSize: 14 }}>
-              Log in with your osu! account to unlock playstyle analysis and map recommendations.
+      {isProfile && user ? (
+        <ProfilePage user={user} />
+      ) : (
+        <div style={{ maxWidth: 720, margin: "0 auto", padding: "48px 16px" }}>
+          <div style={{ textAlign: "center", marginBottom: 40 }}>
+            <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>
+              osu! Playstyle Analyzer
+            </h1>
+            <p style={{ color: "#a7a9be", fontSize: 15 }}>
+              Paste a beatmap link or upload a <code>.osu</code> file to analyze its playstyle.
             </p>
-            <a
-              href={`${import.meta.env.VITE_API_URL ?? "http://localhost:8000"}/auth/login`}
-              style={loginBtnStyle}
-            >
-              Login with osu!
-            </a>
           </div>
-        )}
 
-        {/* Authenticated: AnalysisPanel + RecommendationList (Requirements 2.4, 3.1, 4.1) */}
-        {user && (
-          <>
-            <AnalysisPanel onPlaystyleResult={setDominantPlaystyle} />
-            {dominantPlaystyle && (
-              <RecommendationList playstyle={dominantPlaystyle.label} avgDifficulty={dominantPlaystyle.avg_difficulty} />
-            )}
-            <BeatmapTagSearch />
-          </>
-        )}
-      </div>
+          {queueFull && (
+            <div style={noticeBannerStyle}>
+              Queue is currently full (5/5 slots). New predictions are temporarily disabled.
+            </div>
+          )}
+
+          <LinkInput
+            onLinkSubmit={handleLinkSubmit}
+            onFileSubmit={handleFileSubmit}
+            onError={e => { setError(e); setResult(null); }}
+            onLoading={setLoading}
+            loading={loading}
+            disabled={queueFull}
+          />
+
+          {loading && (
+            <p style={{ textAlign: "center", color: "#a7a9be", marginTop: 24 }}>
+              Analyzing beatmap… waiting for result
+            </p>
+          )}
+          {error && <div style={errorStyle}>{error}</div>}
+          {result && <ResultCard result={result} />}
+
+          {!user && (
+            <div style={loginPromptStyle}>
+              <p style={{ marginBottom: 12, color: "#a7a9be", fontSize: 14 }}>
+                Log in with your osu! account to unlock playstyle analysis and map recommendations.
+              </p>
+              <a
+                href={`${import.meta.env.VITE_API_URL ?? "http://localhost:8000"}/auth/login`}
+                style={loginBtnStyle}
+              >
+                Login with osu!
+              </a>
+            </div>
+          )}
+
+          {user && (
+            <>
+              <AnalysisPanel onPlaystyleResult={setDominantPlaystyle} />
+              {dominantPlaystyle && (
+                <RecommendationList
+                  playstyle={dominantPlaystyle.label}
+                  avgDifficulty={dominantPlaystyle.avg_difficulty}
+                />
+              )}
+              <BeatmapTagSearch />
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-const noticeBannerStyle: React.CSSProperties = {
-  marginBottom: 16,
-  padding: "10px 16px",
-  background: "#2a1a0a",
-  border: "1px solid #92400e",
-  borderRadius: 8,
-  color: "#fbbf24",
-  fontSize: 13,
-  textAlign: "center",
-};
-
-const errorStyle: React.CSSProperties = {
-  marginTop: 20,
-  padding: "12px 16px",
-  background: "#2a0a14",
-  border: "1px solid #7f1d1d",
-  borderRadius: 8,
-  color: "#fca5a5",
-  fontSize: 14,
-};
-
-const loginPromptStyle: React.CSSProperties = {
-  marginTop: 40,
-  padding: 24,
-  background: "#1a1929",
-  border: "1px solid #2e2d3d",
-  borderRadius: 12,
-  textAlign: "center",
-};
-
-const loginBtnStyle: React.CSSProperties = {
-  display: "inline-block",
-  padding: "8px 20px",
-  background: "#ff6b9d",
-  color: "#fff",
-  borderRadius: 8,
-  fontWeight: 600,
-  fontSize: 14,
-  textDecoration: "none",
-};
-
 function InfoTooltip() {
   const [visible, setVisible] = useState(false);
   return (
-    <div style={tooltipWrapStyle}
-      onMouseEnter={() => setVisible(true)}
-      onMouseLeave={() => setVisible(false)}
-    >
+    <div style={tooltipWrapStyle} onMouseEnter={() => setVisible(true)} onMouseLeave={() => setVisible(false)}>
       {visible && (
         <div style={tooltipBoxStyle}>
           Analysis results are not 100% accurate. Your contributions when rating beatmaps
@@ -255,41 +182,34 @@ function InfoTooltip() {
   );
 }
 
+const noticeBannerStyle: React.CSSProperties = {
+  marginBottom: 16, padding: "10px 16px", background: "#2a1a0a",
+  border: "1px solid #92400e", borderRadius: 8, color: "#fbbf24", fontSize: 13, textAlign: "center",
+};
+const errorStyle: React.CSSProperties = {
+  marginTop: 20, padding: "12px 16px", background: "#2a0a14",
+  border: "1px solid #7f1d1d", borderRadius: 8, color: "#fca5a5", fontSize: 14,
+};
+const loginPromptStyle: React.CSSProperties = {
+  marginTop: 40, padding: 24, background: "#1a1929",
+  border: "1px solid #2e2d3d", borderRadius: 12, textAlign: "center",
+};
+const loginBtnStyle: React.CSSProperties = {
+  display: "inline-block", padding: "8px 20px", background: "#ff6b9d",
+  color: "#fff", borderRadius: 8, fontWeight: 600, fontSize: 14, textDecoration: "none",
+};
 const tooltipWrapStyle: React.CSSProperties = {
-  position: "fixed",
-  bottom: 20,
-  right: 20,
-  zIndex: 200,
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-end",
-  gap: 8,
+  position: "fixed", bottom: 20, right: 20, zIndex: 200,
+  display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8,
 };
-
 const tooltipBtnStyle: React.CSSProperties = {
-  width: 28,
-  height: 28,
-  borderRadius: "50%",
-  background: "#1a1929",
-  border: "1px solid #2e2d3d",
-  color: "#a7a9be",
-  fontSize: 13,
-  fontWeight: 700,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  cursor: "default",
-  userSelect: "none",
+  width: 28, height: 28, borderRadius: "50%", background: "#1a1929",
+  border: "1px solid #2e2d3d", color: "#a7a9be", fontSize: 13, fontWeight: 700,
+  display: "flex", alignItems: "center", justifyContent: "center",
+  cursor: "default", userSelect: "none",
 };
-
 const tooltipBoxStyle: React.CSSProperties = {
-  background: "#1a1929",
-  border: "1px solid #2e2d3d",
-  borderRadius: 8,
-  padding: "10px 14px",
-  fontSize: 12,
-  color: "#a7a9be",
-  maxWidth: 240,
-  lineHeight: 1.5,
-  boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
+  background: "#1a1929", border: "1px solid #2e2d3d", borderRadius: 8,
+  padding: "10px 14px", fontSize: 12, color: "#a7a9be",
+  maxWidth: 240, lineHeight: 1.5, boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
 };

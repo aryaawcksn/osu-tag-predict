@@ -10,7 +10,7 @@ from tensorflow.keras.models import load_model
 N_TIMESTEPS = 1500
 N_FEATURES = 17
 THRESHOLD = 0.1
-MAX_OBJECTS = 2500  # hard cap before feature extraction
+MAX_OBJECTS = 5000  # hard cap before feature extraction
 
 _model = None
 _mlb = None

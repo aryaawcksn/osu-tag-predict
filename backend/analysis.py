@@ -63,7 +63,7 @@ def _parse_scores(scores: list) -> List[BeatmapScore]:
     return result
 
 
-async def fetch_top_plays(user_id: int, token: str, limit: int = 50) -> List[BeatmapScore]:
+async def fetch_top_plays(user_id: int, token: str, limit: int = 100) -> List[BeatmapScore]:
     """
     Fetch the user's top plays from osu! API.
     Returns a list of BeatmapScore containing beatmap_id and no-mod difficulty.
