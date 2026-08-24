@@ -17,11 +17,10 @@ interface ContextMenuProps {
   onHideBeatmap: () => void;
   onHideBeatmapset: () => void;
   hasBeatmapset: boolean;
-  showBeatmapOption: boolean;
   onClose: () => void;
 }
 
-function ContextMenu({ x, y, onHideBeatmap, onHideBeatmapset, hasBeatmapset, showBeatmapOption, onClose }: ContextMenuProps) {
+function ContextMenu({ x, y, onHideBeatmap, onHideBeatmapset, hasBeatmapset, onClose }: ContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,9 +38,9 @@ function ContextMenu({ x, y, onHideBeatmap, onHideBeatmapset, hasBeatmapset, sho
     };
   }, [onClose]);
 
-  const itemCount = (showBeatmapOption ? 1 : 0) + (hasBeatmapset ? 1 : 0);
+  // Clamp to viewport
   const menuW = 200;
-  const menuH = itemCount * 38 + 8;
+  const menuH = hasBeatmapset ? 76 : 44;
   const clampedX = Math.min(x, window.innerWidth - menuW - 8);
   const clampedY = Math.min(y, window.innerHeight - menuH - 8);
 
@@ -54,16 +53,14 @@ function ContextMenu({ x, y, onHideBeatmap, onHideBeatmapset, hasBeatmapset, sho
         boxShadow: "0 8px 24px rgba(0,0,0,0.6)", minWidth: menuW, overflow: "hidden",
       }}
     >
-      {showBeatmapOption && (
-        <button
-          onClick={() => { onHideBeatmap(); onClose(); }}
-          style={menuItemStyle}
-          onMouseEnter={e => (e.currentTarget.style.background = "#2e2d3d")}
-          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-        >
-          🚫 Hide this beatmap
-        </button>
-      )}
+      <button
+        onClick={() => { onHideBeatmap(); onClose(); }}
+        style={menuItemStyle}
+        onMouseEnter={e => (e.currentTarget.style.background = "#2e2d3d")}
+        onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+      >
+        🚫 Hide this beatmap
+      </button>
       {hasBeatmapset && (
         <button
           onClick={() => { onHideBeatmapset(); onClose(); }}
@@ -89,11 +86,9 @@ interface BeatmapCardProps {
   highlightTags?: string[];
   onHide?: (beatmapId: string) => void;
   onHideSet?: (beatmapsetId: string) => void;
-  /** "set-only" = context menu only shows "Hide this beatmapset" */
-  hideMode?: "default" | "set-only";
 }
 
-export function BeatmapCard({ record, highlightTags, onHide, onHideSet, hideMode = "default" }: BeatmapCardProps) {
+export function BeatmapCard({ record, highlightTags, onHide, onHideSet }: BeatmapCardProps) {
   const href = `https://osu.ppy.sh/beatmaps/${record.beatmap_id}`;
   const title = record.title ?? `Beatmap #${record.beatmap_id}`;
   const stars = record.difficulty_rating != null ? record.difficulty_rating.toFixed(2) : null;
@@ -181,8 +176,7 @@ export function BeatmapCard({ record, highlightTags, onHide, onHideSet, hideMode
         <ContextMenu
           x={menu.x}
           y={menu.y}
-          hasBeatmapset={!!record.beatmapset_id && !!onHideSet}
-          showBeatmapOption={hideMode !== "set-only" && !!onHide}
+          hasBeatmapset={!!record.beatmapset_id}
           onHideBeatmap={() => onHide?.(record.beatmap_id)}
           onHideBeatmapset={() => record.beatmapset_id && onHideSet?.(record.beatmapset_id)}
           onClose={() => setMenu(null)}
