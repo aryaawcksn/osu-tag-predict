@@ -95,6 +95,22 @@ export function BeatmapCard({ record, highlightTags, onHide, onHideSet }: Beatma
   const statusColor = STATUS_COLOR[record.status ?? ""] ?? "#a7a9be";
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
 
+  const squareImgUrl =
+    record.list_url ||
+    record.card_url ||
+    record.cover_url ||
+    (record.beatmapset_id
+      ? `https://assets.ppy.sh/beatmaps/${record.beatmapset_id}/covers/list.jpg`
+      : null);
+
+  const bgImgUrl =
+    record.card_url ||
+    record.cover_url ||
+    record.list_url ||
+    (record.beatmapset_id
+      ? `https://assets.ppy.sh/beatmaps/${record.beatmapset_id}/covers/card.jpg`
+      : null);
+
   const stats: [string, string][] = [
     ["BPM", fmt(record.bpm, 0)],
     ["AR", fmt(record.ar)],
@@ -118,55 +134,87 @@ export function BeatmapCard({ record, highlightTags, onHide, onHideSet }: Beatma
         style={{ textDecoration: "none", display: "block" }}
         onContextMenu={handleContextMenu}
       >
-        <div style={cardStyle}>
-          {record.card_url && (
-            <img src={record.card_url} alt="" style={coverImgStyle} loading="lazy" />
-          )}
-          <div style={overlayStyle} />
+        <div
+          style={cardStyle}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = "rgba(255,107,157,0.45)";
+            e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4)";
+            e.currentTarget.style.transform = "translateY(-1px)";
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = "#2e2d3d";
+            e.currentTarget.style.boxShadow = "none";
+            e.currentTarget.style.transform = "none";
+          }}
+        >
+          {/* Left: Square Cover Thumbnail */}
+          <div style={squareCoverWrapperStyle}>
+            {squareImgUrl ? (
+              <img
+                src={squareImgUrl}
+                alt=""
+                style={squareCoverImgStyle}
+                loading="lazy"
+                onError={e => {
+                  (e.currentTarget as HTMLElement).style.display = "none";
+                }}
+              />
+            ) : (
+              <div style={fallbackIconStyle}>🎵</div>
+            )}
+          </div>
 
-          <div style={contentStyle}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={titleStyle}>{title}</div>
-              {record.artist && (
-                <div style={artistStyle}>
-                  by {record.artist}
-                  {record.version && (
-                    <span style={{ color: "#ff6b9d", marginLeft: 6 }}>[{record.version}]</span>
+          {/* Right: Background banner with gradient opacity overlay and info */}
+          <div style={rightContainerStyle}>
+            {bgImgUrl && (
+              <img src={bgImgUrl} alt="" style={coverImgStyle} loading="lazy" />
+            )}
+            <div style={overlayStyle} />
+
+            <div style={contentStyle}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={titleStyle}>{title}</div>
+                {record.artist && (
+                  <div style={artistStyle}>
+                    by {record.artist}
+                    {record.version && (
+                      <span style={{ color: "#ff6b9d", marginLeft: 6 }}>[{record.version}]</span>
+                    )}
+                  </div>
+                )}
+                <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 7, alignItems: "center" }}>
+                  {stars && (
+                    <span style={{ ...badgeStyle, color: "#ffd700", borderColor: "rgba(255,215,0,0.5)", background: "rgba(0,0,0,0.6)" }}>
+                      ★ {stars}
+                    </span>
                   )}
+                  {record.status && (
+                    <span style={{ ...badgeStyle, color: statusColor, borderColor: `${statusColor}88`, background: "rgba(0,0,0,0.6)" }}>
+                      {record.status}
+                    </span>
+                  )}
+                  {stats.map(([k, v]) => (
+                    <span key={k} style={statBadgeStyle}>{k} {v}</span>
+                  ))}
                 </div>
-              )}
-              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 7, alignItems: "center" }}>
-                {stars && (
-                  <span style={{ ...badgeStyle, color: "#ffd700", borderColor: "rgba(255,215,0,0.5)", background: "rgba(0,0,0,0.6)" }}>
-                    ★ {stars}
-                  </span>
-                )}
-                {record.status && (
-                  <span style={{ ...badgeStyle, color: statusColor, borderColor: `${statusColor}88`, background: "rgba(0,0,0,0.6)" }}>
-                    {record.status}
-                  </span>
-                )}
-                {stats.map(([k, v]) => (
-                  <span key={k} style={statBadgeStyle}>{k} {v}</span>
-                ))}
               </div>
-            </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
-              {[
-                ...record.labels
-                  .filter(l => highlightTags?.includes(l.label))
-                  .sort((a, b) => b.probability - a.probability),
-                ...record.labels
-                  .filter(l => !highlightTags?.includes(l.label))
-                  .sort((a, b) => b.probability - a.probability),
-              ]
-                .slice(0, 4)
-                .map(({ label, probability }) => (
-                  <span key={label} style={tagStyle(probability, highlightTags?.includes(label))}>
-                    {label} {(probability * 100).toFixed(0)}%
-                  </span>
-                ))}
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
+                {[
+                  ...record.labels
+                    .filter(l => highlightTags?.includes(l.label))
+                    .sort((a, b) => b.probability - a.probability),
+                  ...record.labels
+                    .filter(l => !highlightTags?.includes(l.label))
+                    .sort((a, b) => b.probability - a.probability),
+                ]
+                  .slice(0, 4)
+                  .map(({ label, probability }) => (
+                    <span key={label} style={tagStyle(probability, highlightTags?.includes(label))}>
+                      {label} {(probability * 100).toFixed(0)}%
+                    </span>
+                  ))}
+              </div>
             </div>
           </div>
         </div>
@@ -187,43 +235,123 @@ export function BeatmapCard({ record, highlightTags, onHide, onHideSet }: Beatma
 }
 
 const cardStyle: React.CSSProperties = {
-  position: "relative", borderRadius: 10, overflow: "hidden",
-  background: "#1a1929", border: "1px solid #2e2d3d", minHeight: 85,
+  position: "relative",
+  borderRadius: 10,
+  overflow: "hidden",
+  background: "#1a1929",
+  border: "1px solid #2e2d3d",
+  minHeight: 85,
+  display: "flex",
+  alignItems: "stretch",
+  transition: "border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease",
 };
+
+const squareCoverWrapperStyle: React.CSSProperties = {
+  width: 85,
+  minWidth: 85,
+  maxWidth: 85,
+  background: "#100f1c",
+  position: "relative",
+  overflow: "hidden",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0,
+  borderRight: "1px solid rgba(46,45,61,0.85)",
+};
+
+const squareCoverImgStyle: React.CSSProperties = {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+  objectPosition: "center",
+  display: "block",
+};
+
+const fallbackIconStyle: React.CSSProperties = {
+  fontSize: 24,
+  opacity: 0.35,
+  userSelect: "none",
+};
+
+const rightContainerStyle: React.CSSProperties = {
+  position: "relative",
+  flex: 1,
+  minWidth: 0,
+  display: "flex",
+  alignItems: "center",
+  overflow: "hidden",
+};
+
 const coverImgStyle: React.CSSProperties = {
-  position: "absolute", inset: 0, width: "100%", height: "100%",
-  objectFit: "cover", objectPosition: "center",
+  position: "absolute",
+  inset: 0,
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+  objectPosition: "center",
 };
+
 const overlayStyle: React.CSSProperties = {
-  position: "absolute", inset: 0,
-  background: "linear-gradient(90deg, rgba(10,9,18,0.96) 35%, rgba(10,9,18,0.75) 70%, rgba(10,9,18,0.55) 100%)",
+  position: "absolute",
+  inset: 0,
+  background: "linear-gradient(90deg, rgba(10,9,18,0.94) 20%, rgba(10,9,18,0.76) 70%, rgba(10,9,18,0.55) 100%)",
 };
+
 const contentStyle: React.CSSProperties = {
-  position: "relative", display: "flex", alignItems: "center",
-  gap: 12, padding: "12px 16px",
+  position: "relative",
+  width: "100%",
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+  padding: "11px 16px",
+  zIndex: 1,
 };
+
 const titleStyle: React.CSSProperties = {
-  color: "#fffffe", fontWeight: 700, fontSize: 14,
-  whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+  color: "#fffffe",
+  fontWeight: 700,
+  fontSize: 14,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 };
+
 const artistStyle: React.CSSProperties = {
-  color: "#c8cad8", fontSize: 12, marginTop: 2,
+  color: "#c8cad8",
+  fontSize: 12,
+  marginTop: 2,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 };
+
 const badgeStyle: React.CSSProperties = {
-  fontSize: 10, padding: "2px 6px", borderRadius: 4,
-  border: "1px solid", textTransform: "capitalize", whiteSpace: "nowrap",
+  fontSize: 10,
+  padding: "2px 6px",
+  borderRadius: 4,
+  border: "1px solid",
+  textTransform: "capitalize",
+  whiteSpace: "nowrap",
 };
+
 const statBadgeStyle: React.CSSProperties = {
-  ...badgeStyle, color: "#c8cad8", borderColor: "rgba(46,45,61,0.8)", background: "rgba(0,0,0,0.55)",
+  ...badgeStyle,
+  color: "#c8cad8",
+  borderColor: "rgba(46,45,61,0.8)",
+  background: "rgba(0,0,0,0.55)",
 };
 
 function tagStyle(probability: number, highlighted = false): React.CSSProperties {
   void probability;
   return {
-    fontSize: 10, padding: "2px 7px", borderRadius: 4,
+    fontSize: 10,
+    padding: "2px 7px",
+    borderRadius: 4,
     background: highlighted ? "rgba(255,107,157,0.25)" : "rgba(0,0,0,0.65)",
     border: highlighted ? "1px solid rgba(255,107,157,0.8)" : "1px solid rgba(255,107,157,0.5)",
-    color: "#ff6b9d", whiteSpace: "nowrap",
+    color: "#ff6b9d",
+    whiteSpace: "nowrap",
     fontWeight: highlighted ? 700 : 400,
   };
 }
