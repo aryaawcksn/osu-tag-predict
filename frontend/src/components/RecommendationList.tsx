@@ -81,13 +81,20 @@ export default function RecommendationList({ playstyle, avgDifficulty }: Props) 
         <span style={filterLabelStyle}>Difficulty</span>
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#a7a9be", marginBottom: 4 }}>
-            <span>★ 1</span>
+            <span>★ 0.1</span>
             <span style={{ color: "#ff6b9d", fontWeight: 600 }}>
-              {appliedStars != null ? `★ ${appliedStars.toFixed(1)}` : "Any"}
+              ★ {targetStars.toFixed(1)}
+              {appliedStars === null ? (
+                <span style={{ color: "#a7a9be", fontWeight: 400, marginLeft: 5 }}>(Any)</span>
+              ) : appliedStars !== targetStars ? (
+                <span style={{ color: "#fbbf24", fontWeight: 400, marginLeft: 5 }}>(Applied: ★ {appliedStars.toFixed(1)})</span>
+              ) : (
+                <span style={{ color: "#b8e994", fontWeight: 400, marginLeft: 5 }}>(Applied)</span>
+              )}
             </span>
-            <span>★ 10</span>
+            <span>★ 15.0</span>
           </div>
-          <input type="range" min={1} max={10} step={0.5} value={targetStars}
+          <input type="range" min={0.1} max={15.0} step={0.1} value={targetStars}
             onChange={e => setTargetStars(Number(e.target.value))}
             style={{ width: "100%", accentColor: "#ff6b9d", cursor: "pointer" }} />
         </div>
