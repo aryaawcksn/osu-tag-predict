@@ -1,4 +1,4 @@
-# osu! Playstyle Analyzer
+# osu! Beatmap Tag Analyzer
 
 A web app that analyzes your osu! standard play history and recommends beatmaps based on your dominant playstyle — powered by a custom LSTM model trained on community-tagged beatmaps.
 
