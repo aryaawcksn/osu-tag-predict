@@ -141,3 +141,13 @@ class HiddenBeatmapset(Base):
     hidden_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     __table_args__ = (UniqueConstraint("user_id", "beatmapset_id", name="uq_hidden_beatmapset"),)
+
+
+class CrawlerState(Base):
+    """Persisted backfill cursor so crawl resumes after restart."""
+    __tablename__ = "crawler_state"
+
+    key: Mapped[str] = mapped_column(String(40), primary_key=True)  # e.g. "ranked" / "loved"
+    cursor_string: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    done: Mapped[bool] = mapped_column(Integer, nullable=False, default=0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
