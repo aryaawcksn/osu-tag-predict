@@ -31,9 +31,9 @@ export default function AnalysisPanel({ onPlaystyleResult }: Props) {
 
   return (
     <div style={panelStyle}>
-      <h2 style={headingStyle}>Playstyle Analysis</h2>
+      <h2 style={headingStyle}>User Beatmap Analysis</h2>
       <p style={subtextStyle}>
-        Analyze your play history to determine your dominant playstyle.
+        Analyze your play history to determine your matching beatmap.
       </p>
 
       <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 16 }}>
@@ -84,7 +84,7 @@ function PlaystyleResult({ result }: { result: DominantPlaystyle }) {
       {/* Dominant label */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ color: "#a7a9be", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>
-          Dominant Playstyle
+          Dominant Tag
         </div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
           <span style={{ fontSize: 26, fontWeight: 800, color: "#ff6b9d" }}>
@@ -101,7 +101,7 @@ function PlaystyleResult({ result }: { result: DominantPlaystyle }) {
 
       {/* Bubble distribution */}
       <div style={{ color: "#a7a9be", fontSize: 11, textTransform: "uppercase", marginBottom: 10 }}>
-        Playstyle Distribution
+        Tag Distribution
       </div>
       <div style={bubbleContainerStyle}>
         {top.map((item) => (

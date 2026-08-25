@@ -129,7 +129,7 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
     <div style={containerStyle}>
       <h2 style={headingStyle}>Find Beatmaps by Tags</h2>
       <p style={subtextStyle}>
-        Select one or more playstyle tags to find matching beatmaps from the database.
+        Select one or more tags to find matching beatmaps from the storage.
       </p>
 
       {/* Tag grid */}

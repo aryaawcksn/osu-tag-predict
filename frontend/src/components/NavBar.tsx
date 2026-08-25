@@ -18,7 +18,7 @@ export default function NavBar({ user, onLogout, onProfile }: Props) {
   return (
     <nav style={navStyle}>
       <span style={{ fontWeight: 700, fontSize: 16, color: "#ff6b9d" }}>
-        osu! Playstyle
+        osu! Beatmap Tag Analyzer
       </span>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         {user ? (

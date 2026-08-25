@@ -127,10 +127,10 @@ export default function App() {
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>
-            osu! Beatmap Analyzer
+            osu! Beatmap Tag Analyzer
           </h1>
           <p style={{ color: "#a7a9be", fontSize: 15 }}>
-            Paste a beatmap link or upload a <code>.osu</code> file to analyze its playstyle.
+            Paste a beatmap link or upload a <code>.osu</code> file to predict its tag.
           </p>
         </div>
 
