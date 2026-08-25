@@ -19,6 +19,11 @@ A web app that analyzes your osu! standard play history and recommends beatmaps 
 - **Queue system** — 5-slot prediction queue with real-time status indicator
 - **Live stats** — Total users and beatmaps processed shown in the UI
 
+## Future Development
+ - **New Tag Predict** - More new tag prediction
+ - **New Model** - Planned to using transformers
+ - **New Website Features** - Able to store your favorite tags, Recommend similar beatmaps, etc.
+
 ## Tech Stack
 
 | Layer | Technology |
