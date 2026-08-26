@@ -119,6 +119,13 @@ export function BeatmapCard({ record, highlightTags, onHide, onHideSet }: Beatma
     ["Objects", fmt(record.object_count, 0)],
   ];
 
+  // Core gameplay = Top 4 tags by probability
+  // Non-core gameplay (rank 5+) = Only displayed at the bottom if matched in highlightTags
+  const sortedLabels = [...record.labels].sort((a, b) => b.probability - a.probability);
+  const coreLabels = sortedLabels.slice(0, 4);
+  const matchedNonCoreLabels = sortedLabels.slice(4).filter(l => highlightTags?.includes(l.label));
+  const displayedLabels = [...coreLabels, ...matchedNonCoreLabels];
+
   function handleContextMenu(e: React.MouseEvent) {
     if (!onHide && !onHideSet) return;
     e.preventDefault();
@@ -200,20 +207,11 @@ export function BeatmapCard({ record, highlightTags, onHide, onHideSet }: Beatma
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
-                {[
-                  ...record.labels
-                    .filter(l => highlightTags?.includes(l.label))
-                    .sort((a, b) => b.probability - a.probability),
-                  ...record.labels
-                    .filter(l => !highlightTags?.includes(l.label))
-                    .sort((a, b) => b.probability - a.probability),
-                ]
-                  .slice(0, 4)
-                  .map(({ label, probability }) => (
-                    <span key={label} style={tagStyle(probability, highlightTags?.includes(label))}>
-                      {label} {(probability * 100).toFixed(0)}%
-                    </span>
-                  ))}
+                {displayedLabels.map(({ label, probability }) => (
+                  <span key={label} style={tagStyle(probability, highlightTags?.includes(label))}>
+                    {label} {(probability * 100).toFixed(0)}%
+                  </span>
+                ))}
               </div>
             </div>
           </div>
