@@ -14,13 +14,22 @@ function fmt(n?: number | null, decimals = 1): string {
 interface ContextMenuProps {
   x: number;
   y: number;
-  onHideBeatmap: () => void;
-  onHideBeatmapset: () => void;
+  onHideBeatmap?: () => void;
+  onHideBeatmapset?: () => void;
+  onReportWrongTags?: () => void;
   hasBeatmapset: boolean;
   onClose: () => void;
 }
 
-function ContextMenu({ x, y, onHideBeatmap, onHideBeatmapset, hasBeatmapset, onClose }: ContextMenuProps) {
+function ContextMenu({
+  x,
+  y,
+  onHideBeatmap,
+  onHideBeatmapset,
+  onReportWrongTags,
+  hasBeatmapset,
+  onClose,
+}: ContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,9 +47,14 @@ function ContextMenu({ x, y, onHideBeatmap, onHideBeatmapset, hasBeatmapset, onC
     };
   }, [onClose]);
 
+  let itemCount = 0;
+  if (onReportWrongTags) itemCount++;
+  if (onHideBeatmap) itemCount++;
+  if (hasBeatmapset && onHideBeatmapset) itemCount++;
+
   // Clamp to viewport
-  const menuW = 200;
-  const menuH = hasBeatmapset ? 76 : 44;
+  const menuW = 210;
+  const menuH = Math.max(44, itemCount * 38);
   const clampedX = Math.min(x, window.innerWidth - menuW - 8);
   const clampedY = Math.min(y, window.innerHeight - menuH - 8);
 
@@ -53,15 +67,27 @@ function ContextMenu({ x, y, onHideBeatmap, onHideBeatmapset, hasBeatmapset, onC
         boxShadow: "0 8px 24px rgba(0,0,0,0.6)", minWidth: menuW, overflow: "hidden",
       }}
     >
-      <button
-        onClick={() => { onHideBeatmap(); onClose(); }}
-        style={menuItemStyle}
-        onMouseEnter={e => (e.currentTarget.style.background = "#2e2d3d")}
-        onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-      >
-        🚫 Hide this beatmap
-      </button>
-      {hasBeatmapset && (
+      {onReportWrongTags && (
+        <button
+          onClick={() => { onReportWrongTags(); onClose(); }}
+          style={menuItemStyle}
+          onMouseEnter={e => (e.currentTarget.style.background = "#2e2d3d")}
+          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+        >
+          ⚠️ This tags isn't right
+        </button>
+      )}
+      {onHideBeatmap && (
+        <button
+          onClick={() => { onHideBeatmap(); onClose(); }}
+          style={menuItemStyle}
+          onMouseEnter={e => (e.currentTarget.style.background = "#2e2d3d")}
+          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+        >
+          🚫 Hide this beatmap
+        </button>
+      )}
+      {hasBeatmapset && onHideBeatmapset && (
         <button
           onClick={() => { onHideBeatmapset(); onClose(); }}
           style={menuItemStyle}
@@ -86,9 +112,11 @@ interface BeatmapCardProps {
   highlightTags?: string[];
   onHide?: (beatmapId: string) => void;
   onHideSet?: (beatmapsetId: string) => void;
+  onReportWrongTags?: (record: BeatmapRecord) => void;
 }
 
-export function BeatmapCard({ record, highlightTags, onHide, onHideSet }: BeatmapCardProps) {
+export function BeatmapCard({ record, highlightTags, onHide, onHideSet, onReportWrongTags }: BeatmapCardProps) {
+
   const href = `https://osu.ppy.sh/beatmaps/${record.beatmap_id}`;
   const title = record.title ?? `Beatmap #${record.beatmap_id}`;
   const stars = record.difficulty_rating != null ? record.difficulty_rating.toFixed(2) : null;
@@ -127,7 +155,7 @@ export function BeatmapCard({ record, highlightTags, onHide, onHideSet }: Beatma
   const displayedLabels = [...coreLabels, ...matchedNonCoreLabels];
 
   function handleContextMenu(e: React.MouseEvent) {
-    if (!onHide && !onHideSet) return;
+    if (!onHide && !onHideSet && !onReportWrongTags) return;
     e.preventDefault();
     setMenu({ x: e.clientX, y: e.clientY });
   }
@@ -223,14 +251,22 @@ export function BeatmapCard({ record, highlightTags, onHide, onHideSet }: Beatma
           x={menu.x}
           y={menu.y}
           hasBeatmapset={!!record.beatmapset_id}
-          onHideBeatmap={() => onHide?.(record.beatmap_id)}
-          onHideBeatmapset={() => record.beatmapset_id && onHideSet?.(record.beatmapset_id)}
+          onHideBeatmap={onHide ? () => onHide(record.beatmap_id) : undefined}
+          onHideBeatmapset={
+            onHideSet && record.beatmapset_id
+              ? () => onHideSet(record.beatmapset_id!)
+              : undefined
+          }
+          onReportWrongTags={
+            onReportWrongTags ? () => onReportWrongTags(record) : undefined
+          }
           onClose={() => setMenu(null)}
         />
       )}
     </>
   );
 }
+
 
 const cardStyle: React.CSSProperties = {
   position: "relative",

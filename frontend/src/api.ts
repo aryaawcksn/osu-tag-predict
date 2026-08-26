@@ -204,3 +204,29 @@ export async function getBeatmapsByTags(
   );
   return handleResponse<{ beatmaps: BeatmapRecord[]; tags: string[]; has_more: boolean }>(res);
 }
+
+// User voting for right tags on a beatmap
+export async function voteBeatmapTags(
+  beatmapId: string,
+  tags: string[],
+): Promise<{ ok: boolean; beatmap_id: string; voted_tags: string[] }> {
+  const res = await fetch(`${BASE_URL}/beatmaps/${beatmapId}/vote-tags`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    credentials: "include",
+    body: JSON.stringify({ tags }),
+  });
+  return handleResponse<{ ok: boolean; beatmap_id: string; voted_tags: string[] }>(res);
+}
+
+// Get tags previously voted by the user for a beatmap
+export async function getUserBeatmapVotes(
+  beatmapId: string,
+): Promise<{ beatmap_id: string; voted_tags: string[] }> {
+  const res = await fetch(`${BASE_URL}/beatmaps/${beatmapId}/user-votes`, {
+    headers: { ...authHeaders() },
+    credentials: "include",
+  });
+  return handleResponse<{ beatmap_id: string; voted_tags: string[] }>(res);
+}
+

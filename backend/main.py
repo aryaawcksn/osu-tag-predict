@@ -30,10 +30,12 @@ MLB_PATH   = os.environ.get("MLB_PATH",   "pickle_mlb_VXIII.pkl")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialise DB connection pool (validates connectivity on startup)
+    # Initialise DB connection pool (validates connectivity on startup and ensures tables)
     async with engine.begin() as conn:
         print("DB connection established")
-        _ = conn  # just ensuring pool is warm
+        from database import Base
+        await conn.run_sync(Base.metadata.create_all)
+
 
     predictor.load_artifacts(MODEL_PATH, MLB_PATH)
     print(f"Model loaded: {MODEL_PATH}")
@@ -648,6 +650,56 @@ async def beatmaps_by_tags(
         status=status, year_from=year_from, year_to=year_to,
     )
     return {"beatmaps": results, "tags": tag_list, "offset": offset, "has_more": len(results) == 20}
+
+
+class VoteTagsRequest(BaseModel):
+    tags: list[str]
+
+
+@app.post("/beatmaps/{beatmap_id}/vote-tags", status_code=200)
+async def vote_beatmap_tags(
+    beatmap_id: str,
+    payload: VoteTagsRequest,
+    current_user: User = Depends(require_user),
+):
+    """
+    Allow authenticated user to vote on tags for a beatmap ("Help find the right tags").
+    A user can vote for multiple tags, but each unique tag gets 1 vote per user.
+    """
+    clean_tags = [t.strip() for t in payload.tags if t.strip()]
+    if not clean_tags:
+        raise HTTPException(status_code=400, detail="At least one tag must be selected")
+
+    from models import BeatmapTagVote
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
+
+    async with AsyncSessionFactory() as db:
+        async with db.begin():
+            for tag in clean_tags:
+                stmt = pg_insert(BeatmapTagVote).values(
+                    user_id=current_user.id,
+                    beatmap_id=beatmap_id,
+                    tag=tag,
+                ).on_conflict_do_nothing()
+                await db.execute(stmt)
+
+    return {"ok": True, "beatmap_id": beatmap_id, "voted_tags": clean_tags}
+
+
+@app.get("/beatmaps/{beatmap_id}/user-votes", status_code=200)
+async def get_user_beatmap_votes(
+    beatmap_id: str,
+    current_user: User = Depends(require_user),
+):
+    """Get tags previously voted by the current user for this beatmap."""
+    from models import BeatmapTagVote
+    async with AsyncSessionFactory() as db:
+        stmt = select(BeatmapTagVote.tag).where(
+            BeatmapTagVote.beatmap_id == beatmap_id,
+            BeatmapTagVote.user_id == current_user.id,
+        )
+        voted_tags = list((await db.execute(stmt)).scalars().all())
+    return {"beatmap_id": beatmap_id, "voted_tags": voted_tags}
 
 
 # --------------------------------------------------------------------------- #

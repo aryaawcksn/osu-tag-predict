@@ -151,3 +151,23 @@ class CrawlerState(Base):
     cursor_string: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     done: Mapped[bool] = mapped_column(Integer, nullable=False, default=0)
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class BeatmapTagVote(Base):
+    """User votes for suggesting correct tags on a beatmap."""
+    __tablename__ = "beatmap_tag_votes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    beatmap_id: Mapped[str] = mapped_column(
+        String(20), ForeignKey("beatmaps.beatmap_id", ondelete="CASCADE"), nullable=False
+    )
+    tag: Mapped[str] = mapped_column(String(100), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "beatmap_id", "tag", name="uq_user_beatmap_tag_vote"),
+    )
+

@@ -2,28 +2,8 @@ import { useState } from "react";
 import { BeatmapRecord } from "../types";
 import { getBeatmapsByTags } from "../api";
 import { BeatmapCard } from "./BeatmapCard";
-
-// All tags from pickle model — exact names
-const ALL_TAGS = [
-  "skillset/jumps", "jumps/sharp", "expression/simple", "skillset/alt",
-  "tech/aim control", "expression/difficulty spike", "style/clean",
-  "expression/repetition", "jumps/back and forth", "jumps/wide",
-  "jumps/stamina", "streams/speed", "jumps/cross-screen", "jumps/triangles",
-  "skillset/reading", "streams/flow aim", "expression/chaotic",
-  "expression/progression", "tech/finger control", "jumps/linear",
-  "jumps/freeform", "skillset/tech", "reading/overlaps", "style/messy",
-  "streams/doubles", "streams/bursts", "meta/variable timing",
-  "reading/visually dense", "skillset/precision", "expression/high contrast",
-  "meta/swing", "tech/slider tech", "sliders/complex sv", "style/freeform",
-  "style/geometric", "reading/perfect stacks", "style/hexgrid",
-  "sliders/high sv", "sliders/complex slidershapes", "streams/stamina",
-  "meta/accelerating bpm", "expression/playfield usage", "jumps/squares",
-  "sliders/low sv", "style/symmetrical", "meta/time signatures",
-  "style/avant-garde", "expression/conceptual", "gimmick/ninja spinners",
-  "style/grid snap", "skillset/streams", "style/distance snap",
-  "expression/old-style revival", "streams/cutstreams", "gimmick/circle only",
-  "streams/spaced streams", "expression/iNiS-style",
-].sort();
+import { ALL_TAGS } from "../constants";
+import TagVoteModal from "./TagVoteModal";
 
 const INITIAL_SHOW = 24;
 
@@ -53,10 +33,12 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [offset, setOffset] = useState(0);
+  const [votingBeatmap, setVotingBeatmap] = useState<BeatmapRecord | null>(null);
   const [activeSearch, setActiveSearch] = useState<{
     tags: string[]; minStars?: number; maxStars?: number;
     yearFrom?: number; yearTo?: number;
   } | null>(null);
+
 
   const visibleTags = showAll ? ALL_TAGS : ALL_TAGS.slice(0, INITIAL_SHOW);
 
@@ -271,10 +253,16 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
             <>
               <p style={{ fontSize: 12, color: "#a7a9be", marginBottom: 10 }}>
                 {results.length} beatmap{results.length !== 1 ? "s" : ""} found
+                <span style={{ color: "#636e72", fontSize: 11, marginLeft: 8 }}>right-click a card if tags aren't right</span>
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {results.map(bm => (
-                  <BeatmapCard key={bm.beatmap_id} record={bm} highlightTags={Array.from(selected)} />
+                  <BeatmapCard
+                    key={bm.beatmap_id}
+                    record={bm}
+                    highlightTags={Array.from(selected)}
+                    onReportWrongTags={setVotingBeatmap}
+                  />
                 ))}
               </div>
               {hasMore && (
@@ -289,6 +277,13 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
             </>
           )}
         </div>
+      )}
+
+      {votingBeatmap && (
+        <TagVoteModal
+          beatmap={votingBeatmap}
+          onClose={() => setVotingBeatmap(null)}
+        />
       )}
     </div>
   );
