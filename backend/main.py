@@ -20,7 +20,7 @@ from analysis import (
 )
 from auth import router as auth_router
 from database import AsyncSessionFactory, engine
-from dependencies import require_user
+from dependencies import require_user, get_current_user
 from models import Session, User
 from queue_manager import queue_manager
 
@@ -689,17 +689,36 @@ async def vote_beatmap_tags(
 @app.get("/beatmaps/{beatmap_id}/user-votes", status_code=200)
 async def get_user_beatmap_votes(
     beatmap_id: str,
-    current_user: User = Depends(require_user),
+    current_user: Optional[User] = Depends(get_current_user),
 ):
-    """Get tags previously voted by the current user for this beatmap."""
+    """Get all tag vote counts for this beatmap and the current user's voted tags."""
     from models import BeatmapTagVote
+    from sqlalchemy import func as sqlfunc
     async with AsyncSessionFactory() as db:
-        stmt = select(BeatmapTagVote.tag).where(
-            BeatmapTagVote.beatmap_id == beatmap_id,
-            BeatmapTagVote.user_id == current_user.id,
+        # Total votes count per tag across all users
+        stmt_counts = (
+            select(BeatmapTagVote.tag, sqlfunc.count(BeatmapTagVote.id).label("count"))
+            .where(BeatmapTagVote.beatmap_id == beatmap_id)
+            .group_by(BeatmapTagVote.tag)
         )
-        voted_tags = list((await db.execute(stmt)).scalars().all())
-    return {"beatmap_id": beatmap_id, "voted_tags": voted_tags}
+        rows = (await db.execute(stmt_counts)).all()
+        tag_counts = {r.tag: r.count for r in rows}
+
+        # Current user's own voted tags (if logged in)
+        voted_tags = []
+        if current_user:
+            stmt_user = select(BeatmapTagVote.tag).where(
+                BeatmapTagVote.beatmap_id == beatmap_id,
+                BeatmapTagVote.user_id == current_user.id,
+            )
+            voted_tags = list((await db.execute(stmt_user)).scalars().all())
+
+    return {
+        "beatmap_id": beatmap_id,
+        "tag_counts": tag_counts,
+        "voted_tags": voted_tags,
+    }
+
 
 
 # --------------------------------------------------------------------------- #

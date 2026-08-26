@@ -11,15 +11,15 @@ interface Props {
 export default function TagVoteModal({ beatmap, onClose }: Props) {
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [previouslyVoted, setPreviouslyVoted] = useState<Set<string>>(new Set());
+  const [tagCounts, setTagCounts] = useState<Record<string, number>>({});
   const [search, setSearch] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [loadingVotes, setLoadingVotes] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // Load existing votes by user on mount
+  // Load existing votes & tag counts on mount
   useEffect(() => {
     let isMounted = true;
     getUserBeatmapVotes(beatmap.beatmap_id)
@@ -28,6 +28,7 @@ export default function TagVoteModal({ beatmap, onClose }: Props) {
         const voted = new Set(res.voted_tags ?? []);
         setPreviouslyVoted(voted);
         setSelectedTags(new Set(voted));
+        setTagCounts(res.tag_counts ?? {});
       })
       .catch(() => {
         // Not logged in or error loading votes — still allow selection
@@ -72,10 +73,8 @@ export default function TagVoteModal({ beatmap, onClose }: Props) {
     setError(null);
     try {
       await voteBeatmapTags(beatmap.beatmap_id, Array.from(selectedTags));
-      setSuccess(true);
-      setTimeout(() => {
-        onClose();
-      }, 1400);
+      // Langsung tutup modal setelah confirm sukses
+      onClose();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Gagal mengirim vote. Pastikan Anda sudah login.");
       setSubmitting(false);
@@ -123,112 +122,104 @@ export default function TagVoteModal({ beatmap, onClose }: Props) {
           </div>
         </div>
 
-        {success ? (
-          <div style={successBoxStyle}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>✓</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "#b8e994" }}>
-              Vote Berhasil Terkirim!
-            </div >
-            <div style={{ fontSize: 12, color: "#a7a9be", marginTop: 4 }}>
-              Terima kasih atas kontribusi Anda untuk membantu menyempurnakan tag beatmap.
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* Search filter */}
-            <div style={{ position: "relative", marginBottom: 10 }}>
-              <input
-                type="text"
-                placeholder="Cari tag (misal: jumps, stream, tech)..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={searchInputStyle}
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch("")}
-                  style={clearSearchBtnStyle}
-                >
-                  ✕
-                </button>
-              )}
-            </div>
+        {/* Search filter */}
+        <div style={{ position: "relative", marginBottom: 10 }}>
+          <input
+            type="text"
+            placeholder="Cari tag (misal: jumps, stream, tech)..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={searchInputStyle}
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              style={clearSearchBtnStyle}
+            >
+              ✕
+            </button>
+          )}
+        </div>
 
-            {/* Scrollable tag selection container */}
-            <div style={tagScrollContainerStyle}>
-              {loadingVotes ? (
-                <div style={{ padding: "20px 0", textAlign: "center", color: "#a7a9be", fontSize: 12 }}>
-                  Memuat data vote…
-                </div>
-              ) : filteredTags.length === 0 ? (
-                <div style={{ padding: "20px 0", textAlign: "center", color: "#636e72", fontSize: 12 }}>
-                  Tidak ada tag yang cocok dengan "{search}".
-                </div>
-              ) : (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {filteredTags.map(tag => {
-                    const isSelected = selectedTags.has(tag);
-                    const wasVoted = previouslyVoted.has(tag);
-                    return (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => toggleTag(tag)}
-                        style={tagItemStyle(isSelected)}
-                      >
-                        <span>{isSelected ? "✓ " : "+ "}{tag}</span>
-                        {wasVoted && (
-                          <span style={votedBadgeStyle}>Voted</span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+        {/* Scrollable tag selection container */}
+        <div style={tagScrollContainerStyle}>
+          {loadingVotes ? (
+            <div style={{ padding: "20px 0", textAlign: "center", color: "#a7a9be", fontSize: 12 }}>
+              Memuat data vote…
             </div>
-
-            {/* Selection info & Error */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
-              <span style={{ fontSize: 11, color: "#a7a9be" }}>
-                Dipilih: <strong style={{ color: "#ff6b9d" }}>{selectedTags.size}</strong> tag
-              </span>
-              {selectedTags.size > 0 && (
-                <button
-                  onClick={() => setSelectedTags(new Set())}
-                  style={{ background: "transparent", border: "none", color: "#636e72", fontSize: 11, cursor: "pointer" }}
-                >
-                  Reset pilihan
-                </button>
-              )}
+          ) : filteredTags.length === 0 ? (
+            <div style={{ padding: "20px 0", textAlign: "center", color: "#636e72", fontSize: 12 }}>
+              Tidak ada tag yang cocok dengan "{search}".
             </div>
-
-            {error && <div style={errorStyle}>{error}</div>}
-
-            {/* Actions */}
-            <div style={actionRowStyle}>
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={submitting}
-                style={cancelBtnStyle}
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirm}
-                disabled={submitting || selectedTags.size === 0}
-                style={{
-                  ...confirmBtnStyle,
-                  opacity: submitting || selectedTags.size === 0 ? 0.5 : 1,
-                  cursor: submitting || selectedTags.size === 0 ? "not-allowed" : "pointer",
-                }}
-              >
-                {submitting ? "Mengirim..." : `Confirm (${selectedTags.size})`}
-              </button>
+          ) : (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {filteredTags.map(tag => {
+                const isSelected = selectedTags.has(tag);
+                const wasVoted = previouslyVoted.has(tag);
+                const voteCount = tagCounts[tag] || 0;
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => toggleTag(tag)}
+                    style={tagItemStyle(isSelected, voteCount > 0)}
+                  >
+                    {voteCount > 0 && (
+                      <span style={voteCountBadgeStyle}>
+                        | {voteCount} |
+                      </span>
+                    )}
+                    <span>{isSelected ? "✓ " : (voteCount > 0 ? "" : "+ ")}{tag}</span>
+                    {wasVoted && (
+                      <span style={votedBadgeStyle}>Voted</span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
-          </>
-        )}
+          )}
+        </div>
+
+        {/* Selection info & Error */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
+          <span style={{ fontSize: 11, color: "#a7a9be" }}>
+            Dipilih: <strong style={{ color: "#ff6b9d" }}>{selectedTags.size}</strong> tag
+          </span>
+          {selectedTags.size > 0 && (
+            <button
+              onClick={() => setSelectedTags(new Set())}
+              style={{ background: "transparent", border: "none", color: "#636e72", fontSize: 11, cursor: "pointer" }}
+            >
+              Reset pilihan
+            </button>
+          )}
+        </div>
+
+        {error && <div style={errorStyle}>{error}</div>}
+
+        {/* Actions */}
+        <div style={actionRowStyle}>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={submitting}
+            style={cancelBtnStyle}
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={submitting || selectedTags.size === 0}
+            style={{
+              ...confirmBtnStyle,
+              opacity: submitting || selectedTags.size === 0 ? 0.5 : 1,
+              cursor: submitting || selectedTags.size === 0 ? "not-allowed" : "pointer",
+            }}
+          >
+            {submitting ? "Mengirim..." : `Confirm (${selectedTags.size})`}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -327,7 +318,7 @@ const tagScrollContainerStyle: React.CSSProperties = {
   scrollbarColor: "#ff6b9d #0f0e17",
 };
 
-function tagItemStyle(active: boolean): React.CSSProperties {
+function tagItemStyle(active: boolean, hasVotes: boolean): React.CSSProperties {
   return {
     padding: "5px 10px",
     borderRadius: 6,
@@ -335,15 +326,26 @@ function tagItemStyle(active: boolean): React.CSSProperties {
     fontWeight: active ? 600 : 400,
     cursor: "pointer",
     border: "1px solid",
-    background: active ? "rgba(255,107,157,0.22)" : "rgba(255,255,255,0.03)",
-    color: active ? "#ff6b9d" : "#a7a9be",
-    borderColor: active ? "#ff6b9d" : "#2e2d3d",
+    background: active
+      ? "rgba(255,107,157,0.22)"
+      : hasVotes
+      ? "rgba(255,215,0,0.06)"
+      : "rgba(255,255,255,0.03)",
+    color: active ? "#ff6b9d" : hasVotes ? "#fffffe" : "#a7a9be",
+    borderColor: active ? "#ff6b9d" : hasVotes ? "rgba(255,215,0,0.4)" : "#2e2d3d",
     transition: "all 0.12s ease",
     display: "inline-flex",
     alignItems: "center",
     gap: 5,
   };
 }
+
+const voteCountBadgeStyle: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 700,
+  color: "#ffd700",
+  letterSpacing: "0.5px",
+};
 
 const votedBadgeStyle: React.CSSProperties = {
   fontSize: 9,
@@ -381,14 +383,6 @@ const confirmBtnStyle: React.CSSProperties = {
   fontSize: 12,
   fontWeight: 600,
   cursor: "pointer",
-};
-
-const successBoxStyle: React.CSSProperties = {
-  textAlign: "center",
-  padding: "36px 16px",
-  background: "#0f0e17",
-  borderRadius: 8,
-  border: "1px solid rgba(184,233,148,0.3)",
 };
 
 const errorStyle: React.CSSProperties = {

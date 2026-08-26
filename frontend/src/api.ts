@@ -219,14 +219,15 @@ export async function voteBeatmapTags(
   return handleResponse<{ ok: boolean; beatmap_id: string; voted_tags: string[] }>(res);
 }
 
-// Get tags previously voted by the user for a beatmap
+// Get tag vote counts and previously voted tags by the user for a beatmap
 export async function getUserBeatmapVotes(
   beatmapId: string,
-): Promise<{ beatmap_id: string; voted_tags: string[] }> {
+): Promise<{ beatmap_id: string; tag_counts: Record<string, number>; voted_tags: string[] }> {
   const res = await fetch(`${BASE_URL}/beatmaps/${beatmapId}/user-votes`, {
     headers: { ...authHeaders() },
     credentials: "include",
   });
-  return handleResponse<{ beatmap_id: string; voted_tags: string[] }>(res);
+  return handleResponse<{ beatmap_id: string; tag_counts: Record<string, number>; voted_tags: string[] }>(res);
 }
+
 
