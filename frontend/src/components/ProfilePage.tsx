@@ -100,7 +100,8 @@ export default function ProfilePage({ user, onBack }: Props) {
   }
 
   async function handleUnhideSet(setId: string) {
-    setHidden(prev => prev.filter(b => b.beatmapset_id !== setId || b.hidden_by !== "set"));
+    // Remove ALL beatmaps from this set (covers both hidden_by=set and hidden_by=beatmap)
+    setHidden(prev => prev.filter(b => b.beatmapset_id !== setId));
     setHiddenSets(prev => prev.filter(s => s !== setId));
     await multiUnhide([], [setId]).catch(() => {});
   }

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { BeatmapRecord } from "../types";
 
 const STATUS_COLOR: Record<string, string> = {
@@ -58,18 +59,20 @@ function ContextMenu({
   const clampedX = Math.min(x, window.innerWidth - menuW - 8);
   const clampedY = Math.min(y, window.innerHeight - menuH - 8);
 
-  return (
+  return createPortal(
     <div
       ref={ref}
+      onMouseDown={e => e.stopPropagation()}
+      onClick={e => e.stopPropagation()}
       style={{
-        position: "fixed", left: clampedX, top: clampedY, zIndex: 1000,
+        position: "fixed", left: clampedX, top: clampedY, zIndex: 99999,
         background: "#1a1929", border: "1px solid #2e2d3d", borderRadius: 8,
         boxShadow: "0 8px 24px rgba(0,0,0,0.6)", minWidth: menuW, overflow: "hidden",
       }}
     >
       {onReportWrongTags && (
         <button
-          onClick={() => { onReportWrongTags(); onClose(); }}
+          onClick={e => { e.preventDefault(); e.stopPropagation(); onReportWrongTags(); onClose(); }}
           style={menuItemStyle}
           onMouseEnter={e => (e.currentTarget.style.background = "#2e2d3d")}
           onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
@@ -79,7 +82,7 @@ function ContextMenu({
       )}
       {onHideBeatmap && (
         <button
-          onClick={() => { onHideBeatmap(); onClose(); }}
+          onClick={e => { e.preventDefault(); e.stopPropagation(); onHideBeatmap(); onClose(); }}
           style={menuItemStyle}
           onMouseEnter={e => (e.currentTarget.style.background = "#2e2d3d")}
           onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
@@ -89,7 +92,7 @@ function ContextMenu({
       )}
       {hasBeatmapset && onHideBeatmapset && (
         <button
-          onClick={() => { onHideBeatmapset(); onClose(); }}
+          onClick={e => { e.preventDefault(); e.stopPropagation(); onHideBeatmapset(); onClose(); }}
           style={menuItemStyle}
           onMouseEnter={e => (e.currentTarget.style.background = "#2e2d3d")}
           onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
@@ -97,7 +100,8 @@ function ContextMenu({
           🗂 Hide this beatmapset
         </button>
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -157,6 +161,7 @@ export function BeatmapCard({ record, highlightTags, onHide, onHideSet, onReport
   function handleContextMenu(e: React.MouseEvent) {
     if (!onHide && !onHideSet && !onReportWrongTags) return;
     e.preventDefault();
+    e.stopPropagation();
     setMenu({ x: e.clientX, y: e.clientY });
   }
 

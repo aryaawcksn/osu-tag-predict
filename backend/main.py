@@ -543,7 +543,7 @@ async def hide_beatmapset(beatmapset_id: str, current_user: User = Depends(requi
 @app.delete("/hidden/set/{beatmapset_id}", status_code=200)
 async def unhide_beatmapset(beatmapset_id: str, current_user: User = Depends(require_user)):
     from sqlalchemy import delete
-    from models import HiddenBeatmapset
+    from models import HiddenBeatmap, HiddenBeatmapset, Beatmap as BeatmapModel
     async with AsyncSessionFactory() as db:
         async with db.begin():
             await db.execute(
@@ -552,6 +552,18 @@ async def unhide_beatmapset(beatmapset_id: str, current_user: User = Depends(req
                     HiddenBeatmapset.beatmapset_id == beatmapset_id,
                 )
             )
+            # Also clear any individual hidden_beatmaps for diffs in this set
+            set_beatmap_ids = list((await db.execute(
+                select(BeatmapModel.beatmap_id)
+                .where(BeatmapModel.beatmapset_id == beatmapset_id)
+            )).scalars().all())
+            if set_beatmap_ids:
+                await db.execute(
+                    delete(HiddenBeatmap).where(
+                        HiddenBeatmap.user_id == current_user.id,
+                        HiddenBeatmap.beatmap_id.in_(set_beatmap_ids),
+                    )
+                )
     return {"ok": True, "beatmapset_id": beatmapset_id}
 
 
@@ -562,7 +574,7 @@ async def multi_unhide(
 ):
     """Unhide multiple beatmaps and/or beatmapsets at once."""
     from sqlalchemy import delete
-    from models import HiddenBeatmap, HiddenBeatmapset
+    from models import HiddenBeatmap, HiddenBeatmapset, Beatmap as BeatmapModel
     beatmap_ids: list[str] = payload.get("beatmap_ids", [])
     beatmapset_ids: list[str] = payload.get("beatmapset_ids", [])
     async with AsyncSessionFactory() as db:
@@ -581,6 +593,19 @@ async def multi_unhide(
                         HiddenBeatmapset.beatmapset_id.in_(beatmapset_ids),
                     )
                 )
+                # Also remove any individual hidden_beatmaps entries that belong
+                # to these beatmapsets (handles the double-hide case)
+                set_beatmap_ids = list((await db.execute(
+                    select(BeatmapModel.beatmap_id)
+                    .where(BeatmapModel.beatmapset_id.in_(beatmapset_ids))
+                )).scalars().all())
+                if set_beatmap_ids:
+                    await db.execute(
+                        delete(HiddenBeatmap).where(
+                            HiddenBeatmap.user_id == current_user.id,
+                            HiddenBeatmap.beatmap_id.in_(set_beatmap_ids),
+                        )
+                    )
     return {"ok": True}
 
 
