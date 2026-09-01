@@ -2,6 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { BeatmapRecord } from "../types";
 
+function useIsMobile(breakpoint = 520) {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= breakpoint);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth <= breakpoint);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, [breakpoint]);
+  return isMobile;
+}
+
 const STATUS_COLOR: Record<string, string> = {
   ranked: "#b8e994", approved: "#b8e994", loved: "#ff6b9d",
   qualified: "#74b9ff", pending: "#fbbf24", wip: "#fbbf24", graveyard: "#636e72",
@@ -126,6 +136,7 @@ export function BeatmapCard({ record, highlightTags, onHide, onHideSet, onReport
   const stars = record.difficulty_rating != null ? record.difficulty_rating.toFixed(2) : null;
   const statusColor = STATUS_COLOR[record.status ?? ""] ?? "#a7a9be";
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const isMobile = useIsMobile();
 
   const squareImgUrl =
     record.list_url ||
@@ -165,6 +176,112 @@ export function BeatmapCard({ record, highlightTags, onHide, onHideSet, onReport
     setMenu({ x: e.clientX, y: e.clientY });
   }
 
+  const hoverEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.currentTarget.style.borderColor = "rgba(255,107,157,0.45)";
+    e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4)";
+    e.currentTarget.style.transform = "translateY(-1px)";
+  };
+  const hoverLeave = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.currentTarget.style.borderColor = "#2e2d3d";
+    e.currentTarget.style.boxShadow = "none";
+    e.currentTarget.style.transform = "none";
+  };
+
+  const contextMenuNode = menu && (
+    <ContextMenu
+      x={menu.x}
+      y={menu.y}
+      hasBeatmapset={!!record.beatmapset_id}
+      onHideBeatmap={onHide ? () => onHide(record.beatmap_id) : undefined}
+      onHideBeatmapset={onHideSet && record.beatmapset_id ? () => onHideSet(record.beatmapset_id!) : undefined}
+      onReportWrongTags={onReportWrongTags ? () => onReportWrongTags(record) : undefined}
+      onClose={() => setMenu(null)}
+    />
+  );
+
+  // ── MOBILE LAYOUT ──────────────────────────────────────────────
+  if (isMobile) {
+    return (
+      <>
+        <a href={href} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", display: "block" }} onContextMenu={handleContextMenu}>
+          <div style={mobileCardStyle} onMouseEnter={hoverEnter} onMouseLeave={hoverLeave}>
+
+            {/* Top section: blurred bg + centered cover image */}
+            <div style={mobileTopSectionStyle}>
+              {/* Background (blurred, low opacity) */}
+              {bgImgUrl && (
+                <img src={bgImgUrl} alt="" style={mobileBgImgStyle} loading="lazy" />
+              )}
+              {/* Black gradient from left/right edges toward center */}
+              <div style={mobileSideGradientStyle} />
+
+              {/* Centered square cover */}
+              <div style={mobileCoverWrapperStyle}>
+                {squareImgUrl ? (
+                  <img
+                    src={squareImgUrl}
+                    alt=""
+                    style={mobileCoverImgStyle}
+                    loading="lazy"
+                    onError={e => { (e.currentTarget as HTMLElement).style.display = "none"; }}
+                  />
+                ) : (
+                  <div style={fallbackIconStyle}>🎵</div>
+                )}
+              </div>
+            </div>
+
+            {/* Middle section: beatmap info */}
+            <div style={mobileInfoSectionStyle}>
+              <div style={titleStyle}>{title}</div>
+              {record.artist && (
+                <div style={{ ...artistStyle, marginTop: 2 }}>
+                  by {record.artist}
+                  {record.version && (
+                    <span style={{ color: "#ff6b9d", marginLeft: 6 }}>[{record.version}]</span>
+                  )}
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 6, alignItems: "center" }}>
+                {stars && (
+                  <span style={{ ...badgeStyle, color: "#ffd700", borderColor: "rgba(255,215,0,0.5)", background: "rgba(0,0,0,0.4)" }}>
+                    ★ {stars}
+                  </span>
+                )}
+                {record.status && (
+                  <span style={{ ...badgeStyle, color: statusColor, borderColor: `${statusColor}88`, background: "rgba(0,0,0,0.4)" }}>
+                    {record.status}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Bottom section: stats + tags */}
+            <div style={mobileMetaSectionStyle}>
+              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
+                {stats.map(([k, v]) => (
+                  <span key={k} style={statBadgeStyle}>{k} {v}</span>
+                ))}
+              </div>
+              {displayedLabels.length > 0 && (
+                <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 6 }}>
+                  {displayedLabels.map(({ label, probability }) => (
+                    <span key={label} style={tagStyle(probability, highlightTags?.includes(label))}>
+                      {label} {(probability * 100).toFixed(0)}%
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+          </div>
+        </a>
+        {contextMenuNode}
+      </>
+    );
+  }
+
+  // ── DESKTOP LAYOUT (unchanged) ─────────────────────────────────
   return (
     <>
       <a
@@ -174,19 +291,7 @@ export function BeatmapCard({ record, highlightTags, onHide, onHideSet, onReport
         style={{ textDecoration: "none", display: "block" }}
         onContextMenu={handleContextMenu}
       >
-        <div
-          style={cardStyle}
-          onMouseEnter={e => {
-            e.currentTarget.style.borderColor = "rgba(255,107,157,0.45)";
-            e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4)";
-            e.currentTarget.style.transform = "translateY(-1px)";
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.borderColor = "#2e2d3d";
-            e.currentTarget.style.boxShadow = "none";
-            e.currentTarget.style.transform = "none";
-          }}
-        >
+        <div style={cardStyle} onMouseEnter={hoverEnter} onMouseLeave={hoverLeave}>
           {/* Left: Square Cover Thumbnail */}
           <div style={squareCoverWrapperStyle}>
             {squareImgUrl ? (
@@ -195,9 +300,7 @@ export function BeatmapCard({ record, highlightTags, onHide, onHideSet, onReport
                 alt=""
                 style={squareCoverImgStyle}
                 loading="lazy"
-                onError={e => {
-                  (e.currentTarget as HTMLElement).style.display = "none";
-                }}
+                onError={e => { (e.currentTarget as HTMLElement).style.display = "none"; }}
               />
             ) : (
               <div style={fallbackIconStyle}>🎵</div>
@@ -250,24 +353,7 @@ export function BeatmapCard({ record, highlightTags, onHide, onHideSet, onReport
           </div>
         </div>
       </a>
-
-      {menu && (
-        <ContextMenu
-          x={menu.x}
-          y={menu.y}
-          hasBeatmapset={!!record.beatmapset_id}
-          onHideBeatmap={onHide ? () => onHide(record.beatmap_id) : undefined}
-          onHideBeatmapset={
-            onHideSet && record.beatmapset_id
-              ? () => onHideSet(record.beatmapset_id!)
-              : undefined
-          }
-          onReportWrongTags={
-            onReportWrongTags ? () => onReportWrongTags(record) : undefined
-          }
-          onClose={() => setMenu(null)}
-        />
-      )}
+      {contextMenuNode}
     </>
   );
 }
@@ -394,3 +480,80 @@ function tagStyle(probability: number, highlighted = false): React.CSSProperties
     fontWeight: highlighted ? 700 : 400,
   };
 }
+
+// ── Mobile styles ──────────────────────────────────────────────
+
+const mobileCardStyle: React.CSSProperties = {
+  position: "relative",
+  borderRadius: 10,
+  overflow: "hidden",
+  background: "#1a1929",
+  border: "1px solid #2e2d3d",
+  display: "flex",
+  flexDirection: "column",
+  transition: "border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease",
+};
+
+const mobileTopSectionStyle: React.CSSProperties = {
+  position: "relative",
+  height: 130,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  overflow: "hidden",
+};
+
+const mobileBgImgStyle: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+  objectPosition: "center",
+  filter: "blur(6px) brightness(0.55)",
+  transform: "scale(1.08)", // avoid blur edges
+  opacity: 0.6,
+};
+
+const mobileSideGradientStyle: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  // Black from left edge → transparent → black from right edge
+  background: "linear-gradient(90deg, rgba(10,9,18,0.92) 0%, transparent 30%, transparent 70%, rgba(10,9,18,0.92) 100%)",
+  zIndex: 1,
+};
+
+const mobileCoverWrapperStyle: React.CSSProperties = {
+  position: "relative",
+  zIndex: 2,
+  width: 90,
+  height: 90,
+  borderRadius: 8,
+  overflow: "hidden",
+  boxShadow: "0 4px 16px rgba(0,0,0,0.7)",
+  flexShrink: 0,
+  background: "#100f1c",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+const mobileCoverImgStyle: React.CSSProperties = {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+  objectPosition: "center",
+  display: "block",
+};
+
+const mobileInfoSectionStyle: React.CSSProperties = {
+  padding: "10px 14px 8px",
+  borderTop: "1px solid rgba(46,45,61,0.6)",
+  background: "rgba(16,15,28,0.85)",
+};
+
+const mobileMetaSectionStyle: React.CSSProperties = {
+  padding: "8px 14px 10px",
+  borderTop: "1px solid rgba(46,45,61,0.5)",
+  background: "rgba(12,11,22,0.9)",
+};
