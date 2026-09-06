@@ -385,37 +385,31 @@ async def get_beatmaps_by_relevance(
     exclude_ids: list[str] | None = None,
 ) -> List[dict]:
     """
-    Find beatmaps most similar to a given set of tag labels (by cosine similarity
-    over all label probabilities). source_labels = [{"label": str, "probability": float}].
-    Returns beatmaps sorted from most to least relevant.
+    Find beatmaps most similar to a given set of tag labels (by dot-product similarity).
+    Scores are computed in Python over a pre-filtered candidate set (max 2000).
     """
     if not source_labels:
         return []
 
-    from sqlalchemy import func as sqlfunc
-
-    # Build source vector {label: probability}
     source_vec: dict[str, float] = {l["label"]: l["probability"] for l in source_labels}
     source_labels_set = set(source_vec.keys())
 
-    # Fetch all beatmaps that share at least one label with the source
+    # Fetch all label rows for beatmaps that share at least one tag — limit candidates
+    from sqlalchemy import func as sqlfunc
     async with AsyncSessionFactory() as session:
-        candidate_ids = list((await session.execute(
-            select(BeatmapLabel.beatmap_id.distinct())
+        # Get top 2000 candidate beatmap_ids by number of matching labels
+        cand_subq = (
+            select(BeatmapLabel.beatmap_id)
             .where(BeatmapLabel.label.in_(source_labels_set))
-        )).scalars().all())
+            .group_by(BeatmapLabel.beatmap_id)
+            .order_by(sqlfunc.count(BeatmapLabel.label).desc())
+            .limit(2000)
+            .subquery()
+        )
 
-    if not candidate_ids:
-        return []
-
-    if exclude_ids:
-        candidate_ids = [bid for bid in candidate_ids if bid not in exclude_ids]
-
-    # Fetch all labels for candidate beatmaps
-    async with AsyncSessionFactory() as session:
         rows = list((await session.execute(
             select(BeatmapLabel.beatmap_id, BeatmapLabel.label, BeatmapLabel.probability)
-            .where(BeatmapLabel.beatmap_id.in_(candidate_ids))
+            .where(BeatmapLabel.beatmap_id.in_(select(cand_subq)))
         )).all())
 
     # Build candidate vectors
@@ -424,23 +418,27 @@ async def get_beatmaps_by_relevance(
     for beatmap_id, label, prob in rows:
         candidate_vecs[beatmap_id][label] = prob
 
-    # Compute dot product similarity (sum of source_prob * candidate_prob for shared labels)
+    # Filter excluded ids
+    if exclude_ids:
+        exclude_set = set(exclude_ids)
+        candidate_vecs = {bid: vec for bid, vec in candidate_vecs.items() if bid not in exclude_set}
+
+    # Dot-product similarity
     def similarity(vec: dict[str, float]) -> float:
-        score = 0.0
-        for lbl, src_prob in source_vec.items():
-            score += src_prob * vec.get(lbl, 0.0)
-        return score
+        return sum(src_prob * vec.get(lbl, 0.0) for lbl, src_prob in source_vec.items())
 
     scored = sorted(candidate_vecs.keys(), key=lambda bid: similarity(candidate_vecs[bid]), reverse=True)
     page = scored[offset: offset + limit]
 
-    # Fetch Beatmap rows for the page
+    if not page:
+        return []
+
+    # Fetch Beatmap rows for the page only
     async with AsyncSessionFactory() as session:
         beatmap_rows = list((await session.execute(
             select(Beatmap).where(Beatmap.beatmap_id.in_(page))
         )).scalars().all())
 
-    # Re-order to match scored order
     bm_map = {bm.beatmap_id: bm for bm in beatmap_rows}
     ordered = [bm_map[bid] for bid in page if bid in bm_map]
 
