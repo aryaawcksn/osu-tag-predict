@@ -84,9 +84,11 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     """Ensure CORS headers are present even on error responses."""
     origin = request.headers.get("origin", "")
     headers = {}
-    if origin in ALLOWED_ORIGINS:
+    if origin in ALLOWED_ORIGINS or "*" in ALLOWED_ORIGINS:
         headers["Access-Control-Allow-Origin"] = origin
         headers["Access-Control-Allow-Credentials"] = "true"
+        headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Session-Token, X-Admin-Key"
     return JSONResponse(
         status_code=exc.status_code,
         content={"detail": exc.detail},
@@ -94,17 +96,8 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     )
 
 
-@app.options("/{full_path:path}")
-def options_handler(full_path: str, request: Request):
-    origin = request.headers.get("origin", "")
-    headers = {
-        "Access-Control-Allow-Origin": origin if origin in ALLOWED_ORIGINS else "",
-        "Access-Control-Allow-Credentials": "true",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Session-Token, X-Admin-Key",
-        "Access-Control-Max-Age": "600",
-    }
-    return Response(status_code=200, headers=headers)
+# NOTE: Do NOT add a manual @app.options handler — CORSMiddleware handles preflight.
+# A manual OPTIONS route would intercept before middleware and strip CORS headers.
 
 
 # --------------------------------------------------------------------------- #
