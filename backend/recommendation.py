@@ -378,6 +378,75 @@ async def _build_records(beatmaps: list) -> List[dict]:
     return records
 
 
+async def get_beatmaps_by_relevance(
+    source_labels: List[dict],
+    limit: int = 20,
+    offset: int = 0,
+    exclude_ids: list[str] | None = None,
+) -> List[dict]:
+    """
+    Find beatmaps most similar to a given set of tag labels (by cosine similarity
+    over all label probabilities). source_labels = [{"label": str, "probability": float}].
+    Returns beatmaps sorted from most to least relevant.
+    """
+    if not source_labels:
+        return []
+
+    from sqlalchemy import func as sqlfunc
+
+    # Build source vector {label: probability}
+    source_vec: dict[str, float] = {l["label"]: l["probability"] for l in source_labels}
+    source_labels_set = set(source_vec.keys())
+
+    # Fetch all beatmaps that share at least one label with the source
+    async with AsyncSessionFactory() as session:
+        candidate_ids = list((await session.execute(
+            select(BeatmapLabel.beatmap_id.distinct())
+            .where(BeatmapLabel.label.in_(source_labels_set))
+        )).scalars().all())
+
+    if not candidate_ids:
+        return []
+
+    if exclude_ids:
+        candidate_ids = [bid for bid in candidate_ids if bid not in exclude_ids]
+
+    # Fetch all labels for candidate beatmaps
+    async with AsyncSessionFactory() as session:
+        rows = list((await session.execute(
+            select(BeatmapLabel.beatmap_id, BeatmapLabel.label, BeatmapLabel.probability)
+            .where(BeatmapLabel.beatmap_id.in_(candidate_ids))
+        )).all())
+
+    # Build candidate vectors
+    from collections import defaultdict
+    candidate_vecs: dict[str, dict[str, float]] = defaultdict(dict)
+    for beatmap_id, label, prob in rows:
+        candidate_vecs[beatmap_id][label] = prob
+
+    # Compute dot product similarity (sum of source_prob * candidate_prob for shared labels)
+    def similarity(vec: dict[str, float]) -> float:
+        score = 0.0
+        for lbl, src_prob in source_vec.items():
+            score += src_prob * vec.get(lbl, 0.0)
+        return score
+
+    scored = sorted(candidate_vecs.keys(), key=lambda bid: similarity(candidate_vecs[bid]), reverse=True)
+    page = scored[offset: offset + limit]
+
+    # Fetch Beatmap rows for the page
+    async with AsyncSessionFactory() as session:
+        beatmap_rows = list((await session.execute(
+            select(Beatmap).where(Beatmap.beatmap_id.in_(page))
+        )).scalars().all())
+
+    # Re-order to match scored order
+    bm_map = {bm.beatmap_id: bm for bm in beatmap_rows}
+    ordered = [bm_map[bid] for bid in page if bid in bm_map]
+
+    return await _build_records(ordered)
+
+
 async def get_cached_results(beatmap_ids: List[str]) -> dict[str, dict]:
     """
     Return cached prediction results for beatmap IDs that exist in DB

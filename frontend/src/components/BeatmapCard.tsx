@@ -124,12 +124,13 @@ const menuItemStyle: React.CSSProperties = {
 interface BeatmapCardProps {
   record: BeatmapRecord;
   highlightTags?: string[];
+  relevanceTags?: string[];  // tags from source beatmap — shown in red as relevance indicators
   onHide?: (beatmapId: string) => void;
   onHideSet?: (beatmapsetId: string) => void;
   onReportWrongTags?: (record: BeatmapRecord) => void;
 }
 
-export function BeatmapCard({ record, highlightTags, onHide, onHideSet, onReportWrongTags }: BeatmapCardProps) {
+export function BeatmapCard({ record, highlightTags, relevanceTags, onHide, onHideSet, onReportWrongTags }: BeatmapCardProps) {
 
   const href = `https://osu.ppy.sh/beatmaps/${record.beatmap_id}`;
   const title = record.title ?? `Beatmap #${record.beatmap_id}`;
@@ -266,7 +267,7 @@ export function BeatmapCard({ record, highlightTags, onHide, onHideSet, onReport
               {displayedLabels.length > 0 && (
                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 6 }}>
                   {displayedLabels.map(({ label, probability }) => (
-                    <span key={label} style={tagStyle(probability, highlightTags?.includes(label))}>
+                    <span key={label} style={tagStyle(probability, highlightTags?.includes(label), relevanceTags?.includes(label))}>
                       {label} {(probability * 100).toFixed(0)}%
                     </span>
                   ))}
@@ -344,7 +345,7 @@ export function BeatmapCard({ record, highlightTags, onHide, onHideSet, onReport
 
               <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
                 {displayedLabels.map(({ label, probability }) => (
-                  <span key={label} style={tagStyle(probability, highlightTags?.includes(label))}>
+                  <span key={label} style={tagStyle(probability, highlightTags?.includes(label), relevanceTags?.includes(label))}>
                     {label} {(probability * 100).toFixed(0)}%
                   </span>
                 ))}
@@ -467,8 +468,16 @@ const statBadgeStyle: React.CSSProperties = {
   background: "rgba(0,0,0,0.55)",
 };
 
-function tagStyle(probability: number, highlighted = false): React.CSSProperties {
+function tagStyle(probability: number, highlighted = false, relevant = false): React.CSSProperties {
   void probability;
+  if (relevant) {
+    return {
+      fontSize: 10, padding: "2px 7px", borderRadius: 4,
+      background: "rgba(255,60,80,0.22)",
+      border: "1px solid rgba(255,60,80,0.8)",
+      color: "#ff4060", whiteSpace: "nowrap", fontWeight: 700,
+    };
+  }
   return {
     fontSize: 10,
     padding: "2px 7px",

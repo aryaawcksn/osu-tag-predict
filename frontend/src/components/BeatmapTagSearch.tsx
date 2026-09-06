@@ -261,6 +261,7 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
                     key={bm.beatmap_id}
                     record={bm}
                     highlightTags={Array.from(selected)}
+                    relevanceTags={Array.from(selected)}
                     onReportWrongTags={setVotingBeatmap}
                   />
                 ))}

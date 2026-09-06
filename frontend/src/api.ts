@@ -205,7 +205,20 @@ export async function getBeatmapsByTags(
   return handleResponse<{ beatmaps: BeatmapRecord[]; tags: string[]; has_more: boolean }>(res);
 }
 
-// User voting for right tags on a beatmap
+// Get beatmaps by relevance to a given label vector
+export async function getBeatmapsByRelevance(
+  labels: { label: string; probability: number }[],
+  offset = 0,
+): Promise<{ beatmaps: BeatmapRecord[]; has_more: boolean }> {
+  const params = new URLSearchParams({ offset: String(offset) });
+  const res = await fetch(`${BASE_URL}/beatmaps/by-relevance?${params}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    credentials: "include",
+    body: JSON.stringify({ labels }),
+  });
+  return handleResponse<{ beatmaps: BeatmapRecord[]; has_more: boolean }>(res);
+}
 export async function voteBeatmapTags(
   beatmapId: string,
   tags: string[],

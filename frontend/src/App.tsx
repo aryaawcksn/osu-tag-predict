@@ -7,6 +7,7 @@ import AnalysisPanel from "./components/AnalysisPanel";
 import RecommendationList from "./components/RecommendationList";
 import BeatmapTagSearch from "./components/BeatmapTagSearch";
 import ProfilePage from "./components/ProfilePage";
+import RelevanceSection from "./components/RelevanceSection";
 import { PredictResult, CurrentUser, QueueState, DominantPlaystyle } from "./types";
 import { getCurrentUser, getQueueState, predictFromLink, predictFromUpload, pollJobResult, setSessionToken, clearSessionToken } from "./api";
 
@@ -165,6 +166,8 @@ export default function App() {
 
         {/* Prediction result */}
         {result && <ResultCard result={result} />}
+        {/* Relevance finder — shown below result card when logged in */}
+        {result && user && <RelevanceSection result={result} />}
 
         {/* Auth-gated features — analysis & recommendations (Requirements 2.4, 6.3) */}
         {!user && (

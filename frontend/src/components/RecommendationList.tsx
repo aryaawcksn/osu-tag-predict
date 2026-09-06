@@ -134,6 +134,7 @@ export default function RecommendationList({ playstyle, avgDifficulty }: Props) 
               key={bm.beatmap_id}
               record={bm}
               highlightTags={[playstyle]}
+              relevanceTags={[playstyle]}
               onHide={handleHide}
               onHideSet={handleHideSet}
             />
