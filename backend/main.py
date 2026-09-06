@@ -709,9 +709,11 @@ class RelevanceRequest(BaseModel):
 async def beatmaps_by_relevance(
     payload: RelevanceRequest,
     offset: int = Query(0, ge=0),
+    min_stars: Optional[float] = Query(None),
+    max_stars: Optional[float] = Query(None),
     current_user: User = Depends(require_user),
 ):
-    """Find beatmaps most similar to a given label vector (sorted by relevance)."""
+    """Find beatmaps most similar to a given label vector (sorted by cosine similarity)."""
     if not payload.labels:
         raise HTTPException(status_code=400, detail="labels required")
     from recommendation import get_beatmaps_by_relevance, get_hidden_ids
@@ -720,6 +722,8 @@ async def beatmaps_by_relevance(
         source_labels=payload.labels,
         offset=offset,
         exclude_ids=hidden,
+        min_stars=min_stars,
+        max_stars=max_stars,
     )
     return {"beatmaps": results, "has_more": len(results) == 20}
 

@@ -383,21 +383,29 @@ async def get_beatmaps_by_relevance(
     limit: int = 20,
     offset: int = 0,
     exclude_ids: list[str] | None = None,
+    min_stars: float | None = None,
+    max_stars: float | None = None,
 ) -> List[dict]:
     """
-    Find beatmaps most similar to a given set of tag labels (by dot-product similarity).
-    Scores are computed in Python over a pre-filtered candidate set (max 2000).
+    Find beatmaps most similar to a given set of tag labels using cosine similarity.
+    Cosine similarity normalizes magnitude so we compare distribution shape, not raw values.
+    e.g. source alt=66% tech=36% will rank alt=65% tech=35% higher than alt=92% tech=80%.
     """
     if not source_labels:
         return []
 
+    import math
+    from collections import defaultdict
+    from sqlalchemy import func as sqlfunc
+
     source_vec: dict[str, float] = {l["label"]: l["probability"] for l in source_labels}
     source_labels_set = set(source_vec.keys())
+    source_norm = math.sqrt(sum(v * v for v in source_vec.values()))
+    if source_norm == 0:
+        return []
 
-    # Fetch all label rows for beatmaps that share at least one tag — limit candidates
-    from sqlalchemy import func as sqlfunc
+    # Get top 2000 candidates by matching label count
     async with AsyncSessionFactory() as session:
-        # Get top 2000 candidate beatmap_ids by number of matching labels
         cand_subq = (
             select(BeatmapLabel.beatmap_id)
             .where(BeatmapLabel.label.in_(source_labels_set))
@@ -407,13 +415,23 @@ async def get_beatmaps_by_relevance(
             .subquery()
         )
 
+        # Apply star filter at DB level to reduce candidates further
+        beatmap_filter = select(Beatmap.beatmap_id).where(
+            Beatmap.beatmap_id.in_(select(cand_subq))
+        )
+        if min_stars is not None:
+            beatmap_filter = beatmap_filter.where(Beatmap.difficulty_rating >= min_stars)
+        if max_stars is not None:
+            beatmap_filter = beatmap_filter.where(Beatmap.difficulty_rating <= max_stars)
+
+        filtered_ids_subq = beatmap_filter.subquery()
+
         rows = list((await session.execute(
             select(BeatmapLabel.beatmap_id, BeatmapLabel.label, BeatmapLabel.probability)
-            .where(BeatmapLabel.beatmap_id.in_(select(cand_subq)))
+            .where(BeatmapLabel.beatmap_id.in_(select(filtered_ids_subq)))
         )).all())
 
-    # Build candidate vectors
-    from collections import defaultdict
+    # Build full label vectors per candidate
     candidate_vecs: dict[str, dict[str, float]] = defaultdict(dict)
     for beatmap_id, label, prob in rows:
         candidate_vecs[beatmap_id][label] = prob
@@ -423,17 +441,20 @@ async def get_beatmaps_by_relevance(
         exclude_set = set(exclude_ids)
         candidate_vecs = {bid: vec for bid, vec in candidate_vecs.items() if bid not in exclude_set}
 
-    # Dot-product similarity
-    def similarity(vec: dict[str, float]) -> float:
-        return sum(src_prob * vec.get(lbl, 0.0) for lbl, src_prob in source_vec.items())
+    # Cosine similarity: dot(source, candidate) / (|source| * |candidate|)
+    def cosine_similarity(vec: dict[str, float]) -> float:
+        dot = sum(source_vec.get(lbl, 0.0) * prob for lbl, prob in vec.items())
+        cand_norm = math.sqrt(sum(v * v for v in vec.values()))
+        if cand_norm == 0:
+            return 0.0
+        return dot / (source_norm * cand_norm)
 
-    scored = sorted(candidate_vecs.keys(), key=lambda bid: similarity(candidate_vecs[bid]), reverse=True)
+    scored = sorted(candidate_vecs.keys(), key=lambda bid: cosine_similarity(candidate_vecs[bid]), reverse=True)
     page = scored[offset: offset + limit]
 
     if not page:
         return []
 
-    # Fetch Beatmap rows for the page only
     async with AsyncSessionFactory() as session:
         beatmap_rows = list((await session.execute(
             select(Beatmap).where(Beatmap.beatmap_id.in_(page))

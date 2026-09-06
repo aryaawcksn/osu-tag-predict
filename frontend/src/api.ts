@@ -209,8 +209,12 @@ export async function getBeatmapsByTags(
 export async function getBeatmapsByRelevance(
   labels: { label: string; probability: number }[],
   offset = 0,
+  minStars?: number,
+  maxStars?: number,
 ): Promise<{ beatmaps: BeatmapRecord[]; has_more: boolean }> {
   const params = new URLSearchParams({ offset: String(offset) });
+  if (minStars != null) params.set("min_stars", String(minStars));
+  if (maxStars != null) params.set("max_stars", String(maxStars));
   const res = await fetch(`${BASE_URL}/beatmaps/by-relevance?${params}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
