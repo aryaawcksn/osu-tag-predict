@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { BeatmapRecord } from "../types";
 import { getRecommendations, hideBeatmap, hideBeatmapset } from "../api";
 import { BeatmapCard } from "./BeatmapCard";
+import SimilarBeatmapPanel from "./SimilarBeatmapPanel";
 
 interface Props {
   playstyle: string;
@@ -23,6 +24,7 @@ export default function RecommendationList({ playstyle, avgDifficulty }: Props) 
   const [status, setStatus] = useState<string>("");
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
+  const [similarBeatmap, setSimilarBeatmap] = useState<BeatmapRecord | null>(null);
 
   async function fetchRecs(off: number, replace: boolean) {
     if (!playstyle) return;
@@ -134,12 +136,20 @@ export default function RecommendationList({ playstyle, avgDifficulty }: Props) 
               key={bm.beatmap_id}
               record={bm}
               highlightTags={[playstyle]}
-              relevanceTags={[playstyle]}
               onHide={handleHide}
               onHideSet={handleHideSet}
+              onFindSimilar={setSimilarBeatmap}
             />
           ))}
         </div>
+      )}
+
+      {similarBeatmap && (
+        <SimilarBeatmapPanel
+          sourceBeatmap={similarBeatmap}
+          onClose={() => setSimilarBeatmap(null)}
+          onFindSimilar={setSimilarBeatmap}
+        />
       )}
 
       {hasMore && (

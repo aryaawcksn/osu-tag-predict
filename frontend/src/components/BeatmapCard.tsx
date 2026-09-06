@@ -28,6 +28,7 @@ interface ContextMenuProps {
   onHideBeatmap?: () => void;
   onHideBeatmapset?: () => void;
   onReportWrongTags?: () => void;
+  onFindSimilar?: () => void;
   hasBeatmapset: boolean;
   onClose: () => void;
 }
@@ -38,6 +39,7 @@ function ContextMenu({
   onHideBeatmap,
   onHideBeatmapset,
   onReportWrongTags,
+  onFindSimilar,
   hasBeatmapset,
   onClose,
 }: ContextMenuProps) {
@@ -59,6 +61,7 @@ function ContextMenu({
   }, [onClose]);
 
   let itemCount = 0;
+  if (onFindSimilar) itemCount++;
   if (onReportWrongTags) itemCount++;
   if (onHideBeatmap) itemCount++;
   if (hasBeatmapset && onHideBeatmapset) itemCount++;
@@ -80,6 +83,16 @@ function ContextMenu({
         boxShadow: "0 8px 24px rgba(0,0,0,0.6)", minWidth: menuW, overflow: "hidden",
       }}
     >
+      {onFindSimilar && (
+        <button
+          onClick={e => { e.preventDefault(); e.stopPropagation(); onFindSimilar(); onClose(); }}
+          style={menuItemStyle}
+          onMouseEnter={e => (e.currentTarget.style.background = "#2e2d3d")}
+          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+        >
+          🎯 Find Similar Beatmap
+        </button>
+      )}
       {onReportWrongTags && (
         <button
           onClick={e => { e.preventDefault(); e.stopPropagation(); onReportWrongTags(); onClose(); }}
@@ -124,13 +137,13 @@ const menuItemStyle: React.CSSProperties = {
 interface BeatmapCardProps {
   record: BeatmapRecord;
   highlightTags?: string[];
-  relevanceTags?: string[];  // tags from source beatmap — shown in red as relevance indicators
   onHide?: (beatmapId: string) => void;
   onHideSet?: (beatmapsetId: string) => void;
   onReportWrongTags?: (record: BeatmapRecord) => void;
+  onFindSimilar?: (record: BeatmapRecord) => void;
 }
 
-export function BeatmapCard({ record, highlightTags, relevanceTags, onHide, onHideSet, onReportWrongTags }: BeatmapCardProps) {
+export function BeatmapCard({ record, highlightTags, onHide, onHideSet, onReportWrongTags, onFindSimilar }: BeatmapCardProps) {
 
   const href = `https://osu.ppy.sh/beatmaps/${record.beatmap_id}`;
   const title = record.title ?? `Beatmap #${record.beatmap_id}`;
@@ -171,7 +184,7 @@ export function BeatmapCard({ record, highlightTags, relevanceTags, onHide, onHi
   const displayedLabels = [...coreLabels, ...matchedNonCoreLabels];
 
   function handleContextMenu(e: React.MouseEvent) {
-    if (!onHide && !onHideSet && !onReportWrongTags) return;
+    if (!onHide && !onHideSet && !onReportWrongTags && !onFindSimilar) return;
     e.preventDefault();
     e.stopPropagation();
     setMenu({ x: e.clientX, y: e.clientY });
@@ -193,6 +206,7 @@ export function BeatmapCard({ record, highlightTags, relevanceTags, onHide, onHi
       x={menu.x}
       y={menu.y}
       hasBeatmapset={!!record.beatmapset_id}
+      onFindSimilar={onFindSimilar ? () => onFindSimilar(record) : undefined}
       onHideBeatmap={onHide ? () => onHide(record.beatmap_id) : undefined}
       onHideBeatmapset={onHideSet && record.beatmapset_id ? () => onHideSet(record.beatmapset_id!) : undefined}
       onReportWrongTags={onReportWrongTags ? () => onReportWrongTags(record) : undefined}
@@ -267,7 +281,7 @@ export function BeatmapCard({ record, highlightTags, relevanceTags, onHide, onHi
               {displayedLabels.length > 0 && (
                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 6 }}>
                   {displayedLabels.map(({ label, probability }) => (
-                    <span key={label} style={tagStyle(probability, highlightTags?.includes(label), relevanceTags?.includes(label))}>
+                    <span key={label} style={tagStyle(probability, highlightTags?.includes(label))}>
                       {label} {(probability * 100).toFixed(0)}%
                     </span>
                   ))}
@@ -345,7 +359,7 @@ export function BeatmapCard({ record, highlightTags, relevanceTags, onHide, onHi
 
               <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
                 {displayedLabels.map(({ label, probability }) => (
-                  <span key={label} style={tagStyle(probability, highlightTags?.includes(label), relevanceTags?.includes(label))}>
+                  <span key={label} style={tagStyle(probability, highlightTags?.includes(label))}>
                     {label} {(probability * 100).toFixed(0)}%
                   </span>
                 ))}
@@ -468,16 +482,8 @@ const statBadgeStyle: React.CSSProperties = {
   background: "rgba(0,0,0,0.55)",
 };
 
-function tagStyle(probability: number, highlighted = false, relevant = false): React.CSSProperties {
+function tagStyle(probability: number, highlighted = false): React.CSSProperties {
   void probability;
-  if (relevant) {
-    return {
-      fontSize: 10, padding: "2px 7px", borderRadius: 4,
-      background: "rgba(255,60,80,0.22)",
-      border: "1px solid rgba(255,60,80,0.8)",
-      color: "#ff4060", whiteSpace: "nowrap", fontWeight: 700,
-    };
-  }
   return {
     fontSize: 10,
     padding: "2px 7px",

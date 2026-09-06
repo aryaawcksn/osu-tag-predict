@@ -95,7 +95,6 @@ export default function RelevanceSection({ result }: Props) {
                     key={bm.beatmap_id}
                     record={bm}
                     highlightTags={topLabels.map(l => l.label)}
-                    relevanceTags={topLabels.map(l => l.label)}
                   />
                 ))}
               </div>

@@ -4,6 +4,7 @@ import { getBeatmapsByTags } from "../api";
 import { BeatmapCard } from "./BeatmapCard";
 import { ALL_TAGS } from "../constants";
 import TagVoteModal from "./TagVoteModal";
+import SimilarBeatmapPanel from "./SimilarBeatmapPanel";
 
 const INITIAL_SHOW = 24;
 
@@ -34,6 +35,7 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
   const [hasMore, setHasMore] = useState(false);
   const [offset, setOffset] = useState(0);
   const [votingBeatmap, setVotingBeatmap] = useState<BeatmapRecord | null>(null);
+  const [similarBeatmap, setSimilarBeatmap] = useState<BeatmapRecord | null>(null);
   const [activeSearch, setActiveSearch] = useState<{
     tags: string[]; minStars?: number; maxStars?: number;
     yearFrom?: number; yearTo?: number;
@@ -137,11 +139,14 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
       {/* Selected chips */}
       {selected.size > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "12px 0 0" }}>
-          {Array.from(selected).map(tag => (
-            <span key={tag} style={selectedChipStyle} onClick={() => toggleTag(tag)}>
-              {tag} ✕
-            </span>
-          ))}
+          {Array.from(selected).map(tag => {
+            const isSimilarTag = similarBeatmap?.labels.some(l => l.label === tag);
+            return (
+              <span key={tag} style={selectedChipStyle(isSimilarTag)} onClick={() => toggleTag(tag)}>
+                {tag} ✕
+              </span>
+            );
+          })}
         </div>
       )}
 
@@ -261,8 +266,8 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
                     key={bm.beatmap_id}
                     record={bm}
                     highlightTags={Array.from(selected)}
-                    relevanceTags={Array.from(selected)}
                     onReportWrongTags={setVotingBeatmap}
+                    onFindSimilar={bm => setSimilarBeatmap(bm)}
                   />
                 ))}
               </div>
@@ -274,6 +279,13 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
                 >
                   {loadingMore ? "Loading…" : "↓ Load more"}
                 </button>
+              )}
+              {similarBeatmap && (
+                <SimilarBeatmapPanel
+                  sourceBeatmap={similarBeatmap}
+                  onClose={() => setSimilarBeatmap(null)}
+                  onFindSimilar={setSimilarBeatmap}
+                />
               )}
             </>
           )}
@@ -319,11 +331,16 @@ const showMoreStyle: React.CSSProperties = {
   background: "transparent", border: "1px solid #2e2d3d",
   color: "#a7a9be", fontSize: 11, cursor: "pointer",
 };
-const selectedChipStyle: React.CSSProperties = {
-  padding: "3px 10px", borderRadius: 20, fontSize: 11,
-  background: "rgba(255,107,157,0.2)", border: "1px solid rgba(255,107,157,0.5)",
-  color: "#ff6b9d", cursor: "pointer",
-};
+function selectedChipStyle(relevant = false): React.CSSProperties {
+  return {
+    padding: "3px 10px", borderRadius: 20, fontSize: 11,
+    background: relevant ? "rgba(255,107,157,0.35)" : "rgba(255,107,157,0.2)",
+    border: relevant ? "1px solid rgba(255,107,157,0.9)" : "1px solid rgba(255,107,157,0.5)",
+    color: "#ff6b9d", cursor: "pointer",
+    fontWeight: relevant ? 700 : 400,
+    boxShadow: relevant ? "0 0 6px rgba(255,107,157,0.4)" : "none",
+  };
+}
 const filterRowStyle: React.CSSProperties = {
   display: "flex", alignItems: "center", gap: 12,
   background: "#0f0e17", border: "1px solid #2e2d3d",

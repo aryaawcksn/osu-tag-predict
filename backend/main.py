@@ -95,8 +95,16 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 
 @app.options("/{full_path:path}")
-def options_handler(full_path: str):
-    return Response(status_code=200)
+def options_handler(full_path: str, request: Request):
+    origin = request.headers.get("origin", "")
+    headers = {
+        "Access-Control-Allow-Origin": origin if origin in ALLOWED_ORIGINS else "",
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Session-Token, X-Admin-Key",
+        "Access-Control-Max-Age": "600",
+    }
+    return Response(status_code=200, headers=headers)
 
 
 # --------------------------------------------------------------------------- #
