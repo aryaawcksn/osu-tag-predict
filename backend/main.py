@@ -96,6 +96,25 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     )
 
 
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    """Ensure CORS headers are present on unexpected 500 errors too."""
+    origin = request.headers.get("origin", "")
+    headers = {}
+    if origin in ALLOWED_ORIGINS or "*" in ALLOWED_ORIGINS:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+        headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Session-Token, X-Admin-Key"
+    import traceback
+    print(f"Unhandled exception on {request.method} {request.url}: {traceback.format_exc()}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+        headers=headers,
+    )
+
+
 # NOTE: Do NOT add a manual @app.options handler — CORSMiddleware handles preflight.
 # A manual OPTIONS route would intercept before middleware and strip CORS headers.
 
