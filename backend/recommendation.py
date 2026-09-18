@@ -20,6 +20,7 @@ from database import AsyncSessionFactory
 from models import Beatmap, BeatmapLabel
 
 MODEL_VERSION = os.environ.get("MODEL_VERSION", "unknown")
+THRESHOLD = float(os.environ.get("PREDICT_THRESHOLD", "0.1"))
 
 # --------------------------------------------------------------------------- #
 # osu! API client-credentials token (cached in memory)                         #
@@ -132,7 +133,8 @@ async def upsert_beatmap(result: dict) -> dict:
 
     beatmap_id = str(beatmap_id)
     now = datetime.utcnow()
-    labels: List[dict] = result.get("predicted_labels", [])
+    # Store all labels (full probability vector) — threshold only affects display, not storage
+    labels: List[dict] = result.get("all_labels") or result.get("predicted_labels", [])
 
     core = dict(
         bpm=result.get("bpm"),
@@ -496,6 +498,7 @@ async def get_cached_results(beatmap_ids: List[str]) -> dict[str, dict]:
             )
             if not lbl_rows:
                 continue  # no labels = treat as cache miss
+            all_labels = [{"label": l.label, "probability": l.probability} for l in lbl_rows]
             results[bm.beatmap_id] = {
                 "beatmap_id": bm.beatmap_id,
                 "bpm": bm.bpm,
@@ -503,12 +506,8 @@ async def get_cached_results(beatmap_ids: List[str]) -> dict[str, dict]:
                 "cs": bm.cs,
                 "od": bm.od,
                 "object_count": bm.object_count,
-                "predicted_labels": [
-                    {"label": l.label, "probability": l.probability} for l in lbl_rows
-                ],
-                "all_labels": [
-                    {"label": l.label, "probability": l.probability} for l in lbl_rows
-                ],
+                "predicted_labels": [l for l in all_labels if l["probability"] >= THRESHOLD],
+                "all_labels": all_labels,
             }
 
     return results

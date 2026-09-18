@@ -8,8 +8,8 @@ import slider
 from tensorflow.keras.models import load_model
 
 N_TIMESTEPS = 1500
-N_FEATURES = 17
-THRESHOLD = 0.1
+N_FEATURES = 14
+THRESHOLD = float(os.environ.get("PREDICT_THRESHOLD", "0.1"))
 MAX_OBJECTS = 5000  # hard cap before feature extraction
 
 _model = None
@@ -256,14 +256,14 @@ def extract_features(data: dict) -> np.ndarray:
     CS = data["CS"]; r = 54.4 - 4.48 * CS; diameter = 2 * r
     stack_window_ms = beat_length * 2
     pattern_map = {"C": 1, "S": 2, "SP": 3}
-    f_pat,f_dist,f_time,f_rat,f_ang,f_turn,f_vel,f_d_rat,f_snap,f_rhythm,f_var,f_vis,f_vd,f_s_vel,f_s_comp,f_s_ctrl = ([] for _ in range(16))
-    recent_distances = []; left_visible = 0
+    f_pat,f_dist,f_time,f_rat,f_ang,f_turn,f_vel,f_snap,f_rhythm,f_vis,f_s_vel,f_s_comp,f_s_ctrl = ([] for _ in range(13))
+    left_visible = 0
     snap_grid = [1, 1/2, 1/3, 1/4, 1/6, 1/8, 1/12, 1/16]
 
     for i, curr in enumerate(objs):
         f_pat.append(pattern_map.get(curr["type"], 0))
         if i == 0:
-            for lst, v in zip([f_dist,f_time,f_rat,f_vel,f_ang,f_turn,f_d_rat,f_snap,f_rhythm,f_var,f_vis,f_vd], [0,0,0,0,0,0,1,0,1,0,1,0]):
+            for lst, v in zip([f_dist,f_time,f_rat,f_vel,f_ang,f_turn,f_snap,f_rhythm,f_vis], [0,0,0,0,0,0,0,1,1]):
                 lst.append(float(v))
             f_s_vel.append(curr.get("slider_velocity", 1.0))
             f_s_comp.append(curr.get("slider_complexity", 1.0))
@@ -311,57 +311,29 @@ def extract_features(data: dict) -> np.ndarray:
             right_visible += 1
         f_vis.append(right_visible - left_visible + 1)
 
-        visible_indices = [j for j in range(left_visible, right_visible + 1) if objs[j]["type"] != "SP"]
-        if len(visible_indices) > 1 and curr["type"] != "SP":
-            overlap_thresh = 2.0 * diameter
-            confuse_pairs = 0; total_pairs = 0
-            n_vis = len(visible_indices)
-            for va in range(n_vis):
-                for vb in range(va + 1, n_vis):
-                    ja, jb = visible_indices[va], visible_indices[vb]
-                    if abs(ja - jb) <= 1:
-                        continue
-                    oa, ob = objs[ja], objs[jb]
-                    d = math.hypot(oa["x"] - ob["x"], oa["y"] - ob["y"])
-                    if d < overlap_thresh:
-                        confuse_pairs += 1
-                    total_pairs += 1
-            vd = round(confuse_pairs / total_pairs, 3) if total_pairs > 0 else 0.0
-        else:
-            vd = 0.0
-        f_vd.append(vd)
-
-        recent_distances.append(dist)
-        if len(recent_distances) > 4: recent_distances.pop(0)
-        avg_recent = max(np.mean(recent_distances), 1.0)
-        f_d_rat.append(dist / avg_recent)
-        f_var.append(np.std(recent_distances) if len(recent_distances) >= 4 else 0.0)
         snap = dt / beat_length if beat_length > 0 else 0
         f_snap.append(min(snap_grid, key=lambda x: abs(x - snap)))
 
     def a(l): return np.array(l, dtype=np.float32)
-    LOG_2000 = np.log1p(2000.0); LOG_10000 = np.log1p(10000.0)
-    LOG_50 = np.log1p(50.0); LOG_10 = np.log1p(10.0); LOG2_9 = np.log2(9.0)
+    LOG_2000 = np.log1p(2000.0)
+    LOG_50 = np.log1p(50.0); LOG2_9 = np.log2(9.0)
     seq_len = min(len(objs), N_TIMESTEPS)
 
     features = np.column_stack([
-        a(f_pat)[:seq_len],
-        np.minimum(a(f_dist)[:seq_len] / 512.0, 1.0),
-        np.clip(a(f_rat)[:seq_len], 0.0, 5.0) / 5.0,
-        np.log1p(np.clip(a(f_time)[:seq_len], 0, None)) / LOG_2000,
-        np.minimum(a(f_vel)[:seq_len] / 3.0, 1.0),
-        (a(f_ang)[:seq_len] + 180.0) / 360.0,
-        np.clip(a(f_turn)[:seq_len] / 180.0, 0.0, 1.0),
-        np.log1p(a(f_d_rat)[:seq_len]) / LOG_10,
-        a(f_snap)[:seq_len],
-        np.log2(np.clip(a(f_rhythm)[:seq_len], 0, None) + 1) / LOG2_9,
-        np.log1p(a(f_var)[:seq_len]) / LOG_10000,
-        np.log1p(a(f_vis)[:seq_len]) / LOG_50,
-        np.clip(a(f_vd)[:seq_len], 0.0, 1.0),
-        np.minimum(a(f_s_vel)[:seq_len] / 3.0, 1.0),
-        np.minimum(a(f_s_comp)[:seq_len] / 5.0, 1.0),
-        np.log1p(a(f_s_ctrl)[:seq_len]) / LOG_50,
-        np.ones(seq_len, dtype=np.float32),
+        a(f_pat)[:seq_len],                                                    # 1.  Pattern Token
+        np.minimum(a(f_dist)[:seq_len] / 512.0, 1.0),                         # 2.  Delta Distance
+        np.clip(a(f_rat)[:seq_len], 0.0, 5.0) / 5.0,                          # 3.  Spacing Ratio
+        np.log1p(np.clip(a(f_time)[:seq_len], 0, None)) / LOG_2000,            # 4.  Delta Time (log)
+        np.minimum(a(f_vel)[:seq_len] / 3.0, 1.0),                            # 5.  Velocity
+        (a(f_ang)[:seq_len] + 180.0) / 360.0,                                 # 6.  Angle
+        np.clip(a(f_turn)[:seq_len] / 180.0, 0.0, 1.0),                       # 7.  Turn Angle
+        a(f_snap)[:seq_len],                                                   # 8.  Beat Snap
+        np.log2(np.clip(a(f_rhythm)[:seq_len], 0, None) + 1) / LOG2_9,        # 9.  Rhythm Ratio
+        np.log1p(a(f_vis)[:seq_len]) / LOG_50,                                 # 10. Visible Count
+        np.minimum(a(f_s_vel)[:seq_len] / 3.0, 1.0),                          # 11. Slider Velocity
+        np.minimum(a(f_s_comp)[:seq_len] / 5.0, 1.0),                         # 12. Slider Complexity
+        np.log1p(a(f_s_ctrl)[:seq_len]) / LOG_50,                              # 13. Slider Control Count (log)
+        np.ones(seq_len, dtype=np.float32),                                    # 14. Valid Flag
     ])
 
     X = np.zeros((N_TIMESTEPS, N_FEATURES), dtype=np.float32)

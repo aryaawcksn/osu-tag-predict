@@ -24,8 +24,8 @@ from dependencies import require_user, get_current_user
 from models import Session, User
 from queue_manager import queue_manager
 
-MODEL_PATH = os.environ.get("MODEL_PATH", "model_lstm_osu_dataset_vXIII.keras")
-MLB_PATH   = os.environ.get("MLB_PATH",   "pickle_mlb_VXIII.pkl")
+MODEL_PATH = os.environ.get("MODEL_PATH", "model_lstm_osu_dataset_16.keras")
+MLB_PATH   = os.environ.get("MLB_PATH",   "pickle_mlb_16.pkl")
 
 
 @asynccontextmanager

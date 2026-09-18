@@ -143,14 +143,14 @@ async def _fetch_page(
 
 async def _is_predicted(beatmap_id: str) -> bool:
     from database import AsyncSessionFactory
-    from models import BeatmapLabel
-    from sqlalchemy import select, func as sqlfunc
+    from models import Beatmap
+    from recommendation import MODEL_VERSION
+    from sqlalchemy import select
     async with AsyncSessionFactory() as session:
-        n = (await session.execute(
-            select(sqlfunc.count()).select_from(BeatmapLabel)
-            .where(BeatmapLabel.beatmap_id == beatmap_id)
-        )).scalar_one()
-    return n > 0
+        row = (await session.execute(
+            select(Beatmap.model_version).where(Beatmap.beatmap_id == beatmap_id)
+        )).scalar_one_or_none()
+    return row == MODEL_VERSION
 
 
 async def _predict_and_store(bm: dict) -> bool:
