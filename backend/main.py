@@ -827,3 +827,78 @@ async def admin_upsert_beatmap(
     from recommendation import upsert_beatmap
     record = await upsert_beatmap(payload.model_dump())
     return {"status": "ok", "beatmap": record}
+
+
+# --------------------------------------------------------------------------- #
+# Re-label: re-predict all beatmaps in DB with the current model               #
+# --------------------------------------------------------------------------- #
+
+_relabel_state: dict = {
+    "running": False,
+    "total": 0,
+    "done": 0,
+    "failed": 0,
+    "started_at": None,
+}
+
+
+@app.get("/relabel/status")
+def relabel_status():
+    """Public endpoint: current re-label progress."""
+    return _relabel_state
+
+
+@app.post("/relabel/start", status_code=202)
+async def relabel_start(
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+):
+    """Start background re-labeling of all beatmaps not on current model version."""
+    admin_key = os.environ.get("ADMIN_KEY", "")
+    if not admin_key or x_admin_key != admin_key:
+        raise HTTPException(status_code=403, detail="Invalid or missing admin key")
+    if _relabel_state["running"]:
+        raise HTTPException(status_code=409, detail="Re-label already running")
+    asyncio.create_task(_run_relabel())
+    return {"ok": True, "message": "Re-label started"}
+
+
+async def _run_relabel():
+    from sqlalchemy import select as sa_select
+    from models import Beatmap as BeatmapModel
+    from recommendation import MODEL_VERSION, upsert_beatmap
+
+    global _relabel_state
+    _relabel_state.update(running=True, done=0, failed=0,
+                          started_at=__import__("datetime").datetime.utcnow().isoformat())
+
+    async with AsyncSessionFactory() as db:
+        ids = list((await db.execute(
+            sa_select(BeatmapModel.beatmap_id).where(
+                (BeatmapModel.model_version != MODEL_VERSION) |
+                BeatmapModel.model_version.is_(None)
+            )
+        )).scalars().all())
+
+    _relabel_state["total"] = len(ids)
+
+    loop = asyncio.get_event_loop()
+    CONCURRENCY = 2
+    sem = asyncio.Semaphore(CONCURRENCY)
+
+    async def _process(beatmap_id: str):
+        async with sem:
+            try:
+                result = await loop.run_in_executor(
+                    None, predictor.predict_from_link,
+                    f"https://osu.ppy.sh/beatmaps/{beatmap_id}",
+                )
+                result["beatmap_id"] = beatmap_id
+                await upsert_beatmap(result)
+                _relabel_state["done"] += 1
+            except Exception as exc:
+                print(f"Re-label failed for {beatmap_id}: {exc}")
+                _relabel_state["failed"] += 1
+            await asyncio.sleep(0.5)
+
+    await asyncio.gather(*[_process(bid) for bid in ids])
+    _relabel_state["running"] = False

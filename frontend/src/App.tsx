@@ -8,6 +8,7 @@ import RecommendationList from "./components/RecommendationList";
 import BeatmapTagSearch from "./components/BeatmapTagSearch";
 import ProfilePage from "./components/ProfilePage";
 import RelevanceSection from "./components/RelevanceSection";
+import RelabelBanner from "./components/RelabelBanner";
 import { PredictResult, CurrentUser, QueueState, DominantPlaystyle } from "./types";
 import { getCurrentUser, getQueueState, predictFromLink, predictFromUpload, pollJobResult, setSessionToken, clearSessionToken } from "./api";
 
@@ -107,6 +108,7 @@ export default function App() {
     return (
       <div style={{ minHeight: "100vh", background: "#0f0e17", color: "#fffffe" }}>
         <NavBar user={user} onLogout={handleLogout} onProfile={() => setShowProfile(false)} />
+        <RelabelBanner />
         <ProfilePage user={user} onBack={() => setShowProfile(false)} />
         <InfoTooltip />
       </div>
@@ -117,6 +119,9 @@ export default function App() {
     <div style={{ minHeight: "100vh", background: "#0f0e17", color: "#fffffe" }}>
       {/* Nav */}
       <NavBar user={user} onLogout={handleLogout} onProfile={() => setShowProfile(true)} />
+
+      {/* Re-label progress banner — visible when background re-labeling is active */}
+      <RelabelBanner />
 
       {/* Queue status bar */}
       <QueueBar />
