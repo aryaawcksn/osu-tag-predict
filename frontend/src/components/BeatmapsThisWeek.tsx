@@ -18,6 +18,7 @@ interface ThisWeekResponse {
   week_start: string;
   week_end: string;
   beatmapsets: BeatmapsetGroup[];
+  is_fallback?: boolean;
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -70,7 +71,9 @@ export default function BeatmapsThisWeek() {
     <section style={sectionStyle}>
       <div style={headerStyle}>
         <div>
-          <h2 style={titleStyle}>Beatmap This Week</h2>
+          <h2 style={titleStyle}>
+            {data.is_fallback ? "Recent Beatmaps" : "Beatmap This Week"}
+          </h2>
           <p style={subtitleStyle}>
             {fmtDateRange(data.week_start, data.week_end)}
             {" · "}

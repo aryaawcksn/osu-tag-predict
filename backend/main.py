@@ -688,7 +688,7 @@ async def beatmaps_this_week():
     from recommendation import _build_records
 
     today = date.today()
-    week_start = today - timedelta(days=today.weekday())  # Monday
+    week_start = today - timedelta(days=6)  # rolling last 7 days
     week_end = today
 
     async with AsyncSessionFactory() as db:
@@ -700,6 +700,19 @@ async def beatmaps_this_week():
                 BeatmapModel.beatmapset_id.isnot(None),
             ).order_by(BeatmapModel.ranked_date.desc())
         )).scalars().all())
+
+    # Fallback: expand to 30 days if no results in last 7
+    if not rows:
+        week_start = today - timedelta(days=29)
+        async with AsyncSessionFactory() as db:
+            rows = list((await db.execute(
+                sa_select(BeatmapModel).where(
+                    BeatmapModel.ranked_date >= week_start.isoformat(),
+                    BeatmapModel.ranked_date <= week_end.isoformat() + "T23:59:59",
+                    BeatmapModel.status.in_(["ranked", "loved", "approved", "qualified"]),
+                    BeatmapModel.beatmapset_id.isnot(None),
+                ).order_by(BeatmapModel.ranked_date.desc()).limit(200)
+            )).scalars().all())
 
     # Group by beatmapset_id
     from collections import defaultdict
@@ -743,6 +756,7 @@ async def beatmaps_this_week():
     return {
         "week_start": week_start.isoformat(),
         "week_end": week_end.isoformat(),
+        "is_fallback": (today - week_start).days > 6,
         "beatmapsets": beatmapsets,
     }
 
