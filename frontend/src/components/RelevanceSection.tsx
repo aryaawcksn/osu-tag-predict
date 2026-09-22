@@ -72,31 +72,29 @@ export default function RelevanceSection({ result }: Props) {
       </button>
 
       {open && (
-        <div style={sectionStyle}>
-          {/* Title + chips */}
+        <div style={panelStyle}>
           <div style={{ marginBottom: 10 }}>
-            <div style={sectionTitleStyle}>
-              Beatmap Relevance to <span style={{ color: "#ff6b9d" }}>{sourceTitle}</span>
+            <div style={panelTitleStyle}>
+              Beatmap Relevance to <span style={{ color: "var(--pink)" }}>{sourceTitle}</span>
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8 }}>
               {topLabels.map(({ label, probability }) => (
-                <span key={label} style={relevanceTagChipStyle}>
+                <span key={label} style={tagChipStyle}>
                   {label} {(probability * 100).toFixed(0)}%
                 </span>
               ))}
             </div>
           </div>
 
-          {/* Difficulty filter */}
           <div style={filterRowStyle}>
-            <span style={{ fontSize: 11, color: "#a7a9be", flexShrink: 0 }}>Difficulty</span>
+            <span style={{ fontSize: 11, color: "var(--muted)", flexShrink: 0 }}>Difficulty</span>
             <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#a7a9be", marginBottom: 3 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--muted)", marginBottom: 3 }}>
                 <span>★ 0.1</span>
-                <span style={{ color: "#ff6b9d", fontWeight: 600 }}>
+                <span style={{ color: "var(--pink)", fontWeight: 600 }}>
                   ★ {targetStars.toFixed(1)}
                   {appliedStars === null
-                    ? <span style={{ color: "#636e72", fontWeight: 400, marginLeft: 4 }}>(Any)</span>
+                    ? <span style={{ color: "var(--muted2)", fontWeight: 400, marginLeft: 4 }}>(Any)</span>
                     : <span style={{ color: "#b8e994", fontWeight: 400, marginLeft: 4 }}>(Applied)</span>
                   }
                 </span>
@@ -104,24 +102,18 @@ export default function RelevanceSection({ result }: Props) {
               </div>
               <input type="range" min={0.1} max={15.0} step={0.1} value={targetStars}
                 onChange={e => setTargetStars(Number(e.target.value))}
-                style={{ width: "100%", accentColor: "#ff6b9d", cursor: "pointer" }} />
+                style={{ width: "100%", cursor: "pointer" }} />
             </div>
             <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
-              <button onClick={handleApplyStars}
-                style={{ padding: "3px 8px", borderRadius: 5, border: "none", background: "#ff6b9d", color: "#fff", fontSize: 10, fontWeight: 600, cursor: "pointer" }}>
-                Apply
-              </button>
+              <button onClick={handleApplyStars} style={applyBtnStyle}>Apply</button>
               {appliedStars != null && (
-                <button onClick={handleClearStars}
-                  style={{ padding: "3px 7px", borderRadius: 5, border: "1px solid #2e2d3d", background: "transparent", color: "#a7a9be", fontSize: 10, cursor: "pointer" }}>
-                  ✕
-                </button>
+                <button onClick={handleClearStars} style={clearBtnStyle}>✕</button>
               )}
             </div>
           </div>
 
           {loading && (
-            <p style={{ color: "#a7a9be", fontSize: 13, textAlign: "center", padding: "16px 0" }}>
+            <p style={{ color: "var(--muted)", fontSize: 13, textAlign: "center", padding: "14px 0" }}>
               Finding similar beatmaps…
             </p>
           )}
@@ -129,16 +121,12 @@ export default function RelevanceSection({ result }: Props) {
 
           {!loading && records.length > 0 && (
             <>
-              <p style={{ fontSize: 12, color: "#a7a9be", marginBottom: 10 }}>
-                Menemukan {records.length}{hasMore ? "+" : ""} hasil
+              <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 10 }}>
+                {records.length}{hasMore ? "+" : ""} results
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {records.map(bm => (
-                  <BeatmapCard
-                    key={bm.beatmap_id}
-                    record={bm}
-                    highlightTags={topLabels.map(l => l.label)}
-                  />
+                  <BeatmapCard key={bm.beatmap_id} record={bm} highlightTags={topLabels.map(l => l.label)} />
                 ))}
               </div>
               {hasMore && (
@@ -160,38 +148,47 @@ export default function RelevanceSection({ result }: Props) {
 
 const triggerBtnStyle: React.CSSProperties = {
   width: "100%", padding: "9px 0", borderRadius: 8,
-  border: "1px solid rgba(255,107,157,0.4)",
-  background: "rgba(255,107,157,0.08)",
-  color: "#ff6b9d", fontSize: 13, fontWeight: 600, cursor: "pointer",
+  border: "1px solid rgba(255,102,170,0.4)",
+  background: "rgba(255,102,170,0.07)",
+  color: "var(--pink)", fontSize: 13, fontFamily: "var(--font-d)", fontWeight: 700, cursor: "pointer",
 };
-const sectionStyle: React.CSSProperties = {
-  marginTop: 12, padding: "16px",
-  background: "#1a1929", border: "1px solid rgba(255,107,157,0.25)", borderRadius: 10,
+const panelStyle: React.CSSProperties = {
+  marginTop: 10, padding: 16,
+  background: "var(--card)", border: "1px solid rgba(255,102,170,0.2)", borderRadius: 10,
 };
-const sectionTitleStyle: React.CSSProperties = {
-  fontSize: 16, fontWeight: 700, color: "#fffffe",
+const panelTitleStyle: React.CSSProperties = {
+  fontFamily: "var(--font-d)", fontSize: 15, fontWeight: 800, color: "#fff",
 };
-const relevanceTagChipStyle: React.CSSProperties = {
-  padding: "3px 9px", borderRadius: 4, fontSize: 11,
-  background: "rgba(255,107,157,0.2)", border: "1px solid rgba(255,107,157,0.7)",
-  color: "#ff6b9d", fontWeight: 700,
+const tagChipStyle: React.CSSProperties = {
+  padding: "3px 9px", borderRadius: 4, fontSize: 11, fontFamily: "var(--font-m)",
+  background: "rgba(255,102,170,0.14)", border: "1px solid rgba(255,102,170,0.6)",
+  color: "var(--pink)", fontWeight: 700,
 };
 const filterRowStyle: React.CSSProperties = {
   display: "flex", alignItems: "center", gap: 10,
-  background: "#0f0e17", border: "1px solid #2e2d3d",
+  background: "var(--card2)", border: "1px solid var(--border)",
   borderRadius: 7, padding: "8px 12px", marginBottom: 12,
 };
+const applyBtnStyle: React.CSSProperties = {
+  padding: "3px 8px", borderRadius: 5, border: "none",
+  background: "linear-gradient(135deg, var(--pink), var(--pink-dim))",
+  color: "#fff", fontSize: 10, fontFamily: "var(--font-d)", fontWeight: 700, cursor: "pointer",
+};
+const clearBtnStyle: React.CSSProperties = {
+  padding: "3px 7px", borderRadius: 5, border: "1px solid var(--border)",
+  background: "transparent", color: "var(--muted)", fontSize: 10, cursor: "pointer",
+};
 const errorStyle: React.CSSProperties = {
-  padding: "10px 14px", background: "#2a0a14",
+  padding: "10px 14px", background: "#1e0a10",
   border: "1px solid #7f1d1d", borderRadius: 8, color: "#fca5a5", fontSize: 13,
 };
 const emptyStyle: React.CSSProperties = {
-  padding: "20px 16px", textAlign: "center", color: "#a7a9be",
-  fontSize: 14, background: "#0f0e17", borderRadius: 8, border: "1px solid #2e2d3d",
+  padding: "20px 16px", textAlign: "center", color: "var(--muted)",
+  fontSize: 14, background: "var(--card2)", borderRadius: 8, border: "1px solid var(--border)",
 };
 const loadMoreStyle: React.CSSProperties = {
   display: "block", width: "100%", marginTop: 12,
-  padding: "10px 0", borderRadius: 8, border: "1px solid #2e2d3d",
-  background: "transparent", color: "#a7a9be", fontSize: 13, cursor: "pointer",
+  padding: "10px 0", borderRadius: 8, border: "1px solid var(--border)",
+  background: "transparent", color: "var(--muted)", fontSize: 13, cursor: "pointer",
   textAlign: "center",
 };

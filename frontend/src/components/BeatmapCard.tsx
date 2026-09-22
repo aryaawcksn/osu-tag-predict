@@ -79,7 +79,7 @@ function ContextMenu({
       onClick={e => e.stopPropagation()}
       style={{
         position: "fixed", left: clampedX, top: clampedY, zIndex: 99999,
-        background: "#1a1929", border: "1px solid #2e2d3d", borderRadius: 8,
+        background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8,
         boxShadow: "0 8px 24px rgba(0,0,0,0.6)", minWidth: menuW, overflow: "hidden",
       }}
     >
@@ -87,7 +87,7 @@ function ContextMenu({
         <button
           onClick={e => { e.preventDefault(); e.stopPropagation(); onFindSimilar(); onClose(); }}
           style={menuItemStyle}
-          onMouseEnter={e => (e.currentTarget.style.background = "#2e2d3d")}
+          onMouseEnter={e => (e.currentTarget.style.background = "rgba(180,130,220,0.1)")}
           onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
         >
           🎯 Find Similar Beatmap
@@ -97,7 +97,7 @@ function ContextMenu({
         <button
           onClick={e => { e.preventDefault(); e.stopPropagation(); onReportWrongTags(); onClose(); }}
           style={menuItemStyle}
-          onMouseEnter={e => (e.currentTarget.style.background = "#2e2d3d")}
+          onMouseEnter={e => (e.currentTarget.style.background = "rgba(180,130,220,0.1)")}
           onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
         >
           ⚠️ This tags isn't right
@@ -107,7 +107,7 @@ function ContextMenu({
         <button
           onClick={e => { e.preventDefault(); e.stopPropagation(); onHideBeatmap(); onClose(); }}
           style={menuItemStyle}
-          onMouseEnter={e => (e.currentTarget.style.background = "#2e2d3d")}
+          onMouseEnter={e => (e.currentTarget.style.background = "rgba(180,130,220,0.1)")}
           onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
         >
           🚫 Hide this beatmap
@@ -117,7 +117,7 @@ function ContextMenu({
         <button
           onClick={e => { e.preventDefault(); e.stopPropagation(); onHideBeatmapset(); onClose(); }}
           style={menuItemStyle}
-          onMouseEnter={e => (e.currentTarget.style.background = "#2e2d3d")}
+          onMouseEnter={e => (e.currentTarget.style.background = "rgba(180,130,220,0.1)")}
           onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
         >
           🗂 Hide this beatmapset
@@ -130,7 +130,7 @@ function ContextMenu({
 
 const menuItemStyle: React.CSSProperties = {
   display: "block", width: "100%", padding: "10px 14px",
-  background: "transparent", border: "none", color: "#c8cad8",
+  background: "transparent", border: "none", color: "var(--muted)",
   fontSize: 12, textAlign: "left", cursor: "pointer",
 };
 
@@ -191,12 +191,12 @@ export function BeatmapCard({ record, highlightTags, onHide, onHideSet, onReport
   }
 
   const hoverEnter = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.currentTarget.style.borderColor = "rgba(255,107,157,0.45)";
+    e.currentTarget.style.borderColor = "rgba(255,102,170,0.45)";
     e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4)";
     e.currentTarget.style.transform = "translateY(-1px)";
   };
   const hoverLeave = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.currentTarget.style.borderColor = "#2e2d3d";
+    e.currentTarget.style.borderColor = "rgba(180,130,220,0.18)";
     e.currentTarget.style.boxShadow = "none";
     e.currentTarget.style.transform = "none";
   };
@@ -378,8 +378,8 @@ const cardStyle: React.CSSProperties = {
   position: "relative",
   borderRadius: 10,
   overflow: "hidden",
-  background: "#1a1929",
-  border: "1px solid #2e2d3d",
+  background: "var(--card)",
+  border: "1px solid var(--border)",
   minHeight: 85,
   display: "flex",
   alignItems: "stretch",
@@ -390,14 +390,14 @@ const squareCoverWrapperStyle: React.CSSProperties = {
   width: 85,
   minWidth: 85,
   maxWidth: 85,
-  background: "#100f1c",
+  background: "#0d0b14",
   position: "relative",
   overflow: "hidden",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   flexShrink: 0,
-  borderRight: "1px solid rgba(46,45,61,0.85)",
+  borderRight: "1px solid rgba(180,130,220,0.12)",
 };
 
 const squareCoverImgStyle: React.CSSProperties = {
@@ -449,7 +449,8 @@ const contentStyle: React.CSSProperties = {
 };
 
 const titleStyle: React.CSSProperties = {
-  color: "#fffffe",
+  color: "#fff",
+  fontFamily: "var(--font-d)",
   fontWeight: 700,
   fontSize: 14,
   whiteSpace: "nowrap",
@@ -458,7 +459,7 @@ const titleStyle: React.CSSProperties = {
 };
 
 const artistStyle: React.CSSProperties = {
-  color: "#c8cad8",
+  color: "var(--muted)",
   fontSize: 12,
   marginTop: 2,
   whiteSpace: "nowrap",
@@ -472,14 +473,15 @@ const badgeStyle: React.CSSProperties = {
   borderRadius: 4,
   border: "1px solid",
   textTransform: "capitalize",
+  fontFamily: "var(--font-m)",
   whiteSpace: "nowrap",
 };
 
 const statBadgeStyle: React.CSSProperties = {
   ...badgeStyle,
-  color: "#c8cad8",
-  borderColor: "rgba(46,45,61,0.8)",
-  background: "rgba(0,0,0,0.55)",
+  color: "var(--muted)",
+  borderColor: "rgba(180,130,220,0.15)",
+  background: "rgba(0,0,0,0.4)",
 };
 
 function tagStyle(probability: number, highlighted = false): React.CSSProperties {
@@ -488,9 +490,10 @@ function tagStyle(probability: number, highlighted = false): React.CSSProperties
     fontSize: 10,
     padding: "2px 7px",
     borderRadius: 4,
-    background: highlighted ? "rgba(255,107,157,0.25)" : "rgba(0,0,0,0.65)",
-    border: highlighted ? "1px solid rgba(255,107,157,0.8)" : "1px solid rgba(255,107,157,0.5)",
-    color: "#ff6b9d",
+    fontFamily: "var(--font-m)",
+    background: highlighted ? "rgba(255,102,170,0.22)" : "rgba(0,0,0,0.55)",
+    border: highlighted ? "1px solid rgba(255,102,170,0.7)" : "1px solid rgba(255,102,170,0.4)",
+    color: "#ff66aa",
     whiteSpace: "nowrap",
     fontWeight: highlighted ? 700 : 400,
   };
@@ -502,8 +505,8 @@ const mobileCardStyle: React.CSSProperties = {
   position: "relative",
   borderRadius: 10,
   overflow: "hidden",
-  background: "#1a1929",
-  border: "1px solid #2e2d3d",
+  background: "var(--card)",
+  border: "1px solid var(--border)",
   display: "flex",
   flexDirection: "column",
   transition: "border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease",
@@ -563,12 +566,12 @@ const mobileCoverImgStyle: React.CSSProperties = {
 
 const mobileInfoSectionStyle: React.CSSProperties = {
   padding: "10px 14px 8px",
-  borderTop: "1px solid rgba(46,45,61,0.6)",
-  background: "rgba(16,15,28,0.85)",
+  borderTop: "1px solid rgba(180,130,220,0.1)",
+  background: "rgba(13,11,20,0.8)",
 };
 
 const mobileMetaSectionStyle: React.CSSProperties = {
   padding: "8px 14px 10px",
-  borderTop: "1px solid rgba(46,45,61,0.5)",
-  background: "rgba(12,11,22,0.9)",
+  borderTop: "1px solid rgba(180,130,220,0.08)",
+  background: "rgba(13,11,20,0.9)",
 };

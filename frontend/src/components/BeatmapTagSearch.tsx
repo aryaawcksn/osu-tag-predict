@@ -304,73 +304,75 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
 
 // Styles
 const containerStyle: React.CSSProperties = {
-  background: "#1a1929", border: "1px solid #2e2d3d",
-  borderRadius: 12, padding: 24, marginTop: 24,
+  background: "var(--card)", border: "1px solid var(--border)",
+  borderRadius: 12, padding: 22, marginTop: 24,
 };
 const headingStyle: React.CSSProperties = {
-  fontSize: 18, fontWeight: 700, color: "#fffffe", marginBottom: 6,
+  fontFamily: "var(--font-d)", fontSize: 17, fontWeight: 800, color: "#fff", marginBottom: 4,
 };
 const subtextStyle: React.CSSProperties = {
-  color: "#a7a9be", fontSize: 13, marginBottom: 14,
+  color: "var(--muted)", fontSize: 13, marginBottom: 14,
 };
 const tagGridStyle: React.CSSProperties = {
-  display: "flex", flexWrap: "wrap", gap: 7,
+  display: "flex", flexWrap: "wrap", gap: 6,
 };
 function tagBtnStyle(active: boolean): React.CSSProperties {
   return {
-    padding: "5px 11px", borderRadius: 6, fontSize: 11, fontWeight: 500,
+    padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 500,
     cursor: "pointer", border: "1px solid",
-    background: active ? "rgba(255,107,157,0.18)" : "rgba(0,0,0,0.25)",
-    color: active ? "#ff6b9d" : "#a7a9be",
-    borderColor: active ? "rgba(255,107,157,0.6)" : "#2e2d3d",
+    background: active ? "rgba(255,102,170,0.14)" : "rgba(255,255,255,0.03)",
+    color: active ? "#ff66aa" : "var(--muted)",
+    borderColor: active ? "#ff66aa" : "rgba(180,130,220,0.25)",
+    fontFamily: "var(--font-m)",
     transition: "all 0.1s ease",
   };
 }
 const showMoreStyle: React.CSSProperties = {
   marginTop: 10, padding: "4px 12px", borderRadius: 6,
-  background: "transparent", border: "1px solid #2e2d3d",
-  color: "#a7a9be", fontSize: 11, cursor: "pointer",
+  background: "transparent", border: "1px solid var(--border)",
+  color: "var(--muted)", fontSize: 11, cursor: "pointer",
 };
 function selectedChipStyle(relevant = false): React.CSSProperties {
   return {
     padding: "3px 10px", borderRadius: 20, fontSize: 11,
-    background: relevant ? "rgba(255,107,157,0.35)" : "rgba(255,107,157,0.2)",
-    border: relevant ? "1px solid rgba(255,107,157,0.9)" : "1px solid rgba(255,107,157,0.5)",
-    color: "#ff6b9d", cursor: "pointer",
+    fontFamily: "var(--font-m)",
+    background: relevant ? "rgba(255,102,170,0.3)" : "rgba(255,102,170,0.14)",
+    border: relevant ? "1px solid #ff66aa" : "1px solid rgba(255,102,170,0.5)",
+    color: "#ff66aa", cursor: "pointer",
     fontWeight: relevant ? 700 : 400,
-    boxShadow: relevant ? "0 0 6px rgba(255,107,157,0.4)" : "none",
   };
 }
 const filterRowStyle: React.CSSProperties = {
   display: "flex", alignItems: "center", gap: 12,
-  background: "#0f0e17", border: "1px solid #2e2d3d",
+  background: "var(--card2)", border: "1px solid var(--border)",
   borderRadius: 8, padding: "10px 14px", marginTop: 14,
 };
 const doneBtnStyle: React.CSSProperties = {
-  flex: 1, padding: "8px 0", borderRadius: 7, border: "none",
-  background: "#ff6b9d", color: "#fff", fontSize: 13, fontWeight: 600,
+  flex: 1, padding: "8px 0", borderRadius: 8, border: "none",
+  background: "linear-gradient(135deg, #ff66aa, #cc3377)",
+  color: "#fff", fontSize: 13, fontFamily: "var(--font-d)", fontWeight: 700,
 };
 const clearBtnStyle: React.CSSProperties = {
-  padding: "8px 16px", borderRadius: 7, border: "1px solid #2e2d3d",
-  background: "transparent", color: "#a7a9be", fontSize: 13, cursor: "pointer",
+  padding: "8px 16px", borderRadius: 8, border: "1px solid var(--border)",
+  background: "transparent", color: "var(--muted)", fontSize: 13, cursor: "pointer",
 };
 const errorStyle: React.CSSProperties = {
-  marginTop: 12, padding: "10px 14px", background: "#2a0a14",
+  marginTop: 12, padding: "10px 14px", background: "#1e0a10",
   border: "1px solid #7f1d1d", borderRadius: 8, color: "#fca5a5", fontSize: 13,
 };
 const emptyStyle: React.CSSProperties = {
-  padding: "20px 16px", textAlign: "center", color: "#a7a9be",
-  fontSize: 14, background: "#0f0e17", borderRadius: 8, border: "1px solid #2e2d3d",
+  padding: "20px 16px", textAlign: "center", color: "var(--muted)",
+  fontSize: 14, background: "var(--card2)", borderRadius: 8, border: "1px solid var(--border)",
 };
 const loadMoreStyle: React.CSSProperties = {
   display: "block", width: "100%", marginTop: 12,
   padding: "10px 0", borderRadius: 8,
-  border: "1px solid #2e2d3d", background: "transparent",
-  color: "#a7a9be", fontSize: 13, cursor: "pointer",
+  border: "1px solid var(--border)", background: "transparent",
+  color: "var(--muted)", fontSize: 13, cursor: "pointer",
   textAlign: "center",
 };
 
 const yearSelectStyle: React.CSSProperties = {
-  padding: "4px 8px", borderRadius: 6, border: "1px solid #2e2d3d",
-  background: "#0f0e17", color: "#a7a9be", fontSize: 12, cursor: "pointer",
+  padding: "4px 8px", borderRadius: 6, border: "1px solid var(--border)",
+  background: "var(--card2)", color: "var(--muted)", fontSize: 12, cursor: "pointer",
 };

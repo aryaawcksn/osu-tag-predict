@@ -17,7 +17,6 @@ export default function SimilarBeatmapPanel({ sourceBeatmap, onClose, onFindSimi
   const [offset, setOffset] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  // Difficulty filter
   const defaultStars = sourceBeatmap.difficulty_rating ?? 5;
   const [targetStars, setTargetStars] = useState(defaultStars);
   const [appliedStars, setAppliedStars] = useState<number | null>(null);
@@ -58,8 +57,8 @@ export default function SimilarBeatmapPanel({ sourceBeatmap, onClose, onFindSimi
       {/* Header */}
       <div style={headerStyle}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#fffffe" }}>
-            Similar to <span style={{ color: "#ff6b9d" }}>{sourceTitle}</span>
+          <div style={{ fontFamily: "var(--font-d)", fontSize: 13, fontWeight: 700, color: "#fff" }}>
+            Similar to <span style={{ color: "var(--pink)" }}>{sourceTitle}</span>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
             {topLabels.map(({ label, probability }) => (
@@ -74,14 +73,14 @@ export default function SimilarBeatmapPanel({ sourceBeatmap, onClose, onFindSimi
 
       {/* Difficulty filter */}
       <div style={filterRowStyle}>
-        <span style={{ fontSize: 11, color: "#a7a9be", flexShrink: 0 }}>Difficulty</span>
+        <span style={{ fontSize: 11, color: "var(--muted)", flexShrink: 0 }}>Difficulty</span>
         <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#a7a9be", marginBottom: 3 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--muted)", marginBottom: 3 }}>
             <span>★ 0.1</span>
-            <span style={{ color: "#ff6b9d", fontWeight: 600 }}>
+            <span style={{ color: "var(--pink)", fontWeight: 600 }}>
               ★ {targetStars.toFixed(1)}
               {appliedStars === null
-                ? <span style={{ color: "#636e72", fontWeight: 400, marginLeft: 4 }}>(Any)</span>
+                ? <span style={{ color: "var(--muted2)", fontWeight: 400, marginLeft: 4 }}>(Any)</span>
                 : <span style={{ color: "#b8e994", fontWeight: 400, marginLeft: 4 }}>(Applied)</span>
               }
             </span>
@@ -89,25 +88,18 @@ export default function SimilarBeatmapPanel({ sourceBeatmap, onClose, onFindSimi
           </div>
           <input type="range" min={0.1} max={15.0} step={0.1} value={targetStars}
             onChange={e => setTargetStars(Number(e.target.value))}
-            style={{ width: "100%", accentColor: "#ff6b9d", cursor: "pointer" }} />
+            style={{ width: "100%", cursor: "pointer" }} />
         </div>
         <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
-          <button onClick={() => setAppliedStars(targetStars)}
-            style={{ padding: "3px 8px", borderRadius: 5, border: "none", background: "#ff6b9d", color: "#fff", fontSize: 10, fontWeight: 600, cursor: "pointer" }}>
-            Apply
-          </button>
+          <button onClick={() => setAppliedStars(targetStars)} style={applyBtnStyle}>Apply</button>
           {appliedStars != null && (
-            <button onClick={() => setAppliedStars(null)}
-              style={{ padding: "3px 7px", borderRadius: 5, border: "1px solid #2e2d3d", background: "transparent", color: "#a7a9be", fontSize: 10, cursor: "pointer" }}>
-              ✕
-            </button>
+            <button onClick={() => setAppliedStars(null)} style={clearBtnStyle}>✕</button>
           )}
         </div>
       </div>
 
-      {/* Results */}
       {loading && (
-        <p style={{ color: "#a7a9be", fontSize: 13, textAlign: "center", padding: "14px 0" }}>
+        <p style={{ color: "var(--muted)", fontSize: 13, textAlign: "center", padding: "14px 0" }}>
           Finding similar beatmaps…
         </p>
       )}
@@ -117,8 +109,8 @@ export default function SimilarBeatmapPanel({ sourceBeatmap, onClose, onFindSimi
       )}
       {!loading && records.length > 0 && (
         <>
-          <p style={{ fontSize: 11, color: "#636e72", marginBottom: 8 }}>
-            {records.length}{hasMore ? "+" : ""} hasil · sorted by relevance
+          <p style={{ fontSize: 11, color: "var(--muted2)", marginBottom: 8 }}>
+            {records.length}{hasMore ? "+" : ""} results · sorted by relevance
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {records.map(bm => (
@@ -143,37 +135,46 @@ export default function SimilarBeatmapPanel({ sourceBeatmap, onClose, onFindSimi
 
 const panelStyle: React.CSSProperties = {
   marginTop: 10, padding: "14px 16px",
-  background: "#13121f", border: "1px solid rgba(255,107,157,0.3)", borderRadius: 10,
+  background: "var(--card)", border: "1px solid rgba(255,102,170,0.25)", borderRadius: 10,
 };
 const headerStyle: React.CSSProperties = {
   display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10,
-  paddingBottom: 10, borderBottom: "1px solid #2e2d3d",
+  paddingBottom: 10, borderBottom: "1px solid var(--border)",
 };
 const chipStyle: React.CSSProperties = {
-  padding: "2px 8px", borderRadius: 4, fontSize: 11,
-  background: "rgba(255,107,157,0.18)", border: "1px solid rgba(255,107,157,0.6)",
-  color: "#ff6b9d", fontWeight: 600,
+  padding: "2px 8px", borderRadius: 4, fontSize: 11, fontFamily: "var(--font-m)",
+  background: "rgba(255,102,170,0.14)", border: "1px solid rgba(255,102,170,0.5)",
+  color: "var(--pink)", fontWeight: 600,
 };
 const closeBtnStyle: React.CSSProperties = {
-  background: "transparent", border: "none", color: "#636e72",
+  background: "transparent", border: "none", color: "var(--muted2)",
   fontSize: 14, cursor: "pointer", padding: "2px 6px", flexShrink: 0,
 };
 const filterRowStyle: React.CSSProperties = {
   display: "flex", alignItems: "center", gap: 10,
-  background: "#0f0e17", border: "1px solid #2e2d3d",
+  background: "var(--card2)", border: "1px solid var(--border)",
   borderRadius: 7, padding: "8px 12px", marginBottom: 10,
 };
+const applyBtnStyle: React.CSSProperties = {
+  padding: "3px 8px", borderRadius: 5, border: "none",
+  background: "linear-gradient(135deg, var(--pink), var(--pink-dim))",
+  color: "#fff", fontSize: 10, fontFamily: "var(--font-d)", fontWeight: 700, cursor: "pointer",
+};
+const clearBtnStyle: React.CSSProperties = {
+  padding: "3px 7px", borderRadius: 5, border: "1px solid var(--border)",
+  background: "transparent", color: "var(--muted)", fontSize: 10, cursor: "pointer",
+};
 const errorStyle: React.CSSProperties = {
-  padding: "10px 14px", background: "#2a0a14",
+  padding: "10px 14px", background: "#1e0a10",
   border: "1px solid #7f1d1d", borderRadius: 8, color: "#fca5a5", fontSize: 13,
 };
 const emptyStyle: React.CSSProperties = {
-  padding: "16px", textAlign: "center", color: "#a7a9be",
-  fontSize: 13, background: "#0f0e17", borderRadius: 8, border: "1px solid #2e2d3d",
+  padding: "16px", textAlign: "center", color: "var(--muted)",
+  fontSize: 13, background: "var(--card2)", borderRadius: 8, border: "1px solid var(--border)",
 };
 const loadMoreStyle: React.CSSProperties = {
   display: "block", width: "100%", marginTop: 10,
-  padding: "8px 0", borderRadius: 8, border: "1px solid #2e2d3d",
-  background: "transparent", color: "#a7a9be", fontSize: 13, cursor: "pointer",
+  padding: "8px 0", borderRadius: 8, border: "1px solid var(--border)",
+  background: "transparent", color: "var(--muted)", fontSize: 13, cursor: "pointer",
   textAlign: "center",
 };

@@ -163,58 +163,59 @@ export default function RecommendationList({ playstyle, avgDifficulty }: Props) 
 
 // Styles
 const containerStyle: React.CSSProperties = {
-  background: "#1a1929", border: "1px solid #2e2d3d",
-  borderRadius: 12, padding: 24, marginTop: 24,
+  background: "var(--card)", border: "1px solid var(--border)",
+  borderRadius: 12, padding: 22, marginTop: 24,
 };
 const headingStyle: React.CSSProperties = {
-  fontSize: 18, fontWeight: 700, color: "#fffffe", marginBottom: 0,
+  fontFamily: "var(--font-d)", fontSize: 17, fontWeight: 800, color: "#fff", marginBottom: 0,
 };
 const subtextStyle: React.CSSProperties = {
-  color: "#a7a9be", fontSize: 13, marginBottom: 16,
+  color: "var(--muted)", fontSize: 13, marginBottom: 16,
 };
 const filterRowStyle: React.CSSProperties = {
   display: "flex", alignItems: "center", gap: 12,
-  background: "#0f0e17", border: "1px solid #2e2d3d",
+  background: "var(--card2)", border: "1px solid var(--border)",
   borderRadius: 8, padding: "10px 14px", marginBottom: 12,
 };
 const filterLabelStyle: React.CSSProperties = {
-  fontSize: 12, color: "#a7a9be", flexShrink: 0,
+  fontSize: 12, color: "var(--muted)", flexShrink: 0,
 };
 const applyBtnStyle: React.CSSProperties = {
   padding: "4px 10px", borderRadius: 6, border: "none",
-  background: "#ff6b9d", color: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer",
+  background: "linear-gradient(135deg, #ff66aa, #cc3377)",
+  color: "#fff", fontSize: 11, fontFamily: "var(--font-d)", fontWeight: 700, cursor: "pointer",
 };
 const clearBtnStyle: React.CSSProperties = {
-  padding: "4px 8px", borderRadius: 6, border: "1px solid #2e2d3d",
-  background: "transparent", color: "#a7a9be", fontSize: 11, cursor: "pointer",
+  padding: "4px 8px", borderRadius: 6, border: "1px solid var(--border)",
+  background: "transparent", color: "var(--muted)", fontSize: 11, cursor: "pointer",
 };
 const refreshBtnStyle: React.CSSProperties = {
-  padding: "5px 12px", borderRadius: 6, border: "1px solid #2e2d3d",
-  background: "transparent", color: "#a7a9be", fontSize: 12, cursor: "pointer",
+  padding: "5px 12px", borderRadius: 8, border: "1px solid var(--border)",
+  background: "transparent", color: "var(--muted)", fontSize: 12, cursor: "pointer",
 };
 const loadMoreStyle: React.CSSProperties = {
   display: "block", width: "100%", marginTop: 12,
-  padding: "10px 0", borderRadius: 8, border: "1px solid #2e2d3d",
-  background: "transparent", color: "#a7a9be", fontSize: 13, cursor: "pointer",
+  padding: "10px 0", borderRadius: 8, border: "1px solid var(--border)",
+  background: "transparent", color: "var(--muted)", fontSize: 13, cursor: "pointer",
   textAlign: "center",
 };
 const errorStyle: React.CSSProperties = {
-  padding: "10px 14px", background: "#2a0a14",
+  padding: "10px 14px", background: "#1e0a10",
   border: "1px solid #7f1d1d", borderRadius: 8, color: "#fca5a5", fontSize: 13,
 };
 const emptyStyle: React.CSSProperties = {
-  padding: "20px 16px", textAlign: "center", color: "#a7a9be",
-  fontSize: 14, background: "#0f0e17", borderRadius: 8, border: "1px solid #2e2d3d",
+  padding: "20px 16px", textAlign: "center", color: "var(--muted)",
+  fontSize: 14, background: "var(--card2)", borderRadius: 8, border: "1px solid var(--border)",
 };
 
 function statusBtnStyle(active: boolean, s: string): React.CSSProperties {
-  const c = STATUS_COLORS[s] ?? "#a7a9be";
+  const c = STATUS_COLORS[s] ?? "var(--muted)";
   return {
     padding: "4px 10px", borderRadius: 20, fontSize: 11,
     cursor: "pointer", border: "1px solid",
     background: active ? `${c}22` : "transparent",
-    color: active ? c : "#636e72",
-    borderColor: active ? c : "#2e2d3d",
+    color: active ? c : "var(--muted2)",
+    borderColor: active ? c : "var(--border)",
     textTransform: "capitalize",
   };
 }

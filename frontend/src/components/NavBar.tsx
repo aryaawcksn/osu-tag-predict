@@ -17,31 +17,28 @@ export default function NavBar({ user, onLogout, onProfile }: Props) {
 
   return (
     <nav style={navStyle}>
-      <span style={{ fontWeight: 700, fontSize: 16, color: "#ff6b9d" }}>
-        osu! Beatmap Tag Analyzer
-      </span>
+      {/* Logo */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={dotStyle}>●</div>
+        <span style={logoTextStyle}>osu! Tag Analyzer</span>
+      </div>
+
+      {/* Right */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         {user ? (
           <>
             {user.avatar_url && (
-              <img
-                src={user.avatar_url}
-                alt={user.username}
-                style={avatarStyle}
-              />
+              <img src={user.avatar_url} alt={user.username} style={avatarStyle} />
             )}
-            <button
-              onClick={onProfile}
-              style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#fffffe", fontSize: 14, fontWeight: 600 }}
-            >
+            <button onClick={onProfile} style={userNameStyle}>
               {user.username}
             </button>
-            <button onClick={handleLogout} style={btnSecondaryStyle}>
+            <button onClick={handleLogout} className="btn-ghost" style={{ padding: "5px 12px", fontSize: 12 }}>
               Logout
             </button>
           </>
         ) : (
-          <a href={`${BASE_URL}/auth/login`} style={btnLinkStyle}>
+          <a href={`${BASE_URL}/auth/login`} className="btn-pink" style={{ textDecoration: "none", fontSize: 13 }}>
             Login with osu!
           </a>
         )}
@@ -54,40 +51,49 @@ const navStyle: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  padding: "10px 24px",
-  background: "#0f0e17",
-  borderBottom: "1px solid #2e2d3d",
+  padding: "0 24px",
+  height: 52,
+  background: "rgba(13,11,20,0.95)",
+  borderBottom: "1px solid rgba(180,130,220,0.15)",
   position: "sticky",
   top: 0,
   zIndex: 100,
+  backdropFilter: "blur(8px)",
+};
+
+const dotStyle: React.CSSProperties = {
+  width: 28,
+  height: 28,
+  borderRadius: "50%",
+  background: "linear-gradient(135deg, #ff66aa, #cc3377)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: 13,
+  flexShrink: 0,
+};
+
+const logoTextStyle: React.CSSProperties = {
+  fontFamily: "var(--font-d)",
+  fontWeight: 800,
+  fontSize: 15,
+  color: "#ff66aa",
+  letterSpacing: "0.02em",
 };
 
 const avatarStyle: React.CSSProperties = {
-  width: 30,
-  height: 30,
+  width: 28,
+  height: 28,
   borderRadius: "50%",
   objectFit: "cover",
-  border: "2px solid #2e2d3d",
+  border: "1.5px solid rgba(255,102,170,0.4)",
 };
 
-const btnSecondaryStyle: React.CSSProperties = {
-  padding: "5px 12px",
-  borderRadius: 6,
-  border: "1px solid #2e2d3d",
-  background: "transparent",
-  color: "#a7a9be",
-  fontSize: 13,
-  cursor: "pointer",
-};
-
-const btnLinkStyle: React.CSSProperties = {
-  padding: "6px 14px",
-  borderRadius: 6,
+const userNameStyle: React.CSSProperties = {
+  background: "none",
   border: "none",
-  background: "#ff6b9d",
+  cursor: "pointer",
   color: "#fff",
   fontSize: 13,
   fontWeight: 600,
-  textDecoration: "none",
-  display: "inline-block",
 };

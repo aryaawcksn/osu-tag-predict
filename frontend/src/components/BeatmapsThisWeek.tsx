@@ -238,31 +238,31 @@ const sectionStyle: React.CSSProperties = { marginTop: 32 };
 
 const headerStyle: React.CSSProperties = {
   display: "flex", justifyContent: "space-between",
-  alignItems: "flex-end", marginBottom: 16,
+  alignItems: "flex-end", marginBottom: 14,
 };
 
 const titleStyle: React.CSSProperties = {
-  fontSize: 18, fontWeight: 700, color: "#fffffe", margin: 0,
+  fontFamily: "var(--font-d)", fontSize: 17, fontWeight: 800, color: "#fff", margin: 0,
 };
 
 const subtitleStyle: React.CSSProperties = {
-  fontSize: 12, color: "#636e72", marginTop: 4,
+  fontSize: 12, color: "var(--muted2)", marginTop: 3,
 };
 
 const gridStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-  gap: 14,
+  gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))",
+  gap: 12,
 };
 
 const cardStyle: React.CSSProperties = {
-  background: "#1a1929", border: "1px solid #2e2d3d",
+  background: "var(--card)", border: "1px solid var(--border)",
   borderRadius: 12, overflow: "hidden",
   transition: "border-color 0.2s, transform 0.15s, box-shadow 0.2s",
 };
 
 const imgWrapStyle: React.CSSProperties = {
-  position: "relative", height: 140, overflow: "hidden", background: "#100f1c",
+  position: "relative", height: 130, overflow: "hidden", background: "#0d0b14",
 };
 
 const imgStyle: React.CSSProperties = {
@@ -271,25 +271,26 @@ const imgStyle: React.CSSProperties = {
 
 const imgOverlayStyle: React.CSSProperties = {
   position: "absolute", inset: 0,
-  background: "linear-gradient(to bottom, transparent 40%, rgba(10,9,18,0.85) 100%)",
+  background: "linear-gradient(to bottom, transparent 35%, rgba(13,11,20,0.88) 100%)",
 };
 
 const statusBadgeStyle: React.CSSProperties = {
   position: "absolute", top: 8, left: 8,
   fontSize: 9, fontWeight: 700, padding: "2px 7px",
   borderRadius: 4, border: "1px solid", letterSpacing: "0.05em",
-  background: "rgba(0,0,0,0.6)",
+  background: "rgba(0,0,0,0.55)",
+  fontFamily: "var(--font-m)",
 };
 
 const bodyStyle: React.CSSProperties = { padding: "12px 14px 14px" };
 
 const songTitleStyle: React.CSSProperties = {
-  fontSize: 14, fontWeight: 700, color: "#fffffe",
+  fontFamily: "var(--font-d)", fontSize: 14, fontWeight: 700, color: "#fff",
   whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
 };
 
 const artistLineStyle: React.CSSProperties = {
-  fontSize: 12, color: "#c8cad8", marginTop: 2,
+  fontSize: 12, color: "var(--muted)", marginTop: 2,
   whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
 };
 
@@ -300,21 +301,22 @@ const statsRowStyle: React.CSSProperties = {
 function statChip(color: string, bg: string): React.CSSProperties {
   return {
     fontSize: 10, padding: "2px 6px", borderRadius: 4,
+    fontFamily: "var(--font-m)",
     background: bg, border: `1px solid ${color}33`, color,
   };
 }
 
 const barTrackStyle: React.CSSProperties = {
-  height: 3, background: "rgba(255,107,157,0.12)",
+  height: 3, background: "rgba(255,102,170,0.1)",
   borderRadius: 2, overflow: "hidden",
 };
 
 const barFillStyle: React.CSSProperties = {
-  height: "100%", background: "#ff6b9d", borderRadius: 2,
+  height: "100%", background: "linear-gradient(90deg, #ff66aa, #cc3377)", borderRadius: 2,
   transition: "width 0.3s ease",
 };
 
 const diffPickerStyle: React.CSSProperties = {
-  display: "flex", gap: 5, flexWrap: "wrap", marginTop: 12,
-  paddingTop: 10, borderTop: "1px solid rgba(46,45,61,0.6)",
+  display: "flex", gap: 5, flexWrap: "wrap", marginTop: 10,
+  paddingTop: 10, borderTop: "1px solid rgba(180,130,220,0.1)",
 };

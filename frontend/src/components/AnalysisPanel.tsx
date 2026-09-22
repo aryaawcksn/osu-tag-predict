@@ -182,54 +182,56 @@ function Bubble({ item, max, isDominant }: {
 // Styles
 
 const panelStyle: React.CSSProperties = {
-  background: "#1a1929",
-  border: "1px solid #2e2d3d",
+  background: "var(--card)",
+  border: "1px solid var(--border)",
   borderRadius: 12,
-  padding: 24,
-  marginTop: 32,
+  padding: 22,
+  marginTop: 24,
 };
 
 const headingStyle: React.CSSProperties = {
-  fontSize: 18,
-  fontWeight: 700,
-  color: "#fffffe",
-  marginBottom: 6,
+  fontFamily: "var(--font-d)",
+  fontSize: 17,
+  fontWeight: 800,
+  color: "#fff",
+  marginBottom: 4,
 };
 
 const subtextStyle: React.CSSProperties = {
-  color: "#a7a9be",
+  color: "var(--muted)",
   fontSize: 13,
   marginBottom: 16,
 };
 
 const selectStyle: React.CSSProperties = {
-  background: "#0f0e17",
-  border: "1px solid #2e2d3d",
-  borderRadius: 6,
-  color: "#fffffe",
+  background: "var(--card2)",
+  border: "1px solid rgba(180,130,220,0.25)",
+  borderRadius: 8,
+  color: "#fff",
   fontSize: 13,
-  padding: "6px 10px",
+  padding: "7px 10px",
   cursor: "pointer",
   flex: 1,
 };
 
 const btnStyle: React.CSSProperties = {
   padding: "7px 18px",
-  borderRadius: 6,
+  borderRadius: 8,
   border: "none",
-  background: "#ff6b9d",
+  background: "linear-gradient(135deg, #ff66aa, #cc3377)",
   color: "#fff",
   fontSize: 13,
-  fontWeight: 600,
+  fontFamily: "var(--font-d)",
+  fontWeight: 700,
   cursor: "pointer",
   flexShrink: 0,
 };
 
 const spinnerStyle: React.CSSProperties = {
-  width: 16,
-  height: 16,
-  border: "2px solid #2e2d3d",
-  borderTop: "2px solid #ff6b9d",
+  width: 15,
+  height: 15,
+  border: "2px solid rgba(180,130,220,0.2)",
+  borderTop: "2px solid #ff66aa",
   borderRadius: "50%",
   animation: "spin 0.8s linear infinite",
   flexShrink: 0,
@@ -237,7 +239,7 @@ const spinnerStyle: React.CSSProperties = {
 
 const errorStyle: React.CSSProperties = {
   padding: "10px 14px",
-  background: "#2a0a14",
+  background: "#1e0a10",
   border: "1px solid #7f1d1d",
   borderRadius: 8,
   color: "#fca5a5",
@@ -246,10 +248,10 @@ const errorStyle: React.CSSProperties = {
 };
 
 const resultStyle: React.CSSProperties = {
-  marginTop: 16,
-  padding: "16px",
-  background: "#0f0e17",
-  border: "1px solid #2e2d3d",
+  marginTop: 14,
+  padding: 16,
+  background: "var(--card2)",
+  border: "1px solid var(--border)",
   borderRadius: 8,
 };
 

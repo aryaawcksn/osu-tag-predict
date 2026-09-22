@@ -11,7 +11,10 @@ import RelevanceSection from "./components/RelevanceSection";
 import RelabelBanner from "./components/RelabelBanner";
 import BeatmapsThisWeek from "./components/BeatmapsThisWeek";
 import { PredictResult, CurrentUser, QueueState, DominantPlaystyle } from "./types";
-import { getCurrentUser, getQueueState, predictFromLink, predictFromUpload, pollJobResult, setSessionToken, clearSessionToken } from "./api";
+import {
+  getCurrentUser, getQueueState, predictFromLink, predictFromUpload,
+  pollJobResult, setSessionToken, clearSessionToken,
+} from "./api";
 
 export default function App() {
   const [result, setResult] = useState<PredictResult | null>(null);
@@ -22,7 +25,6 @@ export default function App() {
   const [dominantPlaystyle, setDominantPlaystyle] = useState<DominantPlaystyle | null>(null);
   const [showProfile, setShowProfile] = useState(false);
 
-  // Read session_token from URL query param after OAuth redirect, then fetch user
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("session_token");
@@ -35,16 +37,14 @@ export default function App() {
     getCurrentUser().then(setUser).catch(() => setUser(null));
   }, []);
 
-  // Keep a local copy of queue state so App knows if queue is full (Requirements 1.3)
-  // Polling pauses when tab is hidden to avoid unnecessary requests
   useEffect(() => {
     let cancelled = false;
     async function fetchQ() {
-      if (document.hidden) return; // skip if tab is not visible
+      if (document.hidden) return;
       try {
         const s = await getQueueState();
         if (!cancelled) setQueueState(s);
-      } catch { /* backend may not be ready */ }
+      } catch { /* ignore */ }
     }
     fetchQ();
     const id = setInterval(fetchQ, 2000);
@@ -55,48 +55,26 @@ export default function App() {
     ? queueState.occupied_slots >= queueState.total_capacity
     : false;
 
-  // Queue-aware submission: enqueue then poll (Requirements 1.2, 1.3)
   async function handleLinkSubmit(url: string) {
-    if (queueFull) {
-      setError("Queue is full. Please wait for a slot to open.");
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    setResult(null);
+    if (queueFull) { setError("Queue is full. Please wait."); return; }
+    setLoading(true); setError(null); setResult(null);
     try {
       const { job_id } = await predictFromLink(url);
-      const r = await pollJobResult(job_id);
-      setResult(r);
+      setResult(await pollJobResult(job_id));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }
 
   async function handleFileSubmit(file: File) {
-    if (queueFull) {
-      setError("Queue is full. Please wait for a slot to open.");
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    setResult(null);
+    if (queueFull) { setError("Queue is full. Please wait."); return; }
+    setLoading(true); setError(null); setResult(null);
     try {
       const { job_id } = await predictFromUpload(file);
-      const r = await pollJobResult(job_id);
-      setResult(r);
+      setResult(await pollJobResult(job_id));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function handleError(e: string) {
-    setError(e);
-    setResult(null);
+    } finally { setLoading(false); }
   }
 
   function handleLogout() {
@@ -107,7 +85,7 @@ export default function App() {
 
   if (showProfile && user) {
     return (
-      <div style={{ minHeight: "100vh", background: "#0f0e17", color: "#fffffe" }}>
+      <div style={rootStyle}>
         <NavBar user={user} onLogout={handleLogout} onProfile={() => setShowProfile(false)} />
         <RelabelBanner />
         <ProfilePage user={user} onBack={() => setShowProfile(false)} />
@@ -117,80 +95,67 @@ export default function App() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0f0e17", color: "#fffffe" }}>
-      {/* Nav */}
+    <div style={rootStyle}>
       <NavBar user={user} onLogout={handleLogout} onProfile={() => setShowProfile(true)} />
-
-      {/* Re-label progress banner — visible when background re-labeling is active */}
       <RelabelBanner />
-
-      {/* Queue status bar */}
       <QueueBar />
-
-      {/* Info tooltip — bottom right */}
       <InfoTooltip />
-      {/* Main content */}
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: "48px 16px" }}>
+
+      <div style={mainStyle}>
         {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>
-            osu! Beatmap Tag Analyzer
-          </h1>
-          <p style={{ color: "#a7a9be", fontSize: 15 }}>
-            Paste a beatmap link or upload a <code>.osu</code> file to predict its tag.
+        <div style={headerStyle}>
+          <h1 style={h1Style}>osu! Beatmap Tag Analyzer</h1>
+          <p style={subtitleStyle}>
+            Paste a beatmap link or upload a <code style={{ fontFamily: "var(--font-m)", color: "#ff66aa" }}>.osu</code> file to predict its tags.
           </p>
         </div>
 
-        {/* Queue full notice (Requirements 1.3) */}
+        {/* Queue full notice */}
         {queueFull && (
-          <div style={noticeBannerStyle}>
-            Queue is currently full (5/5 slots). New predictions are temporarily disabled.
+          <div className="osu-card" style={{ borderColor: "rgba(146,64,14,0.6)", background: "#1c1206", color: "#fbbf24", fontSize: 13, textAlign: "center", marginBottom: 16 }}>
+            Queue is full (5/5 slots). New predictions are temporarily disabled.
           </div>
         )}
 
-        {/* Prediction input — disabled when queue is full */}
+        {/* Input */}
         <LinkInput
           onLinkSubmit={handleLinkSubmit}
           onFileSubmit={handleFileSubmit}
-          onError={handleError}
+          onError={(e) => { setError(e); setResult(null); }}
           onLoading={setLoading}
           loading={loading}
           disabled={queueFull}
         />
 
-        {/* Loading state while polling */}
         {loading && (
-          <p style={{ textAlign: "center", color: "#a7a9be", marginTop: 24 }}>
+          <p style={{ textAlign: "center", color: "var(--muted)", marginTop: 20, fontSize: 13 }}>
             Analyzing beatmap… waiting for result
           </p>
         )}
 
-        {/* Error */}
         {error && (
           <div style={errorStyle}>{error}</div>
         )}
 
-        {/* Prediction result */}
         {result && <ResultCard result={result} />}
-        {/* Relevance finder — shown below result card when logged in */}
         {result && user && <RelevanceSection result={result} />}
 
-        {/* Auth-gated features — analysis & recommendations (Requirements 2.4, 6.3) */}
+        {/* Auth gate */}
         {!user && (
-          <div style={loginPromptStyle}>
-            <p style={{ marginBottom: 12, color: "#a7a9be", fontSize: 14 }}>
+          <div className="osu-card" style={{ marginTop: 32, textAlign: "center" }}>
+            <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: 16 }}>
               Log in with your osu! account to unlock playstyle analysis and map recommendations.
             </p>
             <a
               href={`${import.meta.env.VITE_API_URL ?? "http://localhost:8000"}/auth/login`}
-              style={loginBtnStyle}
+              className="btn-pink"
+              style={{ textDecoration: "none" }}
             >
               Login with osu!
             </a>
           </div>
         )}
 
-        {/* Authenticated: AnalysisPanel + RecommendationList (Requirements 2.4, 3.1, 4.1) */}
         {user && (
           <>
             <AnalysisPanel onPlaystyleResult={setDominantPlaystyle} />
@@ -200,61 +165,59 @@ export default function App() {
           </>
         )}
 
-        {/* Beatmaps This Week — visible to all */}
         <BeatmapsThisWeek />
-
-        {/* Tag search — visible to all */}
         {user && <BeatmapTagSearch />}
       </div>
     </div>
   );
 }
 
-const noticeBannerStyle: React.CSSProperties = {
-  marginBottom: 16,
-  padding: "10px 16px",
-  background: "#2a1a0a",
-  border: "1px solid #92400e",
-  borderRadius: 8,
-  color: "#fbbf24",
-  fontSize: 13,
+// ── Styles ────────────────────────────────────────────────────
+
+const rootStyle: React.CSSProperties = { minHeight: "100vh", background: "var(--bg)", color: "#fff" };
+
+const mainStyle: React.CSSProperties = {
+  maxWidth: 740,
+  margin: "0 auto",
+  padding: "44px 16px 80px",
+};
+
+const headerStyle: React.CSSProperties = {
   textAlign: "center",
+  marginBottom: 36,
+};
+
+const h1Style: React.CSSProperties = {
+  fontFamily: "var(--font-d)",
+  fontSize: 26,
+  fontWeight: 800,
+  color: "#fff",
+  letterSpacing: "0.02em",
+  marginBottom: 8,
+};
+
+const subtitleStyle: React.CSSProperties = {
+  color: "var(--muted)",
+  fontSize: 14,
 };
 
 const errorStyle: React.CSSProperties = {
-  marginTop: 20,
-  padding: "12px 16px",
-  background: "#2a0a14",
+  marginTop: 16,
+  padding: "11px 16px",
+  background: "#1e0a10",
   border: "1px solid #7f1d1d",
   borderRadius: 8,
   color: "#fca5a5",
-  fontSize: 14,
+  fontSize: 13,
 };
 
-const loginPromptStyle: React.CSSProperties = {
-  marginTop: 40,
-  padding: 24,
-  background: "#1a1929",
-  border: "1px solid #2e2d3d",
-  borderRadius: 12,
-  textAlign: "center",
-};
-
-const loginBtnStyle: React.CSSProperties = {
-  display: "inline-block",
-  padding: "8px 20px",
-  background: "#ff6b9d",
-  color: "#fff",
-  borderRadius: 8,
-  fontWeight: 600,
-  fontSize: 14,
-  textDecoration: "none",
-};
+// ── Info tooltip ──────────────────────────────────────────────
 
 function InfoTooltip() {
   const [visible, setVisible] = useState(false);
   return (
-    <div style={tooltipWrapStyle}
+    <div
+      style={{ position: "fixed", bottom: 20, right: 20, zIndex: 200, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}
       onMouseEnter={() => setVisible(true)}
       onMouseLeave={() => setVisible(false)}
     >
@@ -269,41 +232,17 @@ function InfoTooltip() {
   );
 }
 
-const tooltipWrapStyle: React.CSSProperties = {
-  position: "fixed",
-  bottom: 20,
-  right: 20,
-  zIndex: 200,
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-end",
-  gap: 8,
-};
-
 const tooltipBtnStyle: React.CSSProperties = {
-  width: 28,
-  height: 28,
-  borderRadius: "50%",
-  background: "#1a1929",
-  border: "1px solid #2e2d3d",
-  color: "#a7a9be",
-  fontSize: 13,
-  fontWeight: 700,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  cursor: "default",
-  userSelect: "none",
+  width: 26, height: 26, borderRadius: "50%",
+  background: "var(--card)", border: "1px solid var(--border)",
+  color: "var(--muted)", fontSize: 12, fontWeight: 700,
+  display: "flex", alignItems: "center", justifyContent: "center",
+  cursor: "default", userSelect: "none",
 };
 
 const tooltipBoxStyle: React.CSSProperties = {
-  background: "#1a1929",
-  border: "1px solid #2e2d3d",
-  borderRadius: 8,
-  padding: "10px 14px",
-  fontSize: 12,
-  color: "#a7a9be",
-  maxWidth: 240,
-  lineHeight: 1.5,
+  background: "var(--card)", border: "1px solid var(--border)",
+  borderRadius: 8, padding: "10px 14px",
+  fontSize: 12, color: "var(--muted)", maxWidth: 240, lineHeight: 1.5,
   boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
 };
