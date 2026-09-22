@@ -166,3 +166,9 @@ input[type='range']::-moz-range-thumb {
 
 /* ── Spin animation ──────────────────────────────────────── */
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── EQ bar animation (audio playing indicator) ─────────────── */
+@keyframes eq-bar {
+  from { transform: scaleY(0.3); }
+  to   { transform: scaleY(1); }
+}

@@ -1,7 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { BeatmapRecord } from "../types";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+
+// ── Shared audio singleton (same as BeatmapCard) ─────────────────────────────
+let _globalAudio: HTMLAudioElement | null = null;
+let _globalStop: (() => void) | null = null;
+
+function playPreview(url: string, onStop: () => void): () => void {
+  if (_globalAudio) { _globalAudio.pause(); _globalAudio.src = ""; _globalStop?.(); }
+  const audio = new Audio(url);
+  audio.volume = 0.6;
+  _globalAudio = audio;
+  _globalStop = onStop;
+  audio.play().catch(() => {});
+  audio.addEventListener("ended", () => { _globalStop?.(); _globalAudio = null; _globalStop = null; });
+  return () => {
+    audio.pause(); audio.src = "";
+    if (_globalAudio === audio) { _globalAudio = null; _globalStop = null; }
+    onStop();
+  };
+}
 
 interface BeatmapsetGroup {
   beatmapset_id: string;
@@ -108,37 +127,94 @@ function BeatmapsetCard({ set }: { set: BeatmapsetGroup }) {
     .sort((a, b) => b.probability - a.probability).slice(0, 3);
   const maxProb = topLabels[0]?.probability ?? 1;
 
+  // Audio preview
+  const [hovered, setHovered] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const stopRef = useRef<(() => void) | null>(null);
+  const previewUrl = `https://b.ppy.sh/preview/${set.beatmapset_id}.mp3`;
+  const dlUrl = `https://osu.ppy.sh/beatmapsets/${set.beatmapset_id}/download`;
+  const webUrl = `https://osu.ppy.sh/beatmapsets/${set.beatmapset_id}`;
+
+  useEffect(() => () => { stopRef.current?.(); }, []);
+
+  const togglePlay = useCallback((e: React.MouseEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    if (playing) { stopRef.current?.(); stopRef.current = null; setPlaying(false); }
+    else { stopRef.current = playPreview(previewUrl, () => setPlaying(false)); setPlaying(true); }
+  }, [playing, previewUrl]);
+
   return (
-    <a href={`https://osu.ppy.sh/beatmaps/${diff?.beatmap_id ?? ""}`}
-      target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", display: "block" }}>
-      <div
-        style={cardStyle}
-        onMouseEnter={e => {
-          e.currentTarget.style.borderColor = "rgba(255,102,170,0.45)";
-          e.currentTarget.style.transform = "translateY(-2px)";
-          e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.45)";
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.borderColor = "rgba(180,130,220,0.18)";
-          e.currentTarget.style.transform = "none";
-          e.currentTarget.style.boxShadow = "none";
-        }}
-      >
-        {/* Cover */}
-        <div style={{ position: "relative", height: 100, overflow: "hidden", background: "var(--bg)", flexShrink: 0 }}>
-          <img src={imgUrl} alt="" loading="lazy"
-            style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.65 }}
-            onError={e => { (e.currentTarget.parentElement!.style.background = "var(--bg)"); e.currentTarget.style.display = "none"; }} />
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 25%, var(--card) 100%)" }} />
-          {set.status && (
-            <span style={{ position: "absolute", top: 8, right: 8, fontSize: 9, fontWeight: 700,
-              padding: "2px 7px", borderRadius: 4, border: `1px solid ${statusCol}88`,
-              color: statusCol, background: "rgba(0,0,0,0.55)", fontFamily: "var(--font-m)",
-              letterSpacing: "0.06em" }}>
-              {set.status.toUpperCase()}
-            </span>
-          )}
+    <div
+      style={cardStyle}
+      onMouseEnter={e => {
+        setHovered(true);
+        e.currentTarget.style.borderColor = "rgba(255,102,170,0.45)";
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.45)";
+      }}
+      onMouseLeave={e => {
+        setHovered(false);
+        e.currentTarget.style.borderColor = "rgba(180,130,220,0.18)";
+        e.currentTarget.style.transform = "none";
+        e.currentTarget.style.boxShadow = "none";
+      }}
+    >
+      {/* Cover with hover overlay */}
+      <div style={{ position: "relative", height: 130, overflow: "hidden", background: "var(--bg)", flexShrink: 0 }}>
+        <img src={imgUrl} alt="" loading="lazy"
+          style={{ width: "100%", height: "100%", objectFit: "cover",
+            opacity: hovered ? 0.45 : 0.65, transition: "opacity 0.2s" }}
+          onError={e => { (e.currentTarget.parentElement!.style.background = "var(--bg)"); e.currentTarget.style.display = "none"; }} />
+        <div style={{ position: "absolute", inset: 0, pointerEvents: "none",
+          background: "linear-gradient(to bottom, transparent 30%, var(--card) 100%)" }} />
+        {set.status && (
+          <span style={{ position: "absolute", top: 8, left: 8, fontSize: 9, fontWeight: 700,
+            padding: "2px 7px", borderRadius: 4, border: `1px solid ${statusCol}88`,
+            color: statusCol, background: "rgba(0,0,0,0.6)", fontFamily: "var(--font-m)",
+            letterSpacing: "0.06em", pointerEvents: "none" }}>
+            {set.status.toUpperCase()}
+          </span>
+        )}
+        {/* Hover overlay */}
+        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center", gap: 8,
+          opacity: hovered ? 1 : 0, transition: "opacity 0.18s" }}>
+          <button onClick={togglePlay} title={playing ? "Pause" : "Play preview"}
+            style={{ width: 44, height: 44, borderRadius: "50%",
+              background: playing ? "rgba(255,102,170,0.9)" : "rgba(0,0,0,0.65)",
+              border: `2px solid ${playing ? "#ff66aa" : "rgba(255,255,255,0.35)"}`,
+              color: "#fff", fontSize: 18, display: "flex", alignItems: "center",
+              justifyContent: "center", cursor: "pointer", backdropFilter: "blur(4px)" }}>
+            {playing ? "⏸" : "▶"}
+          </button>
+          <div style={{ display: "flex", gap: 6 }}>
+            <a href={webUrl} target="_blank" rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()} title="Open on osu!"
+              style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
+                color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)" }}>
+              🌐 osu!
+            </a>
+            <a href={dlUrl} target="_blank" rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()} title="Download .osz"
+              style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                background: "rgba(255,102,170,0.75)", border: "1px solid rgba(255,102,170,0.5)",
+                color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)" }}>
+              ⬇ .osz
+            </a>
+          </div>
         </div>
+        {/* EQ bar */}
+        {playing && (
+          <div style={{ position: "absolute", bottom: 8, right: 8, display: "flex", gap: 2, alignItems: "flex-end" }}>
+            {[1, 1.5, 0.8, 1.2, 1].map((h, i) => (
+              <div key={i} style={{ width: 3, borderRadius: 2, background: "#ff66aa",
+                animation: `eq-bar ${0.5 + i * 0.1}s ease-in-out infinite alternate`,
+                height: `${h * 10}px` }} />
+            ))}
+          </div>
+        )}
+      </div>
 
         {/* Body */}
         <div style={{ padding: "12px 14px 0", flex: 1 }}>
@@ -235,8 +311,7 @@ function BeatmapsetCard({ set }: { set: BeatmapsetGroup }) {
           </div>
         )}
       </div>
-    </a>
-  );
+    );
 }
 
 const cardStyle: React.CSSProperties = {

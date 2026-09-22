@@ -1,16 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { BeatmapRecord } from "../types";
-
-function useIsMobile(breakpoint = 520) {
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= breakpoint);
-  useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth <= breakpoint);
-    window.addEventListener("resize", handler);
-    return () => window.removeEventListener("resize", handler);
-  }, [breakpoint]);
-  return isMobile;
-}
 
 const STATUS_COLOR: Record<string, string> = {
   ranked: "#b8e994", approved: "#b8e994", loved: "#ff66aa",
@@ -32,7 +22,32 @@ function starColor(stars?: number | null): string {
   return "#c084fc";
 }
 
-// ── Context menu ─────────────────────────────────────────────
+// ── Global audio singleton — only one preview plays at a time ────────────────
+let _globalAudio: HTMLAudioElement | null = null;
+let _globalStop: (() => void) | null = null;
+
+function playPreview(url: string, onStop: () => void): () => void {
+  // Stop any currently playing preview
+  if (_globalAudio) {
+    _globalAudio.pause();
+    _globalAudio.src = "";
+    _globalStop?.();
+  }
+  const audio = new Audio(url);
+  audio.volume = 0.6;
+  _globalAudio = audio;
+  _globalStop = onStop;
+  audio.play().catch(() => {});
+  audio.addEventListener("ended", () => { _globalStop?.(); _globalAudio = null; _globalStop = null; });
+  return () => {
+    audio.pause();
+    audio.src = "";
+    if (_globalAudio === audio) { _globalAudio = null; _globalStop = null; }
+    onStop();
+  };
+}
+
+// ── Context menu ─────────────────────────────────────────────────────────────
 
 interface ContextMenuProps {
   x: number; y: number;
@@ -47,17 +62,17 @@ interface ContextMenuProps {
 function ContextMenu({ x, y, onHideBeatmap, onHideBeatmapset, onReportWrongTags, onFindSimilar, hasBeatmapset, onClose }: ContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    function handleClick(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); }
-    function handleKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    const handleClick = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
+    const handleKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("mousedown", handleClick);
     document.addEventListener("keydown", handleKey);
     return () => { document.removeEventListener("mousedown", handleClick); document.removeEventListener("keydown", handleKey); };
   }, [onClose]);
 
-  let itemCount = [onFindSimilar, onReportWrongTags, onHideBeatmap, hasBeatmapset && onHideBeatmapset].filter(Boolean).length;
-  const menuW = 210, menuH = Math.max(44, itemCount * 38);
+  const itemCount = [onFindSimilar, onReportWrongTags, onHideBeatmap, hasBeatmapset && onHideBeatmapset].filter(Boolean).length;
+  const menuW = 210;
   const clampedX = Math.min(x, window.innerWidth - menuW - 8);
-  const clampedY = Math.min(y, window.innerHeight - menuH - 8);
+  const clampedY = Math.min(y, window.innerHeight - itemCount * 38 - 8);
 
   return createPortal(
     <div ref={ref} onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}
@@ -65,7 +80,7 @@ function ContextMenu({ x, y, onHideBeatmap, onHideBeatmapset, onReportWrongTags,
         background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8,
         boxShadow: "0 8px 24px rgba(0,0,0,0.6)", minWidth: menuW, overflow: "hidden" }}>
       {onFindSimilar && <CtxBtn icon="🎯" label="Find Similar Beatmap" onClick={() => { onFindSimilar(); onClose(); }} />}
-      {onReportWrongTags && <CtxBtn icon="⚠️" label="This tags isn't right" onClick={() => { onReportWrongTags(); onClose(); }} />}
+      {onReportWrongTags && <CtxBtn icon="⚠️" label="Tags aren't right" onClick={() => { onReportWrongTags(); onClose(); }} />}
       {onHideBeatmap && <CtxBtn icon="🚫" label="Hide this beatmap" onClick={() => { onHideBeatmap(); onClose(); }} />}
       {hasBeatmapset && onHideBeatmapset && <CtxBtn icon="🗂" label="Hide this beatmapset" onClick={() => { onHideBeatmapset!(); onClose(); }} />}
     </div>,
@@ -85,7 +100,128 @@ function CtxBtn({ icon, label, onClick }: { icon: string; label: string; onClick
   );
 }
 
-// ── Main card ─────────────────────────────────────────────────
+// ── Cover with hover overlay ──────────────────────────────────────────────────
+
+interface CoverProps {
+  bgImg: string | null;
+  beatmapId: string;
+  beatmapsetId: string | null;
+  status: string | null;
+  statusCol: string;
+}
+
+function CoverOverlay({ bgImg, beatmapId, beatmapsetId, status, statusCol }: CoverProps) {
+  const [hovered, setHovered] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const stopRef = useRef<(() => void) | null>(null);
+
+  const previewUrl = beatmapsetId ? `https://b.ppy.sh/preview/${beatmapsetId}.mp3` : null;
+  const webUrl = `https://osu.ppy.sh/beatmaps/${beatmapId}`;
+  const dlUrl = beatmapsetId ? `https://osu.ppy.sh/beatmapsets/${beatmapsetId}/download` : null;
+
+  const togglePlay = useCallback((e: React.MouseEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    if (!previewUrl) return;
+    if (playing) {
+      stopRef.current?.();
+      stopRef.current = null;
+      setPlaying(false);
+    } else {
+      stopRef.current = playPreview(previewUrl, () => setPlaying(false));
+      setPlaying(true);
+    }
+  }, [playing, previewUrl]);
+
+  // Stop on unmount
+  useEffect(() => () => { stopRef.current?.(); }, []);
+
+  return (
+    <div
+      style={{ position: "relative", height: 130, overflow: "hidden", background: "var(--bg)", flexShrink: 0, cursor: "default" }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Cover image */}
+      {bgImg && (
+        <img src={bgImg} alt="" loading="lazy"
+          style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center",
+            opacity: hovered ? 0.45 : 0.65, transition: "opacity 0.2s", display: "block" }}
+          onError={e => { (e.currentTarget.parentElement!.style.background = "var(--bg)"); e.currentTarget.style.display = "none"; }} />
+      )}
+
+      {/* Bottom gradient for body bleed */}
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none",
+        background: "linear-gradient(to bottom, transparent 30%, var(--card) 100%)" }} />
+
+      {/* Status badge */}
+      {status && (
+        <span style={{ position: "absolute", top: 8, left: 8, fontSize: 9, fontWeight: 700,
+          padding: "2px 7px", borderRadius: 4, border: `1px solid ${statusCol}88`,
+          color: statusCol, background: "rgba(0,0,0,0.6)", fontFamily: "var(--font-m)",
+          letterSpacing: "0.06em", pointerEvents: "none" }}>
+          {status.toUpperCase()}
+        </span>
+      )}
+
+      {/* Hover action bar */}
+      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center", gap: 8,
+        opacity: hovered ? 1 : 0, transition: "opacity 0.18s" }}>
+
+        {/* Play / Pause */}
+        {previewUrl && (
+          <button onClick={togglePlay}
+            title={playing ? "Pause preview" : "Play preview"}
+            style={{ width: 44, height: 44, borderRadius: "50%",
+              background: playing ? "rgba(255,102,170,0.9)" : "rgba(0,0,0,0.65)",
+              border: `2px solid ${playing ? "#ff66aa" : "rgba(255,255,255,0.35)"}`,
+              color: "#fff", fontSize: 18, display: "flex", alignItems: "center",
+              justifyContent: "center", cursor: "pointer", flexShrink: 0,
+              backdropFilter: "blur(4px)", transition: "all 0.15s" }}>
+            {playing ? "⏸" : "▶"}
+          </button>
+        )}
+
+        {/* Link + Download row */}
+        <div style={{ display: "flex", gap: 6 }}>
+          <a href={webUrl} target="_blank" rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
+            title="Open on osu! website"
+            style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+              background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
+              color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
+              display: "flex", alignItems: "center", gap: 4 }}>
+            🌐 osu!
+          </a>
+          {dlUrl && (
+            <a href={dlUrl} target="_blank" rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              title="Download .osz"
+              style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                background: "rgba(255,102,170,0.75)", border: "1px solid rgba(255,102,170,0.5)",
+                color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
+                display: "flex", alignItems: "center", gap: 4 }}>
+              ⬇ .osz
+            </a>
+          )}
+        </div>
+      </div>
+
+      {/* Playing indicator — always visible when audio is on */}
+      {playing && (
+        <div style={{ position: "absolute", bottom: 8, right: 8, display: "flex", gap: 2, alignItems: "flex-end" }}>
+          {[1, 1.5, 0.8, 1.2, 1].map((h, i) => (
+            <div key={i} style={{ width: 3, borderRadius: 2, background: "#ff66aa",
+              animation: `eq-bar ${0.5 + i * 0.1}s ease-in-out infinite alternate`,
+              height: `${h * 10}px` }} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main card ─────────────────────────────────────────────────────────────────
 
 interface BeatmapCardProps {
   record: BeatmapRecord;
@@ -98,9 +234,7 @@ interface BeatmapCardProps {
 
 export function BeatmapCard({ record, highlightTags, onHide, onHideSet, onReportWrongTags, onFindSimilar }: BeatmapCardProps) {
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
-  const isMobile = useIsMobile();
 
-  const href = `https://osu.ppy.sh/beatmaps/${record.beatmap_id}`;
   const title = record.title ?? `Beatmap #${record.beatmap_id}`;
   const stars = record.difficulty_rating;
   const starCol = starColor(stars);
@@ -119,107 +253,93 @@ export function BeatmapCard({ record, highlightTags, onHide, onHideSet, onReport
     setMenu({ x: e.clientX, y: e.clientY });
   }
 
-  const cardHoverEnter = (el: HTMLDivElement) => {
-    el.style.borderColor = "rgba(255,102,170,0.45)";
-    el.style.transform = "translateY(-2px)";
-    el.style.boxShadow = "0 8px 24px rgba(0,0,0,0.45)";
-  };
-  const cardHoverLeave = (el: HTMLDivElement) => {
-    el.style.borderColor = "rgba(180,130,220,0.18)";
-    el.style.transform = "none";
-    el.style.boxShadow = "none";
-  };
-
-  const contextNode = menu && (
-    <ContextMenu x={menu.x} y={menu.y} hasBeatmapset={!!record.beatmapset_id}
-      onFindSimilar={onFindSimilar ? () => onFindSimilar(record) : undefined}
-      onHideBeatmap={onHide ? () => onHide(record.beatmap_id) : undefined}
-      onHideBeatmapset={onHideSet && record.beatmapset_id ? () => onHideSet(record.beatmapset_id!) : undefined}
-      onReportWrongTags={onReportWrongTags ? () => onReportWrongTags(record) : undefined}
-      onClose={() => setMenu(null)} />
-  );
-
-  // ── Vertical card (Figma-style) — default for grid layouts ───
   return (
     <>
-      <a href={href} target="_blank" rel="noopener noreferrer"
-        style={{ textDecoration: "none", display: "block" }}
-        onContextMenu={handleContextMenu}>
-        <div
-          onMouseEnter={e => cardHoverEnter(e.currentTarget)}
-          onMouseLeave={e => cardHoverLeave(e.currentTarget)}
-          style={cardStyle}>
-          {/* Cover image */}
-          <div style={coverWrapStyle}>
-            {bgImg && <img src={bgImg} alt="" style={coverImgStyle} loading="lazy"
-              onError={e => { (e.currentTarget.parentElement!.style.background = "var(--bg)"); e.currentTarget.style.display = "none"; }} />}
-            <div style={coverOverlayStyle} />
-            {/* Status badge */}
-            {record.status && (
-              <span style={{ ...statusBadgeStyle, color: statusCol, borderColor: `${statusCol}88` }}>
-                {record.status.toUpperCase()}
+      <div
+        onContextMenu={handleContextMenu}
+        onMouseEnter={e => {
+          e.currentTarget.style.borderColor = "rgba(255,102,170,0.45)";
+          e.currentTarget.style.transform = "translateY(-2px)";
+          e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.45)";
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.borderColor = "rgba(180,130,220,0.18)";
+          e.currentTarget.style.transform = "none";
+          e.currentTarget.style.boxShadow = "none";
+        }}
+        style={cardStyle}
+      >
+        {/* Cover with hover overlay */}
+        <CoverOverlay
+          bgImg={bgImg}
+          beatmapId={record.beatmap_id}
+          beatmapsetId={record.beatmapset_id}
+          status={record.status}
+          statusCol={statusCol}
+        />
+
+        {/* Body */}
+        <div style={bodyStyle}>
+          <div style={titleStyle}>{title}</div>
+          {record.artist && <div style={artistStyle}>{record.artist}</div>}
+          <div style={mapperStyle}>
+            {record.version && <span style={{ color: "var(--muted)" }}>[{record.version}]</span>}
+            {record.bpm != null && <span style={{ color: "var(--muted2)" }}> · {fmt(record.bpm, 0)} BPM</span>}
+          </div>
+
+          {/* Star + stats */}
+          <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginBottom: 8 }}>
+            {stars != null && (
+              <span style={{ ...starBadgeStyle, color: starCol, borderColor: `${starCol}44`, background: `${starCol}14` }}>
+                ★ {stars.toFixed(2)}
               </span>
             )}
+            {record.ar != null && <span style={statBadge}>AR{fmt(record.ar)}</span>}
+            {record.cs != null && <span style={statBadge}>CS{fmt(record.cs)}</span>}
+            {record.od != null && <span style={statBadge}>OD{fmt(record.od)}</span>}
+            {record.object_count != null && <span style={statBadge}>{fmt(record.object_count, 0)} obj</span>}
           </div>
 
-          {/* Body */}
-          <div style={bodyStyle}>
-            {/* Title */}
-            <div style={titleStyle}>{title}</div>
-            {/* Artist */}
-            {record.artist && <div style={artistStyle}>{record.artist}</div>}
-            {/* Diff + mapper */}
-            <div style={mapperStyle}>
-              {record.version && <span style={{ color: "var(--muted)" }}>[{record.version}]</span>}
-              {record.bpm != null && <span style={{ color: "var(--muted2)" }}> · {fmt(record.bpm, 0)} BPM</span>}
-            </div>
-
-            {/* Diff header: star + diff name */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-              {stars != null && (
-                <span style={{ ...starBadgeStyle, color: starCol, borderColor: `${starCol}44`, background: `${starCol}14` }}>
-                  ★ {stars.toFixed(2)}
-                </span>
-              )}
-              {record.ar != null && <span style={statBadge}>AR{fmt(record.ar)}</span>}
-              {record.cs != null && <span style={statBadge}>CS{fmt(record.cs)}</span>}
-              {record.od != null && <span style={statBadge}>OD{fmt(record.od)}</span>}
-              {record.object_count != null && <span style={statBadge}>{fmt(record.object_count, 0)} obj</span>}
-            </div>
-
-            {/* Tag progress bars */}
-            {coreLabels.length > 0 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                {coreLabels.map(l => {
-                  const highlighted = highlightTags?.includes(l.label);
-                  const barColor = highlighted ? "#ff66aa" : starCol;
-                  return (
-                    <div key={l.label}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
-                        <span style={{ fontFamily: "var(--font-m)", fontSize: 10,
-                          color: highlighted ? "#ff66aa" : "var(--muted)" }}>{l.label}</span>
-                        <span style={{ fontFamily: "var(--font-m)", fontSize: 10,
-                          color: barColor, fontWeight: 600 }}>{(l.probability * 100).toFixed(0)}%</span>
-                      </div>
-                      <div style={{ height: 3, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
-                        <div style={{ width: `${(l.probability / maxProb) * 100}%`, height: "100%", borderRadius: 2,
-                          background: `linear-gradient(90deg, ${barColor}cc, ${barColor}55)`,
-                          transition: "width 0.3s ease" }} />
-                      </div>
+          {/* Tag bars */}
+          {coreLabels.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              {coreLabels.map(l => {
+                const highlighted = highlightTags?.includes(l.label);
+                const barColor = highlighted ? "#ff66aa" : starCol;
+                return (
+                  <div key={l.label}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+                      <span style={{ fontFamily: "var(--font-m)", fontSize: 10,
+                        color: highlighted ? "#ff66aa" : "var(--muted)" }}>{l.label}</span>
+                      <span style={{ fontFamily: "var(--font-m)", fontSize: 10,
+                        color: barColor, fontWeight: 600 }}>{(l.probability * 100).toFixed(0)}%</span>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                    <div style={{ height: 3, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
+                      <div style={{ width: `${(l.probability / maxProb) * 100}%`, height: "100%", borderRadius: 2,
+                        background: `linear-gradient(90deg, ${barColor}cc, ${barColor}55)`,
+                        transition: "width 0.3s ease" }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-      </a>
-      {contextNode}
+      </div>
+
+      {menu && (
+        <ContextMenu x={menu.x} y={menu.y} hasBeatmapset={!!record.beatmapset_id}
+          onFindSimilar={onFindSimilar ? () => onFindSimilar(record) : undefined}
+          onHideBeatmap={onHide ? () => onHide(record.beatmap_id) : undefined}
+          onHideBeatmapset={onHideSet && record.beatmapset_id ? () => onHideSet(record.beatmapset_id!) : undefined}
+          onReportWrongTags={onReportWrongTags ? () => onReportWrongTags(record) : undefined}
+          onClose={() => setMenu(null)} />
+      )}
     </>
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────
+// ── Styles ────────────────────────────────────────────────────────────────────
 
 const cardStyle: React.CSSProperties = {
   background: "var(--card)",
@@ -230,28 +350,7 @@ const cardStyle: React.CSSProperties = {
   flexDirection: "column",
   transition: "border-color 0.2s, transform 0.15s, box-shadow 0.2s",
   minWidth: 0,
-};
-
-const coverWrapStyle: React.CSSProperties = {
-  position: "relative", height: 100, overflow: "hidden",
-  background: "var(--bg)", flexShrink: 0,
-};
-
-const coverImgStyle: React.CSSProperties = {
-  width: "100%", height: "100%", objectFit: "cover",
-  objectPosition: "center", opacity: 0.65, display: "block",
-};
-
-const coverOverlayStyle: React.CSSProperties = {
-  position: "absolute", inset: 0,
-  background: "linear-gradient(to bottom, transparent 25%, var(--card) 100%)",
-};
-
-const statusBadgeStyle: React.CSSProperties = {
-  position: "absolute", top: 8, right: 8,
-  fontSize: 9, fontWeight: 700, padding: "2px 7px",
-  borderRadius: 4, border: "1px solid", letterSpacing: "0.06em",
-  background: "rgba(0,0,0,0.55)", fontFamily: "var(--font-m)",
+  cursor: "default",
 };
 
 const bodyStyle: React.CSSProperties = {
