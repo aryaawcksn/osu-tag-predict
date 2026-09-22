@@ -142,6 +142,7 @@ async def _fetch_page(
 
 
 async def _is_predicted(beatmap_id: str) -> bool:
+    """Returns True if beatmap has been predicted with the current model version."""
     from database import AsyncSessionFactory
     from models import Beatmap
     from recommendation import MODEL_VERSION
@@ -151,6 +152,18 @@ async def _is_predicted(beatmap_id: str) -> bool:
             select(Beatmap.model_version).where(Beatmap.beatmap_id == beatmap_id)
         )).scalar_one_or_none()
     return row == MODEL_VERSION
+
+
+async def _exists_in_db(beatmap_id: str) -> bool:
+    """Returns True if beatmap exists in DB at all (any model version)."""
+    from database import AsyncSessionFactory
+    from models import Beatmap
+    from sqlalchemy import select
+    async with AsyncSessionFactory() as session:
+        row = (await session.execute(
+            select(Beatmap.beatmap_id).where(Beatmap.beatmap_id == beatmap_id)
+        )).scalar_one_or_none()
+    return row is not None
 
 
 async def _predict_and_store(bm: dict) -> bool:
@@ -231,18 +244,22 @@ async def run_backfill() -> None:
                     break
 
                 new = [bm for bm in beatmaps
-                       if not await _is_predicted(bm["beatmap_id"])]
+                       if not await _exists_in_db(bm["beatmap_id"])]
+                needs_predict = [bm for bm in beatmaps
+                                 if not await _is_predicted(bm["beatmap_id"])]
 
                 logger.info(
-                    "Backfill %s page %d: %d new / %d on page (cursor=%s)",
-                    status, page_idx, len(new), len(beatmaps), cursor or "START",
+                    "Backfill %s page %d: %d new / %d need predict / %d on page (cursor=%s)",
+                    status, page_idx, len(new), len(needs_predict), len(beatmaps), cursor or "START",
                 )
 
                 if not new:
                     consecutive_all_known += 1
                 else:
                     consecutive_all_known = 0
-                    count = await _process_batch(new, delay=_BACKFILL_PREDICT_DELAY)
+
+                if needs_predict:
+                    count = await _process_batch(needs_predict, delay=_BACKFILL_PREDICT_DELAY)
                     _backfill_total += count
 
                 # Persist cursor AFTER processing — safe to resume here on restart
@@ -307,12 +324,16 @@ async def run_crawl() -> int:
                 )
                 if not beatmaps:
                     break
-                new = [bm for bm in beatmaps
-                       if not await _is_predicted(bm["beatmap_id"])]
-                logger.info("Daily %s: %d new / %d", status, len(new), len(beatmaps))
-                if not new:
-                    break  # up-to-date for this status
-                ok += await _process_batch(new)
+                # Stop condition: page is fully in DB (regardless of model version)
+                already_in_db = [bm for bm in beatmaps if await _exists_in_db(bm["beatmap_id"])]
+                new = [bm for bm in beatmaps if not await _is_predicted(bm["beatmap_id"])]
+                logger.info("Daily %s: %d need predict / %d on page (%d already in db)",
+                            status, len(new), len(beatmaps), len(already_in_db))
+                if new:
+                    ok += await _process_batch(new)
+                # Stop if the entire page already existed in DB (we're caught up)
+                if len(already_in_db) == len(beatmaps):
+                    break
                 if not cursor:
                     break
                 await asyncio.sleep(_BACKFILL_PAGE_DELAY)
