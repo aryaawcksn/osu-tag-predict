@@ -146,7 +146,21 @@ async def upsert_beatmap(result: dict) -> dict:
         updated_at=now,
         beatmapset_id=result.get("beatmapset_id"),
         ranked_date=result.get("ranked_date"),
+        status=result.get("status"),
+        title=result.get("title"),
+        artist=result.get("artist"),
+        version=result.get("version"),
+        difficulty_rating=result.get("difficulty_rating"),
+        cover_url=result.get("cover_url"),
+        card_url=result.get("card_url"),
+        list_url=result.get("list_url"),
     )
+
+    # On conflict: only update fields that have actual values (don't overwrite with None)
+    update_core = {k: v for k, v in core.items() if v is not None}
+    # Always update these even if None (model_version and updated_at must always update)
+    update_core["model_version"] = MODEL_VERSION
+    update_core["updated_at"] = now
 
     async with AsyncSessionFactory() as session:
         async with session.begin():
@@ -156,7 +170,7 @@ async def upsert_beatmap(result: dict) -> dict:
                 **core,
             ).on_conflict_do_update(
                 index_elements=["beatmap_id"],
-                set_=core,
+                set_=update_core,
             )
             await session.execute(stmt)
 
@@ -315,8 +329,8 @@ async def get_beatmaps_by_tags(
 
 async def _build_records(beatmaps: list) -> List[dict]:
     """Lazy-fetch metadata and build response dicts."""
-    # Lazy-fetch metadata for beatmaps missing title OR missing stats (imported from JSON)
-    missing = [bm for bm in beatmaps if bm.title is None or bm.bpm is None]
+    # Lazy-fetch metadata for beatmaps missing title OR ranked_date OR status
+    missing = [bm for bm in beatmaps if bm.title is None or bm.ranked_date is None or bm.status is None]
     if missing:
         fetch_tasks = [_fetch_osu_metadata(bm.beatmap_id) for bm in missing]
         metadata_results = await asyncio.gather(*fetch_tasks, return_exceptions=True)
