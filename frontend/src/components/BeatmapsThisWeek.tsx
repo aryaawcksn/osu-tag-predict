@@ -93,10 +93,9 @@ export default function BeatmapsThisWeek() {
 // ── Card ────────────────────────────────────────────────────────
 
 function BeatmapsetCard({ set }: { set: BeatmapsetGroup }) {
-  const diffs = set.difficulties ?? [];
-  const [selectedIdx, setSelectedIdx] = useState(Math.max(0, diffs.length - 1));
+  const [selectedIdx, setSelectedIdx] = useState(set.difficulties.length - 1); // default hardest
 
-  const diff = diffs[selectedIdx] ?? diffs[0];
+  const diff = set.difficulties[selectedIdx] ?? set.difficulties[0];
   const imgUrl =
     set.card_url || set.cover_url ||
     `https://assets.ppy.sh/beatmaps/${set.beatmapset_id}/covers/card.jpg`;
@@ -104,7 +103,6 @@ function BeatmapsetCard({ set }: { set: BeatmapsetGroup }) {
 
   // Top 4 tags of selected diff, sorted by probability desc
   const topLabels = [...(diff?.labels ?? [])]
-    .filter(l => l != null && typeof l.probability === "number")
     .sort((a, b) => b.probability - a.probability)
     .slice(0, 4);
 
@@ -199,9 +197,9 @@ function BeatmapsetCard({ set }: { set: BeatmapsetGroup }) {
         )}
 
         {/* Difficulty picker */}
-        {diffs.length > 1 && (
+        {set.difficulties.length > 1 && (
           <div style={diffPickerStyle}>
-            {diffs.map((d, i) => {
+            {set.difficulties.map((d, i) => {
               const col = starColor(d.difficulty_rating);
               const active = i === selectedIdx;
               return (
