@@ -124,7 +124,7 @@ export default function RelevanceSection({ result }: Props) {
               <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 10 }}>
                 {records.length}{hasMore ? "+" : ""} results
               </p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
                 {records.map(bm => (
                   <BeatmapCard key={bm.beatmap_id} record={bm} highlightTags={topLabels.map(l => l.label)} />
                 ))}

@@ -350,19 +350,102 @@ async def run_crawl() -> int:
         return ok
 
 
-# ── entry point ───────────────────────────────────────────────────────────────
+# ── weekly (this-week beatmaps) ──────────────────────────────────────────────
+
+_WEEKLY_INTERVAL = int(os.environ.get("CRAWLER_WEEKLY_INTERVAL_SECONDS", str(6 * 60 * 60)))  # every 6h
+_last_weekly_at:    datetime | None = None
+_last_weekly_count: int = 0
+
+
+async def run_weekly() -> int:
+    """
+    Fetch beatmaps ranked within the last 7 days (ranked_desc), stop when
+    ranked_date is older than 7 days ago.  Ensures the /beatmaps/this-week
+    endpoint always has fresh content.
+    Returns number of beatmaps predicted.
+    """
+    global _last_weekly_at, _last_weekly_count
+
+    from recommendation import _get_app_token
+    token = await _get_app_token()
+    if not token:
+        logger.warning("Weekly crawl: no API token")
+        return 0
+
+    cutoff = datetime.utcnow().replace(tzinfo=timezone.utc)
+    from datetime import timedelta
+    week_ago_str = (cutoff - timedelta(days=7)).strftime("%Y-%m-%d")
+
+    logger.info("Weekly crawl: fetching beatmaps ranked since %s", week_ago_str)
+    ok = 0
+
+    for status_key in ("ranked", "loved"):
+        cursor: str | None = None
+        page = 0
+        while True:
+            beatmaps, cursor = await _fetch_page(token, status_key, cursor, sort="ranked_desc")
+            if not beatmaps:
+                break
+
+            # Stop when all beatmaps on this page are older than cutoff
+            recent = []
+            hit_cutoff = False
+            for bm in beatmaps:
+                rd = bm.get("ranked_date") or ""
+                # ranked_date format: "2024-01-15T12:00:00+00:00" or "2024-01-15"
+                date_part = rd[:10] if rd else ""
+                if date_part and date_part < week_ago_str:
+                    hit_cutoff = True
+                    break
+                recent.append(bm)
+
+            if recent:
+                needs_predict = [bm for bm in recent if not await _is_predicted(bm["beatmap_id"])]
+                if needs_predict:
+                    count = await _process_batch(needs_predict, delay=_BACKFILL_PREDICT_DELAY)
+                    ok += count
+                    logger.info(
+                        "Weekly %s page %d: %d predicted / %d recent",
+                        status_key, page, count, len(recent),
+                    )
+
+            if hit_cutoff or not cursor:
+                break
+
+            page += 1
+            await asyncio.sleep(_BACKFILL_PAGE_DELAY)
+
+    _last_weekly_at = datetime.now(timezone.utc)
+    _last_weekly_count = ok
+    logger.info("Weekly crawl: done — %d predicted", ok)
+    return ok
 
 async def start_daily_crawler() -> None:
     await asyncio.sleep(30)  # let app finish starting
 
     backfill_task = asyncio.create_task(run_backfill())
 
+    # Run weekly immediately on startup to populate this-week data
+    asyncio.create_task(run_weekly())
+
+    weekly_elapsed = 0
+
     while True:
         try:
             await run_crawl()
         except Exception as exc:
             logger.error("Daily crawl error: %s", exc)
+
         await asyncio.sleep(_DAILY_INTERVAL)
+        weekly_elapsed += _DAILY_INTERVAL
+
+        # Run weekly every _WEEKLY_INTERVAL seconds (default 6h)
+        if weekly_elapsed >= _WEEKLY_INTERVAL:
+            weekly_elapsed = 0
+            try:
+                await run_weekly()
+            except Exception as exc:
+                logger.error("Weekly crawl error: %s", exc)
 
         # After daily run resets done flags, restart backfill to pick up new maps
         if backfill_task.done():
@@ -379,4 +462,7 @@ def get_crawler_status() -> dict:
         "backfill_running":     _backfill_running,
         "backfill_total":       _backfill_total,
         "daily_interval_hours": _DAILY_INTERVAL // 3600,
+        "last_weekly_run_at":   _last_weekly_at.isoformat() if _last_weekly_at else None,
+        "last_weekly_run_count": _last_weekly_count,
+        "weekly_interval_hours": _WEEKLY_INTERVAL // 3600,
     }

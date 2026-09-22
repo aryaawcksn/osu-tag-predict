@@ -84,7 +84,7 @@ export default function BeatmapsThisWeek() {
       </div>
 
       {/* 4-col grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
         {data.beatmapsets.map(set => <BeatmapsetCard key={set.beatmapset_id} set={set} />)}
       </div>
     </section>

@@ -217,13 +217,26 @@ async def crawler_status(
 async def crawler_run_now(
     x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
 ):
-    """Manually trigger a crawler run (admin only)."""
+    """Manually trigger a daily crawler run (admin only)."""
     admin_key = os.environ.get("ADMIN_KEY", "")
     if not admin_key or x_admin_key != admin_key:
         raise HTTPException(status_code=403, detail="Invalid or missing admin key")
     from crawler import run_crawl
     asyncio.create_task(run_crawl())
     return {"ok": True, "message": "Crawler run started in background"}
+
+
+@app.post("/crawler/run-weekly", status_code=200)
+async def crawler_run_weekly(
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+):
+    """Manually trigger a weekly crawler run to fetch beatmaps ranked in the last 7 days (admin only)."""
+    admin_key = os.environ.get("ADMIN_KEY", "")
+    if not admin_key or x_admin_key != admin_key:
+        raise HTTPException(status_code=403, detail="Invalid or missing admin key")
+    from crawler import run_weekly
+    asyncio.create_task(run_weekly())
+    return {"ok": True, "message": "Weekly crawler run started in background"}
 
 
 # --------------------------------------------------------------------------- #

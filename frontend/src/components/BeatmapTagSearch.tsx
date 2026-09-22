@@ -260,7 +260,7 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
                 {results.length} beatmap{results.length !== 1 ? "s" : ""} found
                 <span style={{ color: "#636e72", fontSize: 11, marginLeft: 8 }}>right-click a card if tags aren't right</span>
               </p>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
                 {results.map(bm => (
                   <BeatmapCard
                     key={bm.beatmap_id}
