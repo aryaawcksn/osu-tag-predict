@@ -675,6 +675,78 @@ async def delete_beatmaps_without_set(
     return {"ok": True, "deleted": result.rowcount}
 
 
+@app.get("/beatmaps/this-week")
+async def beatmaps_this_week():
+    """
+    Return beatmapsets ranked in the current week (Mon–Sun), grouped by beatmapset_id.
+    Each group contains all difficulties, sorted by difficulty_rating asc.
+    No auth required — shown on landing page.
+    """
+    from datetime import date, timedelta
+    from sqlalchemy import select as sa_select
+    from models import Beatmap as BeatmapModel, BeatmapLabel as BeatmapLabelModel
+    from recommendation import _build_records
+
+    today = date.today()
+    week_start = today - timedelta(days=today.weekday())  # Monday
+    week_end = today
+
+    async with AsyncSessionFactory() as db:
+        rows = list((await db.execute(
+            sa_select(BeatmapModel).where(
+                BeatmapModel.ranked_date >= week_start.isoformat(),
+                BeatmapModel.ranked_date <= week_end.isoformat() + "T23:59:59",
+                BeatmapModel.status.in_(["ranked", "loved", "approved", "qualified"]),
+                BeatmapModel.beatmapset_id.isnot(None),
+            ).order_by(BeatmapModel.ranked_date.desc())
+        )).scalars().all())
+
+    # Group by beatmapset_id
+    from collections import defaultdict
+    sets: dict[str, list] = defaultdict(list)
+    for bm in rows:
+        sets[bm.beatmapset_id].append(bm)
+
+    # Sort diffs within each set by difficulty_rating asc
+    for diffs in sets.values():
+        diffs.sort(key=lambda b: b.difficulty_rating or 0)
+
+    # Build records for all beatmaps then regroup
+    all_bms = [bm for diffs in sets.values() for bm in diffs]
+    all_records = await _build_records(all_bms)
+    record_map = {r["beatmap_id"]: r for r in all_records}
+
+    beatmapsets = []
+    for set_id, diffs in sets.items():
+        diff_records = [record_map[bm.beatmap_id] for bm in diffs if bm.beatmap_id in record_map]
+        if not diff_records:
+            continue
+        # Representative diff = highest rated
+        rep = max(diff_records, key=lambda r: r["difficulty_rating"] or 0)
+        beatmapsets.append({
+            "beatmapset_id": set_id,
+            "title": rep["title"],
+            "artist": rep["artist"],
+            "cover_url": rep["cover_url"],
+            "card_url": rep["card_url"],
+            "status": rep["status"],
+            "ranked_date": rep["ranked_date"],
+            "difficulties": diff_records,
+        })
+
+    # Sort sets: loved first, then ranked, then by ranked_date desc
+    def set_sort(s):
+        status_order = {"loved": 0, "ranked": 1, "approved": 1, "qualified": 2}
+        return (status_order.get(s["status"] or "", 9), -(s["ranked_date"] or ""))
+    beatmapsets.sort(key=set_sort)
+
+    return {
+        "week_start": week_start.isoformat(),
+        "week_end": week_end.isoformat(),
+        "beatmapsets": beatmapsets,
+    }
+
+
 @app.get("/beatmaps/by-tags")
 async def beatmaps_by_tags(
     tags: str = Query(...),

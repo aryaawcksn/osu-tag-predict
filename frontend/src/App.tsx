@@ -9,6 +9,7 @@ import BeatmapTagSearch from "./components/BeatmapTagSearch";
 import ProfilePage from "./components/ProfilePage";
 import RelevanceSection from "./components/RelevanceSection";
 import RelabelBanner from "./components/RelabelBanner";
+import BeatmapsThisWeek from "./components/BeatmapsThisWeek";
 import { PredictResult, CurrentUser, QueueState, DominantPlaystyle } from "./types";
 import { getCurrentUser, getQueueState, predictFromLink, predictFromUpload, pollJobResult, setSessionToken, clearSessionToken } from "./api";
 
@@ -196,9 +197,14 @@ export default function App() {
             {dominantPlaystyle && (
               <RecommendationList playstyle={dominantPlaystyle.label} avgDifficulty={dominantPlaystyle.avg_difficulty} />
             )}
-            <BeatmapTagSearch />
           </>
         )}
+
+        {/* Beatmaps This Week — visible to all */}
+        <BeatmapsThisWeek />
+
+        {/* Tag search — visible to all */}
+        {user && <BeatmapTagSearch />}
       </div>
     </div>
   );
