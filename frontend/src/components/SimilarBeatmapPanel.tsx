@@ -112,14 +112,10 @@ export default function SimilarBeatmapPanel({ sourceBeatmap, onClose, onFindSimi
           <p style={{ fontSize: 11, color: "var(--muted2)", marginBottom: 8 }}>
             {records.length}{hasMore ? "+" : ""} results · sorted by relevance
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
             {records.map(bm => (
-              <BeatmapCard
-                key={bm.beatmap_id}
-                record={bm}
-                highlightTags={topLabels.map(l => l.label)}
-                onFindSimilar={onFindSimilar}
-              />
+              <BeatmapCard key={bm.beatmap_id} record={bm}
+                highlightTags={topLabels.map(l => l.label)} onFindSimilar={onFindSimilar} />
             ))}
           </div>
           {hasMore && (

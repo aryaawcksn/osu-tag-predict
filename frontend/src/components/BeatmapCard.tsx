@@ -13,7 +13,7 @@ function useIsMobile(breakpoint = 520) {
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  ranked: "#b8e994", approved: "#b8e994", loved: "#ff6b9d",
+  ranked: "#b8e994", approved: "#b8e994", loved: "#ff66aa",
   qualified: "#74b9ff", pending: "#fbbf24", wip: "#fbbf24", graveyard: "#636e72",
 };
 
@@ -22,9 +22,20 @@ function fmt(n?: number | null, decimals = 1): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(decimals);
 }
 
+function starColor(stars?: number | null): string {
+  if (!stars) return "var(--muted)";
+  if (stars < 2)   return "#88d8b0";
+  if (stars < 3)   return "#6bcfff";
+  if (stars < 4.5) return "#ffd700";
+  if (stars < 6)   return "#ff9a56";
+  if (stars < 7.5) return "#ff66aa";
+  return "#c084fc";
+}
+
+// ── Context menu ─────────────────────────────────────────────
+
 interface ContextMenuProps {
-  x: number;
-  y: number;
+  x: number; y: number;
   onHideBeatmap?: () => void;
   onHideBeatmapset?: () => void;
   onReportWrongTags?: () => void;
@@ -33,106 +44,48 @@ interface ContextMenuProps {
   onClose: () => void;
 }
 
-function ContextMenu({
-  x,
-  y,
-  onHideBeatmap,
-  onHideBeatmapset,
-  onReportWrongTags,
-  onFindSimilar,
-  hasBeatmapset,
-  onClose,
-}: ContextMenuProps) {
+function ContextMenu({ x, y, onHideBeatmap, onHideBeatmapset, onReportWrongTags, onFindSimilar, hasBeatmapset, onClose }: ContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    }
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
+    function handleClick(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); }
+    function handleKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
     document.addEventListener("mousedown", handleClick);
     document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("mousedown", handleClick);
-      document.removeEventListener("keydown", handleKey);
-    };
+    return () => { document.removeEventListener("mousedown", handleClick); document.removeEventListener("keydown", handleKey); };
   }, [onClose]);
 
-  let itemCount = 0;
-  if (onFindSimilar) itemCount++;
-  if (onReportWrongTags) itemCount++;
-  if (onHideBeatmap) itemCount++;
-  if (hasBeatmapset && onHideBeatmapset) itemCount++;
-
-  // Clamp to viewport
-  const menuW = 210;
-  const menuH = Math.max(44, itemCount * 38);
+  let itemCount = [onFindSimilar, onReportWrongTags, onHideBeatmap, hasBeatmapset && onHideBeatmapset].filter(Boolean).length;
+  const menuW = 210, menuH = Math.max(44, itemCount * 38);
   const clampedX = Math.min(x, window.innerWidth - menuW - 8);
   const clampedY = Math.min(y, window.innerHeight - menuH - 8);
 
   return createPortal(
-    <div
-      ref={ref}
-      onMouseDown={e => e.stopPropagation()}
-      onClick={e => e.stopPropagation()}
-      style={{
-        position: "fixed", left: clampedX, top: clampedY, zIndex: 99999,
+    <div ref={ref} onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}
+      style={{ position: "fixed", left: clampedX, top: clampedY, zIndex: 99999,
         background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8,
-        boxShadow: "0 8px 24px rgba(0,0,0,0.6)", minWidth: menuW, overflow: "hidden",
-      }}
-    >
-      {onFindSimilar && (
-        <button
-          onClick={e => { e.preventDefault(); e.stopPropagation(); onFindSimilar(); onClose(); }}
-          style={menuItemStyle}
-          onMouseEnter={e => (e.currentTarget.style.background = "rgba(180,130,220,0.1)")}
-          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-        >
-          🎯 Find Similar Beatmap
-        </button>
-      )}
-      {onReportWrongTags && (
-        <button
-          onClick={e => { e.preventDefault(); e.stopPropagation(); onReportWrongTags(); onClose(); }}
-          style={menuItemStyle}
-          onMouseEnter={e => (e.currentTarget.style.background = "rgba(180,130,220,0.1)")}
-          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-        >
-          ⚠️ This tags isn't right
-        </button>
-      )}
-      {onHideBeatmap && (
-        <button
-          onClick={e => { e.preventDefault(); e.stopPropagation(); onHideBeatmap(); onClose(); }}
-          style={menuItemStyle}
-          onMouseEnter={e => (e.currentTarget.style.background = "rgba(180,130,220,0.1)")}
-          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-        >
-          🚫 Hide this beatmap
-        </button>
-      )}
-      {hasBeatmapset && onHideBeatmapset && (
-        <button
-          onClick={e => { e.preventDefault(); e.stopPropagation(); onHideBeatmapset(); onClose(); }}
-          style={menuItemStyle}
-          onMouseEnter={e => (e.currentTarget.style.background = "rgba(180,130,220,0.1)")}
-          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-        >
-          🗂 Hide this beatmapset
-        </button>
-      )}
+        boxShadow: "0 8px 24px rgba(0,0,0,0.6)", minWidth: menuW, overflow: "hidden" }}>
+      {onFindSimilar && <CtxBtn icon="🎯" label="Find Similar Beatmap" onClick={() => { onFindSimilar(); onClose(); }} />}
+      {onReportWrongTags && <CtxBtn icon="⚠️" label="This tags isn't right" onClick={() => { onReportWrongTags(); onClose(); }} />}
+      {onHideBeatmap && <CtxBtn icon="🚫" label="Hide this beatmap" onClick={() => { onHideBeatmap(); onClose(); }} />}
+      {hasBeatmapset && onHideBeatmapset && <CtxBtn icon="🗂" label="Hide this beatmapset" onClick={() => { onHideBeatmapset!(); onClose(); }} />}
     </div>,
     document.body,
   );
 }
 
-const menuItemStyle: React.CSSProperties = {
-  display: "block", width: "100%", padding: "10px 14px",
-  background: "transparent", border: "none", color: "var(--muted)",
-  fontSize: 12, textAlign: "left", cursor: "pointer",
-};
+function CtxBtn({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) {
+  return (
+    <button onClick={e => { e.preventDefault(); e.stopPropagation(); onClick(); }}
+      style={{ display: "block", width: "100%", padding: "10px 14px", background: "transparent",
+        border: "none", color: "var(--muted)", fontSize: 12, textAlign: "left", cursor: "pointer" }}
+      onMouseEnter={e => (e.currentTarget.style.background = "rgba(180,130,220,0.1)")}
+      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+      {icon} {label}
+    </button>
+  );
+}
+
+// ── Main card ─────────────────────────────────────────────────
 
 interface BeatmapCardProps {
   record: BeatmapRecord;
@@ -144,434 +97,191 @@ interface BeatmapCardProps {
 }
 
 export function BeatmapCard({ record, highlightTags, onHide, onHideSet, onReportWrongTags, onFindSimilar }: BeatmapCardProps) {
-
-  const href = `https://osu.ppy.sh/beatmaps/${record.beatmap_id}`;
-  const title = record.title ?? `Beatmap #${record.beatmap_id}`;
-  const stars = record.difficulty_rating != null ? record.difficulty_rating.toFixed(2) : null;
-  const statusColor = STATUS_COLOR[record.status ?? ""] ?? "#a7a9be";
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const isMobile = useIsMobile();
 
-  const squareImgUrl =
-    record.list_url ||
-    record.card_url ||
-    record.cover_url ||
-    (record.beatmapset_id
-      ? `https://assets.ppy.sh/beatmaps/${record.beatmapset_id}/covers/list.jpg`
-      : null);
+  const href = `https://osu.ppy.sh/beatmaps/${record.beatmap_id}`;
+  const title = record.title ?? `Beatmap #${record.beatmap_id}`;
+  const stars = record.difficulty_rating;
+  const starCol = starColor(stars);
+  const statusCol = STATUS_COLOR[record.status ?? ""] ?? "var(--muted)";
 
-  const bgImgUrl =
-    record.card_url ||
-    record.cover_url ||
-    record.list_url ||
-    (record.beatmapset_id
-      ? `https://assets.ppy.sh/beatmaps/${record.beatmapset_id}/covers/card.jpg`
-      : null);
+  const bgImg = record.card_url || record.cover_url ||
+    (record.beatmapset_id ? `https://assets.ppy.sh/beatmaps/${record.beatmapset_id}/covers/card.jpg` : null);
 
-  const stats: [string, string][] = [
-    ["BPM", fmt(record.bpm, 0)],
-    ["AR", fmt(record.ar)],
-    ["CS", fmt(record.cs)],
-    ["OD", fmt(record.od)],
-    ["Objects", fmt(record.object_count, 0)],
-  ];
-
-  // Core gameplay = Top 4 tags by probability
-  // Non-core gameplay (rank 5+) = Only displayed at the bottom if matched in highlightTags
   const sortedLabels = [...record.labels].sort((a, b) => b.probability - a.probability);
-  const coreLabels = sortedLabels.slice(0, 4);
-  const matchedNonCoreLabels = sortedLabels.slice(4).filter(l => highlightTags?.includes(l.label));
-  const displayedLabels = [...coreLabels, ...matchedNonCoreLabels];
+  const coreLabels = sortedLabels.slice(0, 3);
+  const maxProb = coreLabels[0]?.probability ?? 1;
 
   function handleContextMenu(e: React.MouseEvent) {
     if (!onHide && !onHideSet && !onReportWrongTags && !onFindSimilar) return;
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     setMenu({ x: e.clientX, y: e.clientY });
   }
 
-  const hoverEnter = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.currentTarget.style.borderColor = "rgba(255,102,170,0.45)";
-    e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4)";
-    e.currentTarget.style.transform = "translateY(-1px)";
+  const cardHoverEnter = (el: HTMLDivElement) => {
+    el.style.borderColor = "rgba(255,102,170,0.45)";
+    el.style.transform = "translateY(-2px)";
+    el.style.boxShadow = "0 8px 24px rgba(0,0,0,0.45)";
   };
-  const hoverLeave = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.currentTarget.style.borderColor = "rgba(180,130,220,0.18)";
-    e.currentTarget.style.boxShadow = "none";
-    e.currentTarget.style.transform = "none";
+  const cardHoverLeave = (el: HTMLDivElement) => {
+    el.style.borderColor = "rgba(180,130,220,0.18)";
+    el.style.transform = "none";
+    el.style.boxShadow = "none";
   };
 
-  const contextMenuNode = menu && (
-    <ContextMenu
-      x={menu.x}
-      y={menu.y}
-      hasBeatmapset={!!record.beatmapset_id}
+  const contextNode = menu && (
+    <ContextMenu x={menu.x} y={menu.y} hasBeatmapset={!!record.beatmapset_id}
       onFindSimilar={onFindSimilar ? () => onFindSimilar(record) : undefined}
       onHideBeatmap={onHide ? () => onHide(record.beatmap_id) : undefined}
       onHideBeatmapset={onHideSet && record.beatmapset_id ? () => onHideSet(record.beatmapset_id!) : undefined}
       onReportWrongTags={onReportWrongTags ? () => onReportWrongTags(record) : undefined}
-      onClose={() => setMenu(null)}
-    />
+      onClose={() => setMenu(null)} />
   );
 
-  // ── MOBILE LAYOUT ──────────────────────────────────────────────
-  if (isMobile) {
-    return (
-      <>
-        <a href={href} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", display: "block" }} onContextMenu={handleContextMenu}>
-          <div style={mobileCardStyle} onMouseEnter={hoverEnter} onMouseLeave={hoverLeave}>
-
-            {/* Top section: blurred bg + centered cover image */}
-            <div style={mobileTopSectionStyle}>
-              {/* Background (blurred, low opacity) */}
-              {bgImgUrl && (
-                <img src={bgImgUrl} alt="" style={mobileBgImgStyle} loading="lazy" />
-              )}
-              {/* Black gradient from left/right edges toward center */}
-              <div style={mobileSideGradientStyle} />
-
-              {/* Centered square cover */}
-              <div style={mobileCoverWrapperStyle}>
-                {squareImgUrl ? (
-                  <img
-                    src={squareImgUrl}
-                    alt=""
-                    style={mobileCoverImgStyle}
-                    loading="lazy"
-                    onError={e => { (e.currentTarget as HTMLElement).style.display = "none"; }}
-                  />
-                ) : (
-                  <div style={fallbackIconStyle}>🎵</div>
-                )}
-              </div>
-            </div>
-
-            {/* Middle section: beatmap info */}
-            <div style={mobileInfoSectionStyle}>
-              <div style={titleStyle}>{title}</div>
-              {record.artist && (
-                <div style={{ ...artistStyle, marginTop: 2 }}>
-                  by {record.artist}
-                  {record.version && (
-                    <span style={{ color: "#ff6b9d", marginLeft: 6 }}>[{record.version}]</span>
-                  )}
-                </div>
-              )}
-              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 6, alignItems: "center" }}>
-                {stars && (
-                  <span style={{ ...badgeStyle, color: "#ffd700", borderColor: "rgba(255,215,0,0.5)", background: "rgba(0,0,0,0.4)" }}>
-                    ★ {stars}
-                  </span>
-                )}
-                {record.status && (
-                  <span style={{ ...badgeStyle, color: statusColor, borderColor: `${statusColor}88`, background: "rgba(0,0,0,0.4)" }}>
-                    {record.status}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Bottom section: stats + tags */}
-            <div style={mobileMetaSectionStyle}>
-              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
-                {stats.map(([k, v]) => (
-                  <span key={k} style={statBadgeStyle}>{k} {v}</span>
-                ))}
-              </div>
-              {displayedLabels.length > 0 && (
-                <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 6 }}>
-                  {displayedLabels.map(({ label, probability }) => (
-                    <span key={label} style={tagStyle(probability, highlightTags?.includes(label))}>
-                      {label} {(probability * 100).toFixed(0)}%
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-          </div>
-        </a>
-        {contextMenuNode}
-      </>
-    );
-  }
-
-  // ── DESKTOP LAYOUT (unchanged) ─────────────────────────────────
+  // ── Vertical card (Figma-style) — default for grid layouts ───
   return (
     <>
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
+      <a href={href} target="_blank" rel="noopener noreferrer"
         style={{ textDecoration: "none", display: "block" }}
-        onContextMenu={handleContextMenu}
-      >
-        <div style={cardStyle} onMouseEnter={hoverEnter} onMouseLeave={hoverLeave}>
-          {/* Left: Square Cover Thumbnail */}
-          <div style={squareCoverWrapperStyle}>
-            {squareImgUrl ? (
-              <img
-                src={squareImgUrl}
-                alt=""
-                style={squareCoverImgStyle}
-                loading="lazy"
-                onError={e => { (e.currentTarget as HTMLElement).style.display = "none"; }}
-              />
-            ) : (
-              <div style={fallbackIconStyle}>🎵</div>
+        onContextMenu={handleContextMenu}>
+        <div
+          onMouseEnter={e => cardHoverEnter(e.currentTarget)}
+          onMouseLeave={e => cardHoverLeave(e.currentTarget)}
+          style={cardStyle}>
+          {/* Cover image */}
+          <div style={coverWrapStyle}>
+            {bgImg && <img src={bgImg} alt="" style={coverImgStyle} loading="lazy"
+              onError={e => { (e.currentTarget.parentElement!.style.background = "var(--bg)"); e.currentTarget.style.display = "none"; }} />}
+            <div style={coverOverlayStyle} />
+            {/* Status badge */}
+            {record.status && (
+              <span style={{ ...statusBadgeStyle, color: statusCol, borderColor: `${statusCol}88` }}>
+                {record.status.toUpperCase()}
+              </span>
             )}
           </div>
 
-          {/* Right: Background banner with gradient opacity overlay and info */}
-          <div style={rightContainerStyle}>
-            {bgImgUrl && (
-              <img src={bgImgUrl} alt="" style={coverImgStyle} loading="lazy" />
-            )}
-            <div style={overlayStyle} />
-
-            <div style={contentStyle}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={titleStyle}>{title}</div>
-                {record.artist && (
-                  <div style={artistStyle}>
-                    by {record.artist}
-                    {record.version && (
-                      <span style={{ color: "#ff6b9d", marginLeft: 6 }}>[{record.version}]</span>
-                    )}
-                  </div>
-                )}
-                <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 7, alignItems: "center" }}>
-                  {stars && (
-                    <span style={{ ...badgeStyle, color: "#ffd700", borderColor: "rgba(255,215,0,0.5)", background: "rgba(0,0,0,0.6)" }}>
-                      ★ {stars}
-                    </span>
-                  )}
-                  {record.status && (
-                    <span style={{ ...badgeStyle, color: statusColor, borderColor: `${statusColor}88`, background: "rgba(0,0,0,0.6)" }}>
-                      {record.status}
-                    </span>
-                  )}
-                  {stats.map(([k, v]) => (
-                    <span key={k} style={statBadgeStyle}>{k} {v}</span>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
-                {displayedLabels.map(({ label, probability }) => (
-                  <span key={label} style={tagStyle(probability, highlightTags?.includes(label))}>
-                    {label} {(probability * 100).toFixed(0)}%
-                  </span>
-                ))}
-              </div>
+          {/* Body */}
+          <div style={bodyStyle}>
+            {/* Title */}
+            <div style={titleStyle}>{title}</div>
+            {/* Artist */}
+            {record.artist && <div style={artistStyle}>{record.artist}</div>}
+            {/* Diff + mapper */}
+            <div style={mapperStyle}>
+              {record.version && <span style={{ color: "var(--muted)" }}>[{record.version}]</span>}
+              {record.bpm != null && <span style={{ color: "var(--muted2)" }}> · {fmt(record.bpm, 0)} BPM</span>}
             </div>
+
+            {/* Diff header: star + diff name */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+              {stars != null && (
+                <span style={{ ...starBadgeStyle, color: starCol, borderColor: `${starCol}44`, background: `${starCol}14` }}>
+                  ★ {stars.toFixed(2)}
+                </span>
+              )}
+              {record.ar != null && <span style={statBadge}>AR{fmt(record.ar)}</span>}
+              {record.cs != null && <span style={statBadge}>CS{fmt(record.cs)}</span>}
+              {record.od != null && <span style={statBadge}>OD{fmt(record.od)}</span>}
+              {record.object_count != null && <span style={statBadge}>{fmt(record.object_count, 0)} obj</span>}
+            </div>
+
+            {/* Tag progress bars */}
+            {coreLabels.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                {coreLabels.map(l => {
+                  const highlighted = highlightTags?.includes(l.label);
+                  const barColor = highlighted ? "#ff66aa" : starCol;
+                  return (
+                    <div key={l.label}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+                        <span style={{ fontFamily: "var(--font-m)", fontSize: 10,
+                          color: highlighted ? "#ff66aa" : "var(--muted)" }}>{l.label}</span>
+                        <span style={{ fontFamily: "var(--font-m)", fontSize: 10,
+                          color: barColor, fontWeight: 600 }}>{(l.probability * 100).toFixed(0)}%</span>
+                      </div>
+                      <div style={{ height: 3, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
+                        <div style={{ width: `${(l.probability / maxProb) * 100}%`, height: "100%", borderRadius: 2,
+                          background: `linear-gradient(90deg, ${barColor}cc, ${barColor}55)`,
+                          transition: "width 0.3s ease" }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </a>
-      {contextMenuNode}
+      {contextNode}
     </>
   );
 }
 
+// ── Styles ────────────────────────────────────────────────────
 
 const cardStyle: React.CSSProperties = {
-  position: "relative",
-  borderRadius: 10,
-  overflow: "hidden",
   background: "var(--card)",
-  border: "1px solid var(--border)",
-  minHeight: 85,
-  display: "flex",
-  alignItems: "stretch",
-  transition: "border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease",
-};
-
-const squareCoverWrapperStyle: React.CSSProperties = {
-  width: 85,
-  minWidth: 85,
-  maxWidth: 85,
-  background: "#0d0b14",
-  position: "relative",
+  border: "1px solid rgba(180,130,220,0.18)",
+  borderRadius: 12,
   overflow: "hidden",
   display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  flexShrink: 0,
-  borderRight: "1px solid rgba(180,130,220,0.12)",
-};
-
-const squareCoverImgStyle: React.CSSProperties = {
-  width: "100%",
-  height: "100%",
-  objectFit: "cover",
-  objectPosition: "center",
-  display: "block",
-};
-
-const fallbackIconStyle: React.CSSProperties = {
-  fontSize: 24,
-  opacity: 0.35,
-  userSelect: "none",
-};
-
-const rightContainerStyle: React.CSSProperties = {
-  position: "relative",
-  flex: 1,
+  flexDirection: "column",
+  transition: "border-color 0.2s, transform 0.15s, box-shadow 0.2s",
   minWidth: 0,
-  display: "flex",
-  alignItems: "center",
-  overflow: "hidden",
+};
+
+const coverWrapStyle: React.CSSProperties = {
+  position: "relative", height: 100, overflow: "hidden",
+  background: "var(--bg)", flexShrink: 0,
 };
 
 const coverImgStyle: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  width: "100%",
-  height: "100%",
-  objectFit: "cover",
-  objectPosition: "center",
+  width: "100%", height: "100%", objectFit: "cover",
+  objectPosition: "center", opacity: 0.65, display: "block",
 };
 
-const overlayStyle: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  background: "linear-gradient(90deg, rgba(10,9,18,0.94) 20%, rgba(10,9,18,0.76) 70%, rgba(10,9,18,0.55) 100%)",
+const coverOverlayStyle: React.CSSProperties = {
+  position: "absolute", inset: 0,
+  background: "linear-gradient(to bottom, transparent 25%, var(--card) 100%)",
 };
 
-const contentStyle: React.CSSProperties = {
-  position: "relative",
-  width: "100%",
-  display: "flex",
-  alignItems: "center",
-  gap: 12,
-  padding: "11px 16px",
-  zIndex: 1,
+const statusBadgeStyle: React.CSSProperties = {
+  position: "absolute", top: 8, right: 8,
+  fontSize: 9, fontWeight: 700, padding: "2px 7px",
+  borderRadius: 4, border: "1px solid", letterSpacing: "0.06em",
+  background: "rgba(0,0,0,0.55)", fontFamily: "var(--font-m)",
+};
+
+const bodyStyle: React.CSSProperties = {
+  padding: "12px 14px 14px", flex: 1, display: "flex", flexDirection: "column",
 };
 
 const titleStyle: React.CSSProperties = {
-  color: "#fff",
-  fontFamily: "var(--font-d)",
-  fontWeight: 700,
-  fontSize: 14,
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
+  fontFamily: "var(--font-d)", fontWeight: 800, fontSize: 14, color: "#fff",
+  lineHeight: 1.25, marginBottom: 2,
+  whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
 };
 
 const artistStyle: React.CSSProperties = {
-  color: "var(--muted)",
-  fontSize: 12,
-  marginTop: 2,
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
+  fontSize: 12, color: "var(--muted)", marginBottom: 2,
+  whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
 };
 
-const badgeStyle: React.CSSProperties = {
-  fontSize: 10,
-  padding: "2px 6px",
-  borderRadius: 4,
-  border: "1px solid",
-  textTransform: "capitalize",
-  fontFamily: "var(--font-m)",
-  whiteSpace: "nowrap",
+const mapperStyle: React.CSSProperties = {
+  fontFamily: "var(--font-m)", fontSize: 10, marginBottom: 8,
+  whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
 };
 
-const statBadgeStyle: React.CSSProperties = {
-  ...badgeStyle,
-  color: "var(--muted)",
-  borderColor: "rgba(180,130,220,0.15)",
-  background: "rgba(0,0,0,0.4)",
+const starBadgeStyle: React.CSSProperties = {
+  fontFamily: "var(--font-m)", fontSize: 11, fontWeight: 700,
+  padding: "2px 7px", borderRadius: 4, border: "1px solid",
 };
 
-function tagStyle(probability: number, highlighted = false): React.CSSProperties {
-  void probability;
-  return {
-    fontSize: 10,
-    padding: "2px 7px",
-    borderRadius: 4,
-    fontFamily: "var(--font-m)",
-    background: highlighted ? "rgba(255,102,170,0.22)" : "rgba(0,0,0,0.55)",
-    border: highlighted ? "1px solid rgba(255,102,170,0.7)" : "1px solid rgba(255,102,170,0.4)",
-    color: "#ff66aa",
-    whiteSpace: "nowrap",
-    fontWeight: highlighted ? 700 : 400,
-  };
-}
-
-// ── Mobile styles ──────────────────────────────────────────────
-
-const mobileCardStyle: React.CSSProperties = {
-  position: "relative",
-  borderRadius: 10,
-  overflow: "hidden",
-  background: "var(--card)",
-  border: "1px solid var(--border)",
-  display: "flex",
-  flexDirection: "column",
-  transition: "border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease",
-};
-
-const mobileTopSectionStyle: React.CSSProperties = {
-  position: "relative",
-  height: 130,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  overflow: "hidden",
-};
-
-const mobileBgImgStyle: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  width: "100%",
-  height: "100%",
-  objectFit: "cover",
-  objectPosition: "center",
-  filter: "blur(6px) brightness(0.55)",
-  transform: "scale(1.08)", // avoid blur edges
-  opacity: 0.6,
-};
-
-const mobileSideGradientStyle: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  // Black from left edge → transparent → black from right edge
-  background: "linear-gradient(90deg, rgba(10,9,18,0.92) 0%, transparent 30%, transparent 70%, rgba(10,9,18,0.92) 100%)",
-  zIndex: 1,
-};
-
-const mobileCoverWrapperStyle: React.CSSProperties = {
-  position: "relative",
-  zIndex: 2,
-  width: 90,
-  height: 90,
-  borderRadius: 8,
-  overflow: "hidden",
-  boxShadow: "0 4px 16px rgba(0,0,0,0.7)",
-  flexShrink: 0,
-  background: "#100f1c",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const mobileCoverImgStyle: React.CSSProperties = {
-  width: "100%",
-  height: "100%",
-  objectFit: "cover",
-  objectPosition: "center",
-  display: "block",
-};
-
-const mobileInfoSectionStyle: React.CSSProperties = {
-  padding: "10px 14px 8px",
-  borderTop: "1px solid rgba(180,130,220,0.1)",
-  background: "rgba(13,11,20,0.8)",
-};
-
-const mobileMetaSectionStyle: React.CSSProperties = {
-  padding: "8px 14px 10px",
-  borderTop: "1px solid rgba(180,130,220,0.08)",
-  background: "rgba(13,11,20,0.9)",
+const statBadge: React.CSSProperties = {
+  fontFamily: "var(--font-m)", fontSize: 10,
+  padding: "2px 6px", borderRadius: 4,
+  background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+  color: "#c0c0d0",
 };

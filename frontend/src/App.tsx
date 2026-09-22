@@ -177,9 +177,9 @@ export default function App() {
 const rootStyle: React.CSSProperties = { minHeight: "100vh", background: "var(--bg)", color: "#fff" };
 
 const mainStyle: React.CSSProperties = {
-  maxWidth: 740,
+  maxWidth: 1280,
   margin: "0 auto",
-  padding: "44px 16px 80px",
+  padding: "36px 24px 80px",
 };
 
 const headerStyle: React.CSSProperties = {

@@ -130,7 +130,7 @@ export default function RecommendationList({ playstyle, avgDifficulty }: Props) 
       )}
 
       {records.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
           {records.map((bm) => (
             <BeatmapCard
               key={bm.beatmap_id}
