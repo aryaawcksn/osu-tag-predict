@@ -8,9 +8,11 @@ interface Props {
   currentUser?: CurrentUser | null;
   onClose: () => void;
   onFindSimilar: (record: BeatmapRecord) => void;
+  onHide?: (beatmapId: string) => void;
+  onHideSet?: (beatmapsetId: string) => void;
 }
 
-export default function SimilarBeatmapPanel({ sourceBeatmap, currentUser, onClose, onFindSimilar }: Props) {
+export default function SimilarBeatmapPanel({ sourceBeatmap, currentUser, onClose, onFindSimilar, onHide, onHideSet }: Props) {
   const [records, setRecords] = useState<BeatmapRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -58,7 +60,7 @@ export default function SimilarBeatmapPanel({ sourceBeatmap, currentUser, onClos
       {/* Header */}
       <div style={headerStyle}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: "var(--font-d)", fontSize: 13, fontWeight: 700, color: "#fff" }}>
+          <div style={{ fontFamily: "var(--font-d)", fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
             Similar to <span style={{ color: "var(--pink)" }}>{sourceTitle}</span>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
@@ -120,6 +122,8 @@ export default function SimilarBeatmapPanel({ sourceBeatmap, currentUser, onClos
                 record={bm}
                 highlightTags={topLabels.map(l => l.label)}
                 currentUser={currentUser}
+                onHide={onHide}
+                onHideSet={onHideSet}
                 onFindSimilar={onFindSimilar}
               />
             ))}

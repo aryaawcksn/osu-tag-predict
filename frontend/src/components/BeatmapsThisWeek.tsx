@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { BeatmapRecord, CurrentUser } from "../types";
 import SaveToPlaylistModal from "./SaveToPlaylistModal";
 import { starColor } from "../utils/starColor";
+import { IconExternalLink, IconDownload, IconBookmark, IconPlay, IconPause } from "./Icons";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -178,30 +179,33 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
               border: `2px solid ${playing ? "#ff66aa" : "rgba(255,255,255,0.35)"}`,
               color: "#fff", fontSize: 18, display: "flex", alignItems: "center",
               justifyContent: "center", cursor: "pointer", backdropFilter: "blur(4px)" }}>
-            {playing ? "⏸" : "▶"}
+            {playing ? <IconPause size={18} strokeWidth={2.5} /> : <IconPlay size={18} strokeWidth={2.5} />}
           </button>
           <div style={{ display: "flex", gap: 6 }}>
             <a href={webUrl} target="_blank" rel="noopener noreferrer"
               onClick={e => e.stopPropagation()} title="Open on osu!"
               style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                 background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
-                color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)" }}>
-              🌐 osu!
+                color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
+                display: "flex", alignItems: "center", gap: 4 }}>
+              <IconExternalLink size={12} strokeWidth={2.5} /> osu!
             </a>
             <a href={dlUrl} target="_blank" rel="noopener noreferrer"
               onClick={e => e.stopPropagation()} title="Download .osz"
               style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                 background: "rgba(255,102,170,0.75)", border: "1px solid rgba(255,102,170,0.5)",
-                color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)" }}>
-              ⬇ .osz
+                color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
+                display: "flex", alignItems: "center", gap: 4 }}>
+              <IconDownload size={12} strokeWidth={2.5} /> .osz
             </a>
             {currentUser && (
               <button onClick={e => { e.stopPropagation(); setShowPlaylist(true); }}
                 title="Save to playlist"
                 style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                   background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
-                  color: "#fff", cursor: "pointer", backdropFilter: "blur(4px)" }}>
-                🔖 Save
+                  color: "#fff", cursor: "pointer", backdropFilter: "blur(4px)",
+                  display: "flex", alignItems: "center", gap: 4 }}>
+                <IconBookmark size={12} strokeWidth={2.5} /> Save
               </button>
             )}
           </div>

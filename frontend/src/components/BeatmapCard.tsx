@@ -3,6 +3,11 @@ import { createPortal } from "react-dom";
 import { BeatmapRecord, CurrentUser } from "../types";
 import SaveToPlaylistModal from "./SaveToPlaylistModal";
 import { starColor } from "../utils/starColor";
+import {
+  IconExternalLink, IconDownload, IconBookmark,
+  IconTarget, IconBan, IconFolderMinus,
+  IconPlay, IconPause,
+} from "./Icons";
 
 const STATUS_COLOR: Record<string, string> = {
   ranked: "#b8e994", approved: "#b8e994", loved: "#ff66aa",
@@ -70,19 +75,20 @@ function ContextMenu({ x, y, onHideBeatmap, onHideBeatmapset, onFindSimilar, has
       style={{ position: "fixed", left: clampedX, top: clampedY, zIndex: 99999,
         background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8,
         boxShadow: "0 8px 24px rgba(0,0,0,0.6)", minWidth: menuW, overflow: "hidden" }}>
-      {onFindSimilar && <CtxBtn icon="🎯" label="Find Similar Beatmap" onClick={() => { onFindSimilar(); onClose(); }} />}
-      {onHideBeatmap && <CtxBtn icon="🚫" label="Hide this beatmap" onClick={() => { onHideBeatmap(); onClose(); }} />}
-      {hasBeatmapset && onHideBeatmapset && <CtxBtn icon="🗂" label="Hide this beatmapset" onClick={() => { onHideBeatmapset!(); onClose(); }} />}
+      {onFindSimilar && <CtxBtn icon={<IconTarget size={13} strokeWidth={2.5} />} label="Find Similar Beatmap" onClick={() => { onFindSimilar(); onClose(); }} />}
+      {onHideBeatmap && <CtxBtn icon={<IconBan size={13} strokeWidth={2.5} />} label="Hide this beatmap" onClick={() => { onHideBeatmap(); onClose(); }} />}
+      {hasBeatmapset && onHideBeatmapset && <CtxBtn icon={<IconFolderMinus size={13} strokeWidth={2.5} />} label="Hide this beatmapset" onClick={() => { onHideBeatmapset!(); onClose(); }} />}
     </div>,
     document.body,
   );
 }
 
-function CtxBtn({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) {
+function CtxBtn({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
   return (
     <button onClick={e => { e.preventDefault(); e.stopPropagation(); onClick(); }}
-      style={{ display: "block", width: "100%", padding: "10px 14px", background: "transparent",
-        border: "none", color: "var(--muted)", fontSize: 12, textAlign: "left", cursor: "pointer" }}
+      style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "10px 14px",
+        background: "transparent", border: "none", color: "var(--muted)", fontSize: 12,
+        textAlign: "left", cursor: "pointer" }}
       onMouseEnter={e => (e.currentTarget.style.background = "rgba(180,130,220,0.1)")}
       onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
       {icon} {label}
@@ -170,7 +176,7 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, status, statusCol, showS
               color: "#fff", fontSize: 18, display: "flex", alignItems: "center",
               justifyContent: "center", cursor: "pointer", flexShrink: 0,
               backdropFilter: "blur(4px)", transition: "all 0.15s" }}>
-            {playing ? "⏸" : "▶"}
+            {playing ? <IconPause size={18} strokeWidth={2.5} /> : <IconPlay size={18} strokeWidth={2.5} />}
           </button>
         )}
 
@@ -183,7 +189,7 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, status, statusCol, showS
               background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
               color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
               display: "flex", alignItems: "center", gap: 4 }}>
-            osu!
+            <IconExternalLink size={12} strokeWidth={2.5} /> osu!
           </a>
           {dlUrl && (
             <a href={dlUrl} target="_blank" rel="noopener noreferrer"
@@ -193,7 +199,7 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, status, statusCol, showS
                 background: "rgba(255,102,170,0.75)", border: "1px solid rgba(255,102,170,0.5)",
                 color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
                 display: "flex", alignItems: "center", gap: 4 }}>
-              .osz
+              <IconDownload size={12} strokeWidth={2.5} /> .osz
             </a>
           )}
           {showSave && (
@@ -204,7 +210,7 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, status, statusCol, showS
                 background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
                 color: "#fff", cursor: "pointer", backdropFilter: "blur(4px)",
                 display: "flex", alignItems: "center", gap: 4 }}>
-              Save
+              <IconBookmark size={12} strokeWidth={2.5} /> Save
             </button>
           )}
         </div>

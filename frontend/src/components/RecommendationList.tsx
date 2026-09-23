@@ -205,6 +205,8 @@ export default function RecommendationList({ currentUser }: Props) {
           currentUser={currentUser}
           onClose={() => setSimilarBeatmap(null)}
           onFindSimilar={setSimilarBeatmap}
+          onHide={handleHide}
+          onHideSet={handleHideSet}
         />
       )}
 
@@ -225,7 +227,7 @@ const containerStyle: React.CSSProperties = {
   borderRadius: 12, padding: 22, marginTop: 24,
 };
 const headingStyle: React.CSSProperties = {
-  fontFamily: "var(--font-d)", fontSize: 17, fontWeight: 800, color: "#fff", marginBottom: 0,
+  fontFamily: "var(--font-d)", fontSize: 17, fontWeight: 800, color: "var(--text)", marginBottom: 0,
 };
 const subtextStyle: React.CSSProperties = {
   color: "var(--muted)", fontSize: 13, marginBottom: 16,

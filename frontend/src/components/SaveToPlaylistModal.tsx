@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Playlist } from "../types";
 import { getMyPlaylists, createPlaylist, addToPlaylist, removeFromPlaylist, updatePlaylist } from "../api";
+import { IconCheck, IconMusic, IconGlobe, IconLock } from "./Icons";
 
 const MAX_PLAYLISTS = 3;
+const MAX_NAME_LEN = 30;
 
 interface Props {
   beatmapId: string;
@@ -89,7 +91,7 @@ export default function SaveToPlaylistModal({ beatmapId, beatmapTitle, onClose }
       <div style={modalStyle}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
           <div>
-            <h3 style={{ fontFamily: "var(--font-d)", fontSize: 15, fontWeight: 800, color: "#fff", margin: 0 }}>
+            <h3 style={{ fontFamily: "var(--font-d)", fontSize: 15, fontWeight: 800, color: "var(--text)", margin: 0 }}>
               Save to Playlist
             </h3>
             <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 3 }}>{beatmapTitle}</p>
@@ -105,14 +107,22 @@ export default function SaveToPlaylistModal({ beatmapId, beatmapTitle, onClose }
             Maximum {MAX_PLAYLISTS} playlists reached.
           </div>
         ) : (
-          <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
-            <input className="osu-input" placeholder="New playlist name…" value={newName}
-              onChange={e => setNewName(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") handleCreate(); }}
-              style={{ flex: 1, fontSize: 12 }} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+            <div style={{ position: "relative" }}>
+              <input className="osu-input" placeholder="New playlist name…" value={newName}
+                maxLength={MAX_NAME_LEN}
+                onChange={e => setNewName(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") handleCreate(); }}
+                style={{ fontSize: 12, paddingRight: 44 }} />
+              <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
+                fontSize: 10, color: newName.length >= MAX_NAME_LEN ? "#ff6666" : "var(--muted2)",
+                pointerEvents: "none", fontFamily: "var(--font-m)" }}>
+                {newName.length}/{MAX_NAME_LEN}
+              </span>
+            </div>
             <button className="btn-pink" onClick={handleCreate}
               disabled={!newName.trim() || creating}
-              style={{ fontSize: 12, padding: "7px 14px",
+              style={{ fontSize: 12, padding: "7px 14px", alignSelf: "flex-end",
                 opacity: !newName.trim() || creating ? 0.45 : 1 }}>
               {creating ? "…" : "+ New"}
             </button>
@@ -144,10 +154,12 @@ export default function SaveToPlaylistModal({ beatmapId, beatmapTitle, onClose }
                       width: "100%", padding: "9px 12px", background: "transparent",
                       border: "none", cursor: "pointer" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                      <span style={{ fontSize: 15 }}>{isSaved ? "✅" : "🎵"}</span>
+                      <span style={{ color: isSaved ? "var(--pink)" : "var(--muted)", flexShrink: 0, display: "flex" }}>
+                        {isSaved ? <IconCheck size={15} strokeWidth={2.5} /> : <IconMusic size={15} strokeWidth={2} />}
+                      </span>
                       <div style={{ minWidth: 0, textAlign: "left" }}>
                         <div style={{ fontFamily: "var(--font-d)", fontSize: 13, fontWeight: 600,
-                          color: isSaved ? "#ff66aa" : "#fff",
+                          color: isSaved ? "var(--pink)" : "var(--text)",
                           whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                           {pl.name}
                         </div>
@@ -173,7 +185,10 @@ export default function SaveToPlaylistModal({ beatmapId, beatmapTitle, onClose }
                         background: "transparent",
                         color: pl.is_public ? "#ff66aa" : "var(--muted2)",
                         opacity: cantPublic ? 0.4 : 1, transition: "all 0.15s" }}>
-                      {togglingPublic === pl.id ? "…" : pl.is_public ? "🌐 Public" : "🔒 Private"}
+                      {togglingPublic === pl.id ? "…" : pl.is_public
+                        ? <><IconGlobe size={11} strokeWidth={2} style={{ marginRight: 4 }} />Public</>
+                        : <><IconLock size={11} strokeWidth={2} style={{ marginRight: 4 }} />Private</>
+                      }
                     </button>
                   </div>
                 </div>
