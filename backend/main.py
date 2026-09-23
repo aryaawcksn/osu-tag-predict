@@ -213,7 +213,6 @@ async def proxy_download(beatmapset_id: str):
     """
     Proxy .osz download from osu! API using app credentials.
     Streams the file directly to the client so no temp storage is needed.
-    No user auth required — the app token is sufficient for public beatmapsets.
     """
     import httpx
     from fastapi.responses import StreamingResponse
@@ -224,25 +223,41 @@ async def proxy_download(beatmapset_id: str):
 
     osu_url = f"https://osu.ppy.sh/api/v2/beatmapsets/{beatmapset_id}/download"
 
-    async def stream_osz():
-        async with httpx.AsyncClient(follow_redirects=True, timeout=60) as client:
-            async with client.stream(
-                "GET", osu_url,
-                headers={"Authorization": f"Bearer {token}"},
-            ) as resp:
-                if resp.status_code == 401:
-                    # Token expired — reset and fail gracefully
-                    predictor._app_token = None
-                    raise HTTPException(status_code=502, detail="osu! token expired, retry")
-                if resp.status_code != 200:
-                    raise HTTPException(status_code=resp.status_code, detail="osu! download failed")
-                async for chunk in resp.aiter_bytes(65536):
-                    yield chunk
+    # Open the connection first and validate status BEFORE returning StreamingResponse
+    # (raising HTTPException inside a generator corrupts the response)
+    client = httpx.AsyncClient(follow_redirects=True, timeout=60)
+    req = client.build_request("GET", osu_url, headers={"Authorization": f"Bearer {token}"})
+    resp = await client.send(req, stream=True)
+
+    if resp.status_code == 401:
+        await resp.aclose()
+        await client.aclose()
+        predictor._app_token = None
+        raise HTTPException(status_code=502, detail="osu! token expired, please retry")
+
+    if resp.status_code != 200:
+        body = await resp.aread()
+        await client.aclose()
+        raise HTTPException(status_code=502, detail=f"osu! returned {resp.status_code}: {body[:200]}")
+
+    async def stream_and_close():
+        try:
+            async for chunk in resp.aiter_bytes(65536):
+                yield chunk
+        finally:
+            await resp.aclose()
+            await client.aclose()
+
+    filename = f"{beatmapset_id}.osz"
+    headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+    # Forward Content-Length if osu! provides it so Cloudflare doesn't time out
+    if "content-length" in resp.headers:
+        headers["Content-Length"] = resp.headers["content-length"]
 
     return StreamingResponse(
-        stream_osz(),
+        stream_and_close(),
         media_type="application/x-osu-beatmap-archive",
-        headers={"Content-Disposition": f'attachment; filename="{beatmapset_id}.osz"'},
+        headers=headers,
     )
 
 
