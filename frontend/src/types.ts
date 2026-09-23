@@ -102,6 +102,7 @@ export interface Playlist {
   top_tags: string[];
   covers: string[];
   beatmaps: BeatmapRecord[];
+  diff_distribution: { range: string; count: number; color: string }[];
   created_at: string;
   updated_at: string;
 }

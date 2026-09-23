@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Playlist } from "../types";
-import { getMyPlaylists, createPlaylist, addToPlaylist, removeFromPlaylist } from "../api";
+import { getMyPlaylists, createPlaylist, addToPlaylist, removeFromPlaylist, updatePlaylist } from "../api";
+
+const MAX_PLAYLISTS = 3;
 
 interface Props {
   beatmapId: string;
@@ -14,13 +16,13 @@ export default function SaveToPlaylistModal({ beatmapId, beatmapTitle, onClose }
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState<number | null>(null);
+  const [togglingPublic, setTogglingPublic] = useState<number | null>(null);
   const [saved, setSaved] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     getMyPlaylists()
       .then(res => {
         setPlaylists(res.playlists);
-        // Mark which playlists already contain this beatmap
         const already = new Set<number>();
         res.playlists.forEach(pl => {
           if (pl.beatmaps.some(b => b.beatmap_id === beatmapId)) already.add(pl.id);
@@ -43,26 +45,44 @@ export default function SaveToPlaylistModal({ beatmapId, beatmapTitle, onClose }
       if (saved.has(pl.id)) {
         await removeFromPlaylist(pl.id, beatmapId);
         setSaved(prev => { const n = new Set(prev); n.delete(pl.id); return n; });
+        setPlaylists(prev => prev.map(p => p.id === pl.id
+          ? { ...p, item_count: p.item_count - 1 } : p));
       } else {
         await addToPlaylist(pl.id, beatmapId);
         setSaved(prev => new Set([...prev, pl.id]));
+        setPlaylists(prev => prev.map(p => p.id === pl.id
+          ? { ...p, item_count: p.item_count + 1 } : p));
       }
     } catch { /* ignore */ }
     setSaving(null);
   }
 
+  async function handleTogglePublic(pl: Playlist, e: React.MouseEvent) {
+    e.stopPropagation();
+    // Cannot make empty playlist public
+    if (!pl.is_public && pl.item_count === 0) return;
+    setTogglingPublic(pl.id);
+    try {
+      const updated = await updatePlaylist(pl.id, { is_public: !pl.is_public });
+      setPlaylists(prev => prev.map(p => p.id === pl.id ? updated : p));
+    } catch { /* ignore */ }
+    setTogglingPublic(null);
+  }
+
   async function handleCreate() {
-    if (!newName.trim()) return;
+    if (!newName.trim() || playlists.length >= MAX_PLAYLISTS) return;
     setCreating(true);
     try {
       const pl = await createPlaylist(newName.trim());
       await addToPlaylist(pl.id, beatmapId);
-      setPlaylists(prev => [pl, ...prev]);
+      setPlaylists(prev => [{ ...pl, item_count: 1 }, ...prev]);
       setSaved(prev => new Set([...prev, pl.id]));
       setNewName("");
     } catch { /* ignore */ }
     setCreating(false);
   }
+
+  const atMax = playlists.length >= MAX_PLAYLISTS;
 
   return (
     <div style={overlayStyle} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -78,23 +98,29 @@ export default function SaveToPlaylistModal({ beatmapId, beatmapTitle, onClose }
         </div>
 
         {/* Create new */}
-        <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
-          <input
-            className="osu-input"
-            placeholder="New playlist name…"
-            value={newName}
-            onChange={e => setNewName(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter") handleCreate(); }}
-            style={{ flex: 1, fontSize: 12 }}
-          />
-          <button className="btn-pink" onClick={handleCreate} disabled={!newName.trim() || creating}
-            style={{ fontSize: 12, padding: "7px 14px", opacity: !newName.trim() || creating ? 0.45 : 1 }}>
-            {creating ? "…" : "+ New"}
-          </button>
-        </div>
+        {atMax ? (
+          <div style={{ marginBottom: 14, padding: "8px 12px", borderRadius: 8,
+            background: "rgba(255,102,170,0.08)", border: "1px solid rgba(255,102,170,0.25)",
+            fontSize: 12, color: "var(--muted)", textAlign: "center" }}>
+            Maximum {MAX_PLAYLISTS} playlists reached.
+          </div>
+        ) : (
+          <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+            <input className="osu-input" placeholder="New playlist name…" value={newName}
+              onChange={e => setNewName(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") handleCreate(); }}
+              style={{ flex: 1, fontSize: 12 }} />
+            <button className="btn-pink" onClick={handleCreate}
+              disabled={!newName.trim() || creating}
+              style={{ fontSize: 12, padding: "7px 14px",
+                opacity: !newName.trim() || creating ? 0.45 : 1 }}>
+              {creating ? "…" : "+ New"}
+            </button>
+          </div>
+        )}
 
         {/* Playlist list */}
-        <div style={{ maxHeight: 280, overflowY: "auto",
+        <div style={{ maxHeight: 300, overflowY: "auto",
           scrollbarWidth: "thin", scrollbarColor: "rgba(255,102,170,0.25) transparent" }}>
           {loading ? (
             <p style={{ color: "var(--muted)", fontSize: 13, textAlign: "center", padding: 16 }}>Loading…</p>
@@ -106,30 +132,51 @@ export default function SaveToPlaylistModal({ beatmapId, beatmapTitle, onClose }
             playlists.map(pl => {
               const isSaved = saved.has(pl.id);
               const isSaving = saving === pl.id;
+              const isEmpty = pl.item_count === 0 && !isSaved;
+              const cantPublic = !pl.is_public && isEmpty;
               return (
-                <button key={pl.id} onClick={() => handleToggle(pl)} disabled={isSaving}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
-                    width: "100%", padding: "9px 12px", borderRadius: 8, border: "none", cursor: "pointer",
-                    background: isSaved ? "rgba(255,102,170,0.12)" : "rgba(255,255,255,0.03)",
-                    marginBottom: 4, transition: "background 0.15s" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                    <span style={{ fontSize: 16 }}>{isSaved ? "✅" : "🎵"}</span>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontFamily: "var(--font-d)", fontSize: 13, fontWeight: 600,
-                        color: isSaved ? "#ff66aa" : "#fff",
-                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textAlign: "left" }}>
-                        {pl.name}
-                      </div>
-                      <div style={{ fontSize: 10, color: "var(--muted2)", textAlign: "left" }}>
-                        {pl.item_count} beatmap{pl.item_count !== 1 ? "s" : ""} · {pl.is_public ? "🌐 Public" : "🔒 Private"}
+                <div key={pl.id} style={{ marginBottom: 4, borderRadius: 8, overflow: "hidden",
+                  background: isSaved ? "rgba(255,102,170,0.1)" : "rgba(255,255,255,0.03)",
+                  border: `1px solid ${isSaved ? "rgba(255,102,170,0.3)" : "var(--border)"}` }}>
+                  {/* Main row */}
+                  <button onClick={() => handleToggle(pl)} disabled={isSaving}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+                      width: "100%", padding: "9px 12px", background: "transparent",
+                      border: "none", cursor: "pointer" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                      <span style={{ fontSize: 15 }}>{isSaved ? "✅" : "🎵"}</span>
+                      <div style={{ minWidth: 0, textAlign: "left" }}>
+                        <div style={{ fontFamily: "var(--font-d)", fontSize: 13, fontWeight: 600,
+                          color: isSaved ? "#ff66aa" : "#fff",
+                          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {pl.name}
+                        </div>
+                        <div style={{ fontSize: 10, color: "var(--muted2)" }}>
+                          {pl.item_count} map{pl.item_count !== 1 ? "s" : ""}
+                        </div>
                       </div>
                     </div>
+                    <span style={{ fontSize: 11, fontWeight: 700, flexShrink: 0,
+                      color: isSaved ? "#ff66aa" : "var(--muted2)" }}>
+                      {isSaving ? "…" : isSaved ? "Saved" : "+ Add"}
+                    </span>
+                  </button>
+
+                  {/* Public toggle sub-row */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end",
+                    padding: "0 10px 8px", gap: 6 }}>
+                    <button onClick={e => handleTogglePublic(pl, e)}
+                      disabled={togglingPublic === pl.id || cantPublic}
+                      title={cantPublic ? "Add at least one beatmap before making public" : undefined}
+                      style={{ fontSize: 10, padding: "3px 9px", borderRadius: 5, cursor: cantPublic ? "not-allowed" : "pointer",
+                        border: `1px solid ${pl.is_public ? "rgba(255,102,170,0.4)" : "var(--border)"}`,
+                        background: "transparent",
+                        color: pl.is_public ? "#ff66aa" : "var(--muted2)",
+                        opacity: cantPublic ? 0.4 : 1, transition: "all 0.15s" }}>
+                      {togglingPublic === pl.id ? "…" : pl.is_public ? "🌐 Public" : "🔒 Private"}
+                    </button>
                   </div>
-                  <span style={{ fontSize: 11, fontWeight: 700, flexShrink: 0,
-                    color: isSaved ? "#ff66aa" : "var(--muted2)" }}>
-                    {isSaving ? "…" : isSaved ? "Saved" : "+ Add"}
-                  </span>
-                </button>
+                </div>
               );
             })
           )}

@@ -1047,6 +1047,25 @@ async def _build_playlist_response(playlist, include_items: bool = True) -> dict
     # Cover previews: up to 4 card_url from items
     covers = [r["card_url"] or r["cover_url"] for r in items_data if r.get("card_url") or r.get("cover_url")][:4]
 
+    # Difficulty distribution — bucket by star rating
+    diff_buckets = [
+        {"range": "0-2★",  "min": 0,   "max": 2,   "color": "#88d8b0"},
+        {"range": "2-3★",  "min": 2,   "max": 3,   "color": "#6bcfff"},
+        {"range": "3-4.5★","min": 3,   "max": 4.5, "color": "#ffd700"},
+        {"range": "4.5-6★","min": 4.5, "max": 6,   "color": "#ff9a56"},
+        {"range": "6-7.5★","min": 6,   "max": 7.5, "color": "#ff66aa"},
+        {"range": "7.5+★", "min": 7.5, "max": 99,  "color": "#c084fc"},
+    ]
+    diff_distribution = []
+    for bucket in diff_buckets:
+        count = sum(
+            1 for r in items_data
+            if r.get("difficulty_rating") is not None
+            and bucket["min"] <= (r["difficulty_rating"] or 0) < bucket["max"]
+        )
+        if count > 0:
+            diff_distribution.append({"range": bucket["range"], "count": count, "color": bucket["color"]})
+
     return {
         "id": playlist.id,
         "name": playlist.name,
@@ -1059,6 +1078,7 @@ async def _build_playlist_response(playlist, include_items: bool = True) -> dict
         "item_count": len(playlist.items),
         "top_tags": top_tags,
         "covers": covers,
+        "diff_distribution": diff_distribution,
         "beatmaps": items_data if include_items else [],
         "created_at": playlist.created_at.isoformat(),
         "updated_at": playlist.updated_at.isoformat(),
@@ -1132,6 +1152,15 @@ async def create_playlist(
 ):
     from models import Playlist as PlaylistModel
     from sqlalchemy.orm import selectinload
+    from sqlalchemy import func as sqlfunc
+    # Enforce max 3 playlists per user
+    async with AsyncSessionFactory() as db:
+        count = (await db.execute(
+            select(sqlfunc.count()).select_from(PlaylistModel)
+            .where(PlaylistModel.user_id == current_user.id)
+        )).scalar_one()
+    if count >= 3:
+        raise HTTPException(status_code=400, detail="Maximum 3 playlists allowed per user")
     async with AsyncSessionFactory() as db:
         async with db.begin():
             pl = PlaylistModel(

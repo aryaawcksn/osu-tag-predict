@@ -187,7 +187,7 @@ def parse_osu_file(file_path: str) -> dict | None:
             obj_type = "C"
             slider_len = 0.0; slider_repeat = 1; slider_sv = 1.0
             slider_duration = 0.0; slider_complexity = 1.0; slider_ctrl_count = 0
-            end_time = t; end_x, end_y = x, y; body_points = [(x, y)]
+            end_time = t; end_x, end_y = x, y
 
             # CEK NAMA CLASS SECARA DYNAMICAL (AMMAN DARI DEPRECATION)
             class_name = obj.__class__.__name__
@@ -208,12 +208,13 @@ def parse_osu_file(file_path: str) -> dict | None:
                 slider_sv = round(base_sv * sv_mult, 4)
                 try:
                     if hasattr(obj, "curve") and obj.curve is not None:
-                        n_samples = max(10, int(slider_len / 10))
-                        curve_pts = [obj.curve(i / n_samples) for i in range(n_samples + 1)]
-                        body_points = [(int(round(p.x)), int(round(p.y))) for p in curve_pts]
                         slider_ctrl_count = len(getattr(obj.curve, "points", []))
-                    if body_points:
-                        end_x, end_y = (x, y) if slider_repeat % 2 == 0 else body_points[-1]
+                        # Use curve(1.0) directly — no need to sample N intermediate points
+                        end_pt = obj.curve(1.0)
+                        end_x = int(round(end_pt.x))
+                        end_y = int(round(end_pt.y))
+                        if slider_repeat % 2 == 0:
+                            end_x, end_y = x, y
                     straight_dist = max(math.hypot(end_x - x, end_y - y), 1.0)
                     slider_complexity = round(slider_len / straight_dist, 3)
                 except Exception:
@@ -232,7 +233,6 @@ def parse_osu_file(file_path: str) -> dict | None:
                 "slider_length": slider_len, "slider_repeat": slider_repeat,
                 "slider_velocity": slider_sv, "slider_duration": slider_duration,
                 "slider_complexity": slider_complexity, "slider_control_count": slider_ctrl_count,
-                "body_points": body_points,
             })
 
         for tp in data["timing_points"]:

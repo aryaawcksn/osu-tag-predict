@@ -188,11 +188,14 @@ export default function PlaylistPage({ username, currentUser, onBack }: Props) {
                     This playlist is empty.
                   </div>
                 ) : (
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
-                    {activePl.beatmaps.map(bm => (
-                      <BeatmapCard key={bm.beatmap_id} record={bm} />
-                    ))}
-                  </div>
+                  <>
+                    <DiffDistribution distribution={activePl.diff_distribution ?? []} />
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
+                      {activePl.beatmaps.map(bm => (
+                        <BeatmapCard key={bm.beatmap_id} record={bm} />
+                      ))}
+                    </div>
+                  </>
                 )}
               </>
             ) : (
@@ -203,6 +206,47 @@ export default function PlaylistPage({ username, currentUser, onBack }: Props) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Difficulty Distribution ───────────────────────────────────────────────────
+
+function DiffDistribution({ distribution }: { distribution: { range: string; count: number; color: string }[] }) {
+  if (!distribution || distribution.length === 0) return null;
+  const max = Math.max(...distribution.map(d => d.count));
+
+  return (
+    <div style={{ marginBottom: 16, padding: "12px 14px",
+      background: "var(--card2)", borderRadius: 10, border: "1px solid var(--border)" }}>
+      <div style={{ fontSize: 11, color: "var(--muted)", fontFamily: "var(--font-m)",
+        letterSpacing: "0.06em", marginBottom: 10 }}>
+        DIFFICULTY DISTRIBUTION
+      </div>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 48 }}>
+        {distribution.map(d => {
+          const heightPct = max > 0 ? (d.count / max) * 100 : 0;
+          return (
+            <div key={d.range} style={{ flex: 1, display: "flex", flexDirection: "column",
+              alignItems: "center", gap: 4, height: "100%", justifyContent: "flex-end" }}
+              title={`${d.range}: ${d.count} map${d.count !== 1 ? "s" : ""}`}>
+              <div style={{ fontSize: 10, color: d.color, fontFamily: "var(--font-m)", fontWeight: 700 }}>
+                {d.count}
+              </div>
+              <div style={{ width: "100%", background: `${d.color}22`,
+                border: `1px solid ${d.color}55`, borderRadius: "3px 3px 0 0",
+                height: `${Math.max(heightPct, 8)}%`, transition: "height 0.3s ease",
+                position: "relative" }}>
+                <div style={{ position: "absolute", inset: 0, background: `${d.color}44`, borderRadius: "3px 3px 0 0" }} />
+              </div>
+              <div style={{ fontSize: 9, color: "var(--muted2)", fontFamily: "var(--font-m)",
+                whiteSpace: "nowrap", textAlign: "center" }}>
+                {d.range}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

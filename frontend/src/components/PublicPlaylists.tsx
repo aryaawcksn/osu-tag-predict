@@ -85,12 +85,25 @@ function PlaylistCard({ playlist: pl, onOpen }: { playlist: Playlist; onOpen: ()
 
         {/* Top tags */}
         {pl.top_tags.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 8 }}>
             {pl.top_tags.map(tag => (
               <span key={tag} style={{ fontFamily: "var(--font-m)", fontSize: 10, padding: "2px 8px",
                 borderRadius: 4, background: "rgba(255,102,170,0.12)", border: "1px solid rgba(255,102,170,0.4)",
                 color: "#ff66aa" }}>
                 {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Compact diff distribution */}
+        {pl.diff_distribution && pl.diff_distribution.length > 0 && (
+          <div style={{ display: "flex", gap: 3, alignItems: "center", flexWrap: "wrap" }}>
+            {pl.diff_distribution.map(d => (
+              <span key={d.range} title={`${d.range}: ${d.count} maps`}
+                style={{ fontSize: 9, padding: "2px 6px", borderRadius: 4, fontFamily: "var(--font-m)",
+                  background: `${d.color}18`, border: `1px solid ${d.color}55`, color: d.color }}>
+                {d.range} ×{d.count}
               </span>
             ))}
           </div>

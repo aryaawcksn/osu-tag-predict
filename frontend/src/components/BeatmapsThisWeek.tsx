@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { BeatmapRecord, CurrentUser } from "../types";
+import SaveToPlaylistModal from "./SaveToPlaylistModal";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -104,7 +105,7 @@ export default function BeatmapsThisWeek({ currentUser }: { currentUser?: Curren
 
       {/* 4-col grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
-        {data.beatmapsets.map(set => <BeatmapsetCard key={set.beatmapset_id} set={set} />)}
+        {data.beatmapsets.map(set => <BeatmapsetCard key={set.beatmapset_id} set={set} currentUser={currentUser ?? null} />)}
       </div>
     </section>
   );
@@ -112,7 +113,7 @@ export default function BeatmapsThisWeek({ currentUser }: { currentUser?: Curren
 
 // ── Card ─────────────────────────────────────────────────────
 
-function BeatmapsetCard({ set }: { set: BeatmapsetGroup }) {
+function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUser: CurrentUser | null }) {
   const diffs = set.difficulties ?? [];
   const midIdx = Math.max(0, Math.floor((diffs.length - 1) / 2));
   const [selectedIdx, setSelectedIdx] = useState(midIdx);
@@ -127,9 +128,9 @@ function BeatmapsetCard({ set }: { set: BeatmapsetGroup }) {
     .sort((a, b) => b.probability - a.probability).slice(0, 3);
   const maxProb = topLabels[0]?.probability ?? 1;
 
-  // Audio preview
   const [hovered, setHovered] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [showPlaylist, setShowPlaylist] = useState(false);
   const stopRef = useRef<(() => void) | null>(null);
   const previewUrl = `https://b.ppy.sh/preview/${set.beatmapset_id}.mp3`;
   const dlUrl = `https://osu.ppy.sh/beatmapsets/${set.beatmapset_id}/download`;
@@ -144,6 +145,7 @@ function BeatmapsetCard({ set }: { set: BeatmapsetGroup }) {
   }, [playing, previewUrl]);
 
   return (
+    <>
     <div
       style={cardStyle}
       onMouseEnter={e => {
@@ -202,6 +204,15 @@ function BeatmapsetCard({ set }: { set: BeatmapsetGroup }) {
                 color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)" }}>
               ⬇ .osz
             </a>
+            {currentUser && (
+              <button onClick={e => { e.stopPropagation(); setShowPlaylist(true); }}
+                title="Save to playlist"
+                style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                  background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
+                  color: "#fff", cursor: "pointer", backdropFilter: "blur(4px)" }}>
+                🔖 Save
+              </button>
+            )}
           </div>
         </div>
         {/* EQ bar */}
@@ -311,7 +322,16 @@ function BeatmapsetCard({ set }: { set: BeatmapsetGroup }) {
           </div>
         )}
       </div>
-    );
+
+      {showPlaylist && currentUser && diff && (
+        <SaveToPlaylistModal
+          beatmapId={diff.beatmap_id}
+          beatmapTitle={`${set.title ?? "Beatmapset"} [${diff.version ?? ""}]`}
+          onClose={() => setShowPlaylist(false)}
+        />
+      )}
+    </>
+  );
 }
 
 const cardStyle: React.CSSProperties = {
