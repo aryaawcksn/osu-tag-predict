@@ -209,40 +209,39 @@ async def get_stats():
 # --------------------------------------------------------------------------- #
 
 @app.get("/proxy/download/{beatmapset_id}")
-async def proxy_download(
-    beatmapset_id: str,
-    current_user: User = Depends(require_user),
-):
+async def proxy_download(beatmapset_id: str):
     """
-    Proxy .osz download from osu! API using the logged-in user's access token.
-    Streams directly to client — no temp file on server.
+    Proxy .osz download via public mirrors (no auth required).
+    Tries chimu.moe first, falls back to beatconnect.
     """
     import httpx
     from fastapi.responses import StreamingResponse
 
-    # Get user's OAuth token (has download permission)
-    token = await _get_access_token_for_user(current_user)
-
-    osu_url = f"https://osu.ppy.sh/api/v2/beatmapsets/{beatmapset_id}/download"
+    mirrors = [
+        f"https://chimu.moe/d/{beatmapset_id}",
+        f"https://beatconnect.io/b/{beatmapset_id}",
+    ]
 
     client = httpx.AsyncClient(follow_redirects=True, timeout=60)
-    req = client.build_request("GET", osu_url, headers={"Authorization": f"Bearer {token}"})
-    resp = await client.send(req, stream=True)
+    resp = None
 
-    if resp.status_code == 401:
-        await resp.aclose()
-        await client.aclose()
-        raise HTTPException(status_code=401, detail="osu! session expired, please log in again")
+    for url in mirrors:
+        try:
+            req = client.build_request("GET", url)
+            r = await client.send(req, stream=True)
+            if r.status_code == 200:
+                resp = r
+                break
+            await r.aclose()
+        except Exception:
+            continue
 
-    if resp.status_code == 403:
-        await resp.aclose()
+    if resp is None:
         await client.aclose()
-        raise HTTPException(status_code=403, detail="osu! account does not have download access (supporter required?)")
-
-    if resp.status_code != 200:
-        body = await resp.aread()
-        await client.aclose()
-        raise HTTPException(status_code=502, detail=f"osu! returned {resp.status_code}: {body[:300]!r}")
+        raise HTTPException(
+            status_code=502,
+            detail="All download mirrors failed. Try downloading directly from osu! website.",
+        )
 
     async def stream_and_close():
         try:

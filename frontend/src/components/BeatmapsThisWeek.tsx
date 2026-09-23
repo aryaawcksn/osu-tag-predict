@@ -3,36 +3,8 @@ import { BeatmapRecord, CurrentUser } from "../types";
 import SaveToPlaylistModal from "./SaveToPlaylistModal";
 import { starColor } from "../utils/starColor";
 import { IconExternalLink, IconDownload, IconBookmark, IconPlay, IconPause } from "./Icons";
-import { getSessionToken } from "../api";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
-
-async function downloadOsz(beatmapsetId: string, e: React.MouseEvent) {
-  e.preventDefault();
-  e.stopPropagation();
-  const token = getSessionToken();
-  if (!token) { alert("Login dulu untuk download .osz"); return; }
-  try {
-    const res = await fetch(`${BASE_URL}/proxy/download/${beatmapsetId}`, {
-      headers: { "X-Session-Token": token },
-      credentials: "include",
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: "Download failed" }));
-      alert(err.detail ?? "Download failed");
-      return;
-    }
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${beatmapsetId}.osz`;
-    a.click();
-    URL.revokeObjectURL(url);
-  } catch {
-    alert("Download failed — check your connection");
-  }
-}
 
 // ── Shared audio singleton (same as BeatmapCard) ─────────────────────────────
 let _globalAudio: HTMLAudioElement | null = null;
@@ -270,15 +242,14 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
                 display: "flex", alignItems: "center", gap: 4 }}>
               <IconExternalLink size={12} strokeWidth={2.5} /> osu!
             </a>
-            <button
-              onClick={e => downloadOsz(set.beatmapset_id, e)}
-              title="Download .osz"
+            <a href={dlUrl} target="_blank" rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()} title="Download .osz"
               style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                 background: "rgba(255,102,170,0.75)", border: "1px solid rgba(255,102,170,0.5)",
-                color: "#fff", cursor: "pointer", backdropFilter: "blur(4px)",
+                color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
                 display: "flex", alignItems: "center", gap: 4 }}>
               <IconDownload size={12} strokeWidth={2.5} /> .osz
-            </button>
+            </a>
             {currentUser && (
               <button onClick={e => { e.stopPropagation(); setShowPlaylist(true); }}
                 title="Save to playlist"
