@@ -1,5 +1,6 @@
 import { CurrentUser } from "../types";
 import { logout } from "../api";
+import { IconSun, IconMoon } from "./Icons";
 
 interface Props {
   user: CurrentUser | null;
@@ -26,7 +27,7 @@ export default function NavBar({ user, onLogout, onProfile, theme, onToggleTheme
           alt="Bullet"
           style={{ width: "24px", height: "24px", objectFit: "contain" }}
         />
-        <span style={logoTextStyle}>osu!BTC</span>
+        <span style={logoTextStyle}>o!btc</span>
       </div>
 
       {/* Right */}
@@ -37,7 +38,7 @@ export default function NavBar({ user, onLogout, onProfile, theme, onToggleTheme
           title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           style={themeToggleStyle}
         >
-          {theme === "dark" ? "☀️" : "🌙"}
+          {theme === "dark" ? <IconSun size={15} strokeWidth={2} /> : <IconMoon size={15} strokeWidth={2} />}
         </button>
 
         {user ? (

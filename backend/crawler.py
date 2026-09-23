@@ -352,7 +352,7 @@ async def run_crawl() -> int:
 
 # ── weekly (this-week beatmaps) ──────────────────────────────────────────────
 
-_WEEKLY_INTERVAL = int(os.environ.get("CRAWLER_WEEKLY_INTERVAL_SECONDS", str(6 * 60 * 60)))  # every 6h
+_WEEKLY_INTERVAL = int(os.environ.get("CRAWLER_WEEKLY_INTERVAL_SECONDS", str(1 * 60 * 60)))  # every 1h
 _last_weekly_at:    datetime | None = None
 _last_weekly_count: int = 0
 
@@ -374,9 +374,9 @@ async def run_weekly() -> int:
 
     cutoff = datetime.utcnow().replace(tzinfo=timezone.utc)
     from datetime import timedelta
-    week_ago_str = (cutoff - timedelta(days=7)).strftime("%Y-%m-%d")
+    week_ago = cutoff - timedelta(days=7)
 
-    logger.info("Weekly crawl: fetching beatmaps ranked since %s", week_ago_str)
+    logger.info("Weekly crawl: fetching beatmaps ranked since %s", week_ago.strftime("%Y-%m-%d"))
     ok = 0
 
     for status_key in ("ranked", "loved"):
@@ -392,11 +392,24 @@ async def run_weekly() -> int:
             hit_cutoff = False
             for bm in beatmaps:
                 rd = bm.get("ranked_date") or ""
-                # ranked_date format: "2024-01-15T12:00:00+00:00" or "2024-01-15"
-                date_part = rd[:10] if rd else ""
-                if date_part and date_part < week_ago_str:
-                    hit_cutoff = True
-                    break
+                if not rd:
+                    recent.append(bm)
+                    continue
+                # Parse full datetime (handles both "2024-01-15T12:00:00+00:00" and "2024-01-15")
+                try:
+                    from datetime import datetime as _dt
+                    rd_clean = rd.replace("Z", "+00:00")
+                    if "T" in rd_clean:
+                        bm_dt = _dt.fromisoformat(rd_clean)
+                        if bm_dt.tzinfo is None:
+                            bm_dt = bm_dt.replace(tzinfo=timezone.utc)
+                    else:
+                        bm_dt = _dt.strptime(rd_clean[:10], "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                    if bm_dt < week_ago:
+                        hit_cutoff = True
+                        break
+                except Exception:
+                    pass
                 recent.append(bm)
 
             if recent:
@@ -428,7 +441,16 @@ async def start_daily_crawler() -> None:
     # Run weekly immediately on startup to populate this-week data
     asyncio.create_task(run_weekly())
 
-    weekly_elapsed = 0
+    # Weekly runs independently on its own interval
+    async def _weekly_loop():
+        while True:
+            await asyncio.sleep(_WEEKLY_INTERVAL)
+            try:
+                await run_weekly()
+            except Exception as exc:
+                logger.error("Weekly crawl error: %s", exc)
+
+    asyncio.create_task(_weekly_loop())
 
     while True:
         try:
@@ -437,15 +459,6 @@ async def start_daily_crawler() -> None:
             logger.error("Daily crawl error: %s", exc)
 
         await asyncio.sleep(_DAILY_INTERVAL)
-        weekly_elapsed += _DAILY_INTERVAL
-
-        # Run weekly every _WEEKLY_INTERVAL seconds (default 6h)
-        if weekly_elapsed >= _WEEKLY_INTERVAL:
-            weekly_elapsed = 0
-            try:
-                await run_weekly()
-            except Exception as exc:
-                logger.error("Weekly crawl error: %s", exc)
 
         # After daily run resets done flags, restart backfill to pick up new maps
         if backfill_task.done():
