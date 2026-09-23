@@ -3,11 +3,41 @@ import { createPortal } from "react-dom";
 import { BeatmapRecord, CurrentUser } from "../types";
 import SaveToPlaylistModal from "./SaveToPlaylistModal";
 import { starColor } from "../utils/starColor";
+import { getSessionToken } from "../api";
 import {
   IconExternalLink, IconDownload, IconBookmark,
   IconTarget, IconBan, IconFolderMinus,
   IconPlay, IconPause,
 } from "./Icons";
+
+const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+
+async function downloadOsz(beatmapsetId: string, e: React.MouseEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+  const token = getSessionToken();
+  if (!token) { alert("Login dulu untuk download .osz"); return; }
+  try {
+    const res = await fetch(`${BASE_URL}/proxy/download/${beatmapsetId}`, {
+      headers: { "X-Session-Token": token },
+      credentials: "include",
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: "Download failed" }));
+      alert(err.detail ?? "Download failed");
+      return;
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${beatmapsetId}.osz`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch {
+    alert("Download failed — check your connection");
+  }
+}
 
 const STATUS_COLOR: Record<string, string> = {
   ranked: "#b8e994", approved: "#b8e994", loved: "#ff66aa",
@@ -197,15 +227,15 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, status, statusCol, showS
             <IconExternalLink size={12} strokeWidth={2.5} /> osu!
           </a>
           {dlUrl && (
-            <a href={dlUrl}
-              onClick={e => e.stopPropagation()}
+            <button
+              onClick={e => downloadOsz(beatmapsetId!, e)}
               title="Download .osz"
               style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                 background: "rgba(255,102,170,0.75)", border: "1px solid rgba(255,102,170,0.5)",
-                color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
+                color: "#fff", cursor: "pointer", backdropFilter: "blur(4px)",
                 display: "flex", alignItems: "center", gap: 4 }}>
               <IconDownload size={12} strokeWidth={2.5} /> .osz
-            </a>
+            </button>
           )}
           {showSave && (
             <button

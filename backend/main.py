@@ -209,22 +209,22 @@ async def get_stats():
 # --------------------------------------------------------------------------- #
 
 @app.get("/proxy/download/{beatmapset_id}")
-async def proxy_download(beatmapset_id: str):
+async def proxy_download(
+    beatmapset_id: str,
+    current_user: User = Depends(require_user),
+):
     """
-    Proxy .osz download from osu! API using app credentials.
-    Streams the file directly to the client so no temp storage is needed.
+    Proxy .osz download from osu! API using the logged-in user's access token.
+    Streams directly to client — no temp file on server.
     """
     import httpx
     from fastapi.responses import StreamingResponse
 
-    token = predictor._get_app_token()
-    if not token:
-        raise HTTPException(status_code=503, detail="osu! API credentials not configured")
+    # Get user's OAuth token (has download permission)
+    token = await _get_access_token_for_user(current_user)
 
     osu_url = f"https://osu.ppy.sh/api/v2/beatmapsets/{beatmapset_id}/download"
 
-    # Open the connection first and validate status BEFORE returning StreamingResponse
-    # (raising HTTPException inside a generator corrupts the response)
     client = httpx.AsyncClient(follow_redirects=True, timeout=60)
     req = client.build_request("GET", osu_url, headers={"Authorization": f"Bearer {token}"})
     resp = await client.send(req, stream=True)
@@ -232,13 +232,17 @@ async def proxy_download(beatmapset_id: str):
     if resp.status_code == 401:
         await resp.aclose()
         await client.aclose()
-        predictor._app_token = None
-        raise HTTPException(status_code=502, detail="osu! token expired, please retry")
+        raise HTTPException(status_code=401, detail="osu! session expired, please log in again")
+
+    if resp.status_code == 403:
+        await resp.aclose()
+        await client.aclose()
+        raise HTTPException(status_code=403, detail="osu! account does not have download access (supporter required?)")
 
     if resp.status_code != 200:
         body = await resp.aread()
         await client.aclose()
-        raise HTTPException(status_code=502, detail=f"osu! returned {resp.status_code}: {body[:200]}")
+        raise HTTPException(status_code=502, detail=f"osu! returned {resp.status_code}: {body[:300]!r}")
 
     async def stream_and_close():
         try:
@@ -248,9 +252,7 @@ async def proxy_download(beatmapset_id: str):
             await resp.aclose()
             await client.aclose()
 
-    filename = f"{beatmapset_id}.osz"
-    headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
-    # Forward Content-Length if osu! provides it so Cloudflare doesn't time out
+    headers = {"Content-Disposition": f'attachment; filename="{beatmapset_id}.osz"'}
     if "content-length" in resp.headers:
         headers["Content-Length"] = resp.headers["content-length"]
 
