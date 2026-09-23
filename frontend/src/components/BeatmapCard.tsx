@@ -69,7 +69,7 @@ function ContextMenu({ x, y, onHideBeatmap, onHideBeatmapset, onFindSimilar, has
     return () => { document.removeEventListener("mousedown", handleClick); document.removeEventListener("keydown", handleKey); };
   }, [onClose]);
 
-  const itemCount = [onFindSimilar, onReportWrongTags, onHideBeatmap, hasBeatmapset && onHideBeatmapset].filter(Boolean).length;
+  const itemCount = [onFindSimilar, onHideBeatmap, hasBeatmapset && onHideBeatmapset].filter(Boolean).length;
   const menuW = 210;
   const clampedX = Math.min(x, window.innerWidth - menuW - 8);
   const clampedY = Math.min(y, window.innerHeight - itemCount * 38 - 8);
