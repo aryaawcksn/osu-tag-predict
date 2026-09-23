@@ -118,8 +118,9 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, status, statusCol, showS
   const webUrl = beatmapsetId
     ? `https://osu.ppy.sh/beatmapsets/${beatmapsetId}#osu/${beatmapId}`
     : `https://osu.ppy.sh/beatmaps/${beatmapId}`;
-  // osu:// protocol opens the client directly and triggers download
-  const osuDirectUrl = beatmapsetId ? `osu://b/${beatmapId}` : null;
+  // Proxy download via our backend (avoids osu! session cookie requirement)
+  const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+  const dlUrl = beatmapsetId ? `${BASE_URL}/proxy/download/${beatmapsetId}` : null;
 
   const togglePlay = useCallback((e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
@@ -195,15 +196,15 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, status, statusCol, showS
               display: "flex", alignItems: "center", gap: 4 }}>
             <IconExternalLink size={12} strokeWidth={2.5} /> osu!
           </a>
-          {osuDirectUrl && (
-            <a href={osuDirectUrl}
+          {dlUrl && (
+            <a href={dlUrl}
               onClick={e => e.stopPropagation()}
-              title="Open in osu! client (direct download)"
+              title="Download .osz"
               style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                 background: "rgba(255,102,170,0.75)", border: "1px solid rgba(255,102,170,0.5)",
                 color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
                 display: "flex", alignItems: "center", gap: 4 }}>
-              <IconDownload size={12} strokeWidth={2.5} /> osu!direct
+              <IconDownload size={12} strokeWidth={2.5} /> .osz
             </a>
           )}
           {showSave && (

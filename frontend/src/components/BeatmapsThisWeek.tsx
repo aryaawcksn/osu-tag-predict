@@ -175,7 +175,7 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
   const [showPlaylist, setShowPlaylist] = useState(false);
   const stopRef = useRef<(() => void) | null>(null);
   const previewUrl = `https://b.ppy.sh/preview/${set.beatmapset_id}.mp3`;
-  const osuDirectUrl = diff ? `osu://b/${diff.beatmap_id}` : `osu://s/${set.beatmapset_id}`;
+  const dlUrl = `${BASE_URL}/proxy/download/${set.beatmapset_id}`;
   const webUrl = diff
     ? `https://osu.ppy.sh/beatmapsets/${set.beatmapset_id}#osu/${diff.beatmap_id}`
     : `https://osu.ppy.sh/beatmapsets/${set.beatmapset_id}`;
@@ -242,13 +242,13 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
                 display: "flex", alignItems: "center", gap: 4 }}>
               <IconExternalLink size={12} strokeWidth={2.5} /> osu!
             </a>
-            <a href={osuDirectUrl}
-              onClick={e => e.stopPropagation()} title="Open in osu! client (direct download)"
+            <a href={dlUrl}
+              onClick={e => e.stopPropagation()} title="Download .osz"
               style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                 background: "rgba(255,102,170,0.75)", border: "1px solid rgba(255,102,170,0.5)",
                 color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
                 display: "flex", alignItems: "center", gap: 4 }}>
-              <IconDownload size={12} strokeWidth={2.5} /> osu!direct
+              <IconDownload size={12} strokeWidth={2.5} /> .osz
             </a>
             {currentUser && (
               <button onClick={e => { e.stopPropagation(); setShowPlaylist(true); }}

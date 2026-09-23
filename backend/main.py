@@ -202,6 +202,50 @@ async def get_stats():
     return {"total_users": total_users, "total_beatmaps": total_beatmaps}
 
 
+# --------------------------------------------------------------------------- #
+# Beatmapset download proxy                                                     #
+# osu! /beatmapsets/{id}/download requires session cookie we can't forward.    #
+# We proxy via app token so the browser gets the .osz directly.                #
+# --------------------------------------------------------------------------- #
+
+@app.get("/proxy/download/{beatmapset_id}")
+async def proxy_download(beatmapset_id: str):
+    """
+    Proxy .osz download from osu! API using app credentials.
+    Streams the file directly to the client so no temp storage is needed.
+    No user auth required — the app token is sufficient for public beatmapsets.
+    """
+    import httpx
+    from fastapi.responses import StreamingResponse
+
+    token = predictor._get_app_token()
+    if not token:
+        raise HTTPException(status_code=503, detail="osu! API credentials not configured")
+
+    osu_url = f"https://osu.ppy.sh/api/v2/beatmapsets/{beatmapset_id}/download"
+
+    async def stream_osz():
+        async with httpx.AsyncClient(follow_redirects=True, timeout=60) as client:
+            async with client.stream(
+                "GET", osu_url,
+                headers={"Authorization": f"Bearer {token}"},
+            ) as resp:
+                if resp.status_code == 401:
+                    # Token expired — reset and fail gracefully
+                    predictor._app_token = None
+                    raise HTTPException(status_code=502, detail="osu! token expired, retry")
+                if resp.status_code != 200:
+                    raise HTTPException(status_code=resp.status_code, detail="osu! download failed")
+                async for chunk in resp.aiter_bytes(65536):
+                    yield chunk
+
+    return StreamingResponse(
+        stream_osz(),
+        media_type="application/x-osu-beatmap-archive",
+        headers={"Content-Disposition": f'attachment; filename="{beatmapset_id}.osz"'},
+    )
+
+
 @app.get("/crawler/status")
 async def crawler_status(
     x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
