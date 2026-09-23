@@ -221,7 +221,6 @@ export default function PlaylistPage({ username, currentUser, onBack }: Props) {
                           key={bm.beatmap_id}
                           record={bm}
                           currentUser={currentUser}
-                          onUnsave={isOwner ? (id) => handleUnsave(activePl.id, id) : undefined}
                         />
                       ))}
                     </div>

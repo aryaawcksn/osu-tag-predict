@@ -110,10 +110,9 @@ interface CoverProps {
   statusCol: string;
   showSave?: boolean;
   onSave?: () => void;
-  onUnsave?: () => void;
 }
 
-function CoverOverlay({ bgImg, beatmapId, beatmapsetId, title, artist, status, statusCol, showSave, onSave, onUnsave }: CoverProps) {
+function CoverOverlay({ bgImg, beatmapId, beatmapsetId, title, artist, status, statusCol, showSave, onSave }: CoverProps) {
   const [hovered, setHovered] = useState(false);
   const [playing, setPlaying] = useState(false);
   const stopRef = useRef<(() => void) | null>(null);
@@ -226,17 +225,6 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, title, artist, status, s
               <IconBookmark size={12} strokeWidth={2.5} /> Save
             </button>
           )}
-          {onUnsave && (
-            <button
-              onClick={e => { e.stopPropagation(); onUnsave(); }}
-              title="Remove from playlist"
-              style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
-                background: "rgba(180,30,60,0.7)", border: "1px solid rgba(255,100,100,0.45)",
-                color: "#fff", cursor: "pointer", backdropFilter: "blur(4px)",
-                display: "flex", alignItems: "center", gap: 4 }}>
-              <IconBookmarkX size={12} strokeWidth={2.5} /> Remove
-            </button>
-          )}
         </div>
       </div>
 
@@ -263,10 +251,9 @@ interface BeatmapCardProps {
   onHide?: (beatmapId: string) => void;
   onHideSet?: (beatmapsetId: string) => void;
   onFindSimilar?: (record: BeatmapRecord) => void;
-  onUnsave?: (beatmapId: string) => void;
 }
 
-export function BeatmapCard({ record, highlightTags, currentUser, onHide, onHideSet, onFindSimilar, onUnsave }: BeatmapCardProps) {
+export function BeatmapCard({ record, highlightTags, currentUser, onHide, onHideSet, onFindSimilar }: BeatmapCardProps) {
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const [showPlaylist, setShowPlaylist] = useState(false);
 
@@ -314,7 +301,6 @@ export function BeatmapCard({ record, highlightTags, currentUser, onHide, onHide
           statusCol={statusCol}
           showSave={!!currentUser}
           onSave={() => setShowPlaylist(true)}
-          onUnsave={onUnsave ? () => onUnsave(record.beatmap_id) : undefined}
         />
 
         <div style={bodyStyle}>
