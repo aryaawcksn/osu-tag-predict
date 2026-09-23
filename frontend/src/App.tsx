@@ -45,6 +45,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<CurrentUser | null>(null);
+  const [userLoading, setUserLoading] = useState(true);
   const [queueState, setQueueState] = useState<QueueState | null>(null);
   const [page, setPageState] = useState<Page>(parsePage);
   const [theme, setTheme] = useState<"dark" | "light">(() => {
@@ -82,7 +83,7 @@ export default function App() {
       url.searchParams.delete("session_token");
       window.history.replaceState({}, "", url.toString());
     }
-    getCurrentUser().then(setUser).catch(() => setUser(null));
+    getCurrentUser().then(setUser).catch(() => setUser(null)).finally(() => setUserLoading(false));
   }, []);
 
   useEffect(() => {
@@ -144,7 +145,20 @@ export default function App() {
     </>
   );
 
-  if (page.type === "profile" && user) {
+  if (userLoading) {
+    return (
+      <div style={rootStyle}>
+        {nav}
+      </div>
+    );
+  }
+
+  if (page.type === "profile") {
+    if (!user) {
+      // Not logged in — drop to home
+      navigate({ type: "home" });
+      return null;
+    }
     return (
       <div style={rootStyle}>
         {nav}
@@ -157,7 +171,6 @@ export default function App() {
       </div>
     );
   }
-
   if (page.type === "playlist") {
     return (
       <div style={rootStyle}>
