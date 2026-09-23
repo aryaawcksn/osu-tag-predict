@@ -85,3 +85,23 @@ export interface BeatmapRecord {
   labels: LabelResult[];
   hidden_by?: "beatmap" | "set";
 }
+
+// Playlist types
+export interface PlaylistOwner {
+  username: string;
+  avatar_url?: string;
+  osu_id: number;
+}
+
+export interface Playlist {
+  id: number;
+  name: string;
+  is_public: boolean;
+  owner: PlaylistOwner;
+  item_count: number;
+  top_tags: string[];
+  covers: string[];
+  beatmaps: BeatmapRecord[];
+  created_at: string;
+  updated_at: string;
+}

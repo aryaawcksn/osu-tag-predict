@@ -1002,3 +1002,271 @@ async def _run_relabel():
 
     await asyncio.gather(*[_process(bid) for bid in ids])
     _relabel_state["running"] = False
+
+
+# --------------------------------------------------------------------------- #
+# Playlist endpoints                                                            #
+# --------------------------------------------------------------------------- #
+
+class PlaylistCreate(BaseModel):
+    name: str
+    is_public: bool = False
+
+
+class PlaylistUpdate(BaseModel):
+    name: Optional[str] = None
+    is_public: Optional[bool] = None
+
+
+async def _build_playlist_response(playlist, include_items: bool = True) -> dict:
+    """Serialize a Playlist ORM object to a dict, optionally with beatmap records."""
+    from recommendation import _build_records
+    from models import Beatmap as BeatmapModel
+
+    items_data = []
+    if include_items and playlist.items:
+        beatmap_ids = [item.beatmap_id for item in playlist.items]
+        async with AsyncSessionFactory() as db:
+            bms = list((await db.execute(
+                select(BeatmapModel).where(BeatmapModel.beatmap_id.in_(beatmap_ids))
+            )).scalars().all())
+        records = await _build_records(bms)
+        record_map = {r["beatmap_id"]: r for r in records}
+        for item in playlist.items:
+            if item.beatmap_id in record_map:
+                items_data.append(record_map[item.beatmap_id])
+
+    # Compute top 3 tags across all beatmaps in playlist
+    from collections import Counter
+    tag_counter: Counter = Counter()
+    for item_rec in items_data:
+        for lbl in item_rec.get("labels", []):
+            tag_counter[lbl["label"]] += lbl["probability"]
+    top_tags = [t for t, _ in tag_counter.most_common(3)]
+
+    # Cover previews: up to 4 card_url from items
+    covers = [r["card_url"] or r["cover_url"] for r in items_data if r.get("card_url") or r.get("cover_url")][:4]
+
+    return {
+        "id": playlist.id,
+        "name": playlist.name,
+        "is_public": bool(playlist.is_public),
+        "owner": {
+            "username": playlist.user.username,
+            "avatar_url": playlist.user.avatar_url,
+            "osu_id": playlist.user.osu_id,
+        },
+        "item_count": len(playlist.items),
+        "top_tags": top_tags,
+        "covers": covers,
+        "beatmaps": items_data if include_items else [],
+        "created_at": playlist.created_at.isoformat(),
+        "updated_at": playlist.updated_at.isoformat(),
+    }
+
+
+@app.get("/playlists/public")
+async def list_public_playlists(
+    offset: int = Query(0, ge=0),
+    limit: int = Query(20, le=50),
+):
+    """List all public playlists — visible to anyone on the homepage."""
+    from models import Playlist as PlaylistModel
+    from sqlalchemy.orm import selectinload
+    async with AsyncSessionFactory() as db:
+        rows = list((await db.execute(
+            select(PlaylistModel)
+            .where(PlaylistModel.is_public == 1)
+            .options(selectinload(PlaylistModel.user), selectinload(PlaylistModel.items))
+            .order_by(PlaylistModel.updated_at.desc())
+            .offset(offset).limit(limit)
+        )).scalars().all())
+
+    result = []
+    for pl in rows:
+        result.append(await _build_playlist_response(pl, include_items=True))
+    return {"playlists": result, "has_more": len(rows) == limit}
+
+
+@app.get("/playlists/user/{username}")
+async def get_user_playlists(
+    username: str,
+    current_user: Optional[User] = Depends(get_current_user),
+):
+    """
+    Get all playlists for a user by username.
+    Public playlists are visible to anyone; private ones only to the owner.
+    """
+    from models import Playlist as PlaylistModel
+    from sqlalchemy.orm import selectinload
+    async with AsyncSessionFactory() as db:
+        owner = (await db.execute(
+            select(User).where(User.username == username)
+        )).scalar_one_or_none()
+    if not owner:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    is_owner = current_user and current_user.id == owner.id
+    async with AsyncSessionFactory() as db:
+        q = select(PlaylistModel).where(PlaylistModel.user_id == owner.id)
+        if not is_owner:
+            q = q.where(PlaylistModel.is_public == 1)
+        q = q.options(selectinload(PlaylistModel.user), selectinload(PlaylistModel.items))
+        q = q.order_by(PlaylistModel.updated_at.desc())
+        rows = list((await db.execute(q)).scalars().all())
+
+    result = []
+    for pl in rows:
+        result.append(await _build_playlist_response(pl, include_items=True))
+
+    return {
+        "owner": {"username": owner.username, "avatar_url": owner.avatar_url, "osu_id": owner.osu_id},
+        "playlists": result,
+    }
+
+
+@app.post("/playlists", status_code=201)
+async def create_playlist(
+    payload: PlaylistCreate,
+    current_user: User = Depends(require_user),
+):
+    from models import Playlist as PlaylistModel
+    from sqlalchemy.orm import selectinload
+    async with AsyncSessionFactory() as db:
+        async with db.begin():
+            pl = PlaylistModel(
+                user_id=current_user.id,
+                name=payload.name.strip()[:120],
+                is_public=int(payload.is_public),
+            )
+            db.add(pl)
+            await db.flush()
+            pl_id = pl.id
+    async with AsyncSessionFactory() as db:
+        pl = (await db.execute(
+            select(PlaylistModel).where(PlaylistModel.id == pl_id)
+            .options(selectinload(PlaylistModel.user), selectinload(PlaylistModel.items))
+        )).scalar_one()
+    return await _build_playlist_response(pl)
+
+
+@app.patch("/playlists/{playlist_id}", status_code=200)
+async def update_playlist(
+    playlist_id: int,
+    payload: PlaylistUpdate,
+    current_user: User = Depends(require_user),
+):
+    from models import Playlist as PlaylistModel
+    from sqlalchemy.orm import selectinload
+    async with AsyncSessionFactory() as db:
+        async with db.begin():
+            pl = (await db.execute(
+                select(PlaylistModel).where(PlaylistModel.id == playlist_id)
+            )).scalar_one_or_none()
+            if not pl:
+                raise HTTPException(status_code=404, detail="Playlist not found")
+            if pl.user_id != current_user.id:
+                raise HTTPException(status_code=403, detail="Not your playlist")
+            if payload.name is not None:
+                pl.name = payload.name.strip()[:120]
+            if payload.is_public is not None:
+                pl.is_public = int(payload.is_public)
+    async with AsyncSessionFactory() as db:
+        pl = (await db.execute(
+            select(PlaylistModel).where(PlaylistModel.id == playlist_id)
+            .options(selectinload(PlaylistModel.user), selectinload(PlaylistModel.items))
+        )).scalar_one()
+    return await _build_playlist_response(pl)
+
+
+@app.delete("/playlists/{playlist_id}", status_code=200)
+async def delete_playlist(
+    playlist_id: int,
+    current_user: User = Depends(require_user),
+):
+    from models import Playlist as PlaylistModel
+    from sqlalchemy import delete as sa_delete
+    async with AsyncSessionFactory() as db:
+        async with db.begin():
+            pl = (await db.execute(
+                select(PlaylistModel).where(PlaylistModel.id == playlist_id)
+            )).scalar_one_or_none()
+            if not pl:
+                raise HTTPException(status_code=404, detail="Playlist not found")
+            if pl.user_id != current_user.id:
+                raise HTTPException(status_code=403, detail="Not your playlist")
+            await db.execute(sa_delete(PlaylistModel).where(PlaylistModel.id == playlist_id))
+    return {"ok": True}
+
+
+@app.post("/playlists/{playlist_id}/items/{beatmap_id}", status_code=200)
+async def add_to_playlist(
+    playlist_id: int,
+    beatmap_id: str,
+    current_user: User = Depends(require_user),
+):
+    from models import Playlist as PlaylistModel, PlaylistItem
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
+    from sqlalchemy.orm import selectinload
+    async with AsyncSessionFactory() as db:
+        pl = (await db.execute(
+            select(PlaylistModel).where(PlaylistModel.id == playlist_id)
+        )).scalar_one_or_none()
+        if not pl:
+            raise HTTPException(status_code=404, detail="Playlist not found")
+        if pl.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not your playlist")
+    async with AsyncSessionFactory() as db:
+        async with db.begin():
+            # Get current max position
+            from sqlalchemy import func as sqlfunc
+            max_pos = (await db.execute(
+                select(sqlfunc.coalesce(sqlfunc.max(PlaylistItem.position), -1))
+                .where(PlaylistItem.playlist_id == playlist_id)
+            )).scalar_one()
+            stmt = pg_insert(PlaylistItem).values(
+                playlist_id=playlist_id,
+                beatmap_id=beatmap_id,
+                position=max_pos + 1,
+            ).on_conflict_do_nothing()
+            await db.execute(stmt)
+    return {"ok": True, "playlist_id": playlist_id, "beatmap_id": beatmap_id}
+
+
+@app.delete("/playlists/{playlist_id}/items/{beatmap_id}", status_code=200)
+async def remove_from_playlist(
+    playlist_id: int,
+    beatmap_id: str,
+    current_user: User = Depends(require_user),
+):
+    from models import Playlist as PlaylistModel, PlaylistItem
+    from sqlalchemy import delete as sa_delete
+    async with AsyncSessionFactory() as db:
+        pl = (await db.execute(
+            select(PlaylistModel).where(PlaylistModel.id == playlist_id)
+        )).scalar_one_or_none()
+        if not pl or pl.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not your playlist")
+    async with AsyncSessionFactory() as db:
+        async with db.begin():
+            await db.execute(
+                sa_delete(PlaylistItem).where(
+                    PlaylistItem.playlist_id == playlist_id,
+                    PlaylistItem.beatmap_id == beatmap_id,
+                )
+            )
+    return {"ok": True}
+
+
+@app.get("/playlists/my")
+async def my_playlists(current_user: User = Depends(require_user)):
+    """Get the current user's own playlists (public + private)."""
+    from models import Playlist as PlaylistModel
+    from sqlalchemy.orm import selectinload
+    async with AsyncSessionFactory() as db:
+        rows = list((await db.execute(
+            select(PlaylistModel).where(PlaylistModel.user_id == current_user.id)
+            .options(selectinload(PlaylistModel.user), selectinload(PlaylistModel.items))
+            .order_by(PlaylistModel.updated_at.desc())
+        )).scalars().all())
+    return {"playlists": [await _build_playlist_response(pl) for pl in rows]}

@@ -171,3 +171,47 @@ class BeatmapTagVote(Base):
         UniqueConstraint("user_id", "beatmap_id", "tag", name="uq_user_beatmap_tag_vote"),
     )
 
+
+
+class Playlist(Base):
+    """User-curated beatmap playlist."""
+    __tablename__ = "playlists"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    is_public: Mapped[bool] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+    user: Mapped["User"] = relationship("User")
+    items: Mapped[list["PlaylistItem"]] = relationship(
+        "PlaylistItem", back_populates="playlist", cascade="all, delete-orphan",
+        order_by="PlaylistItem.position",
+    )
+
+
+class PlaylistItem(Base):
+    """A beatmap entry inside a playlist."""
+    __tablename__ = "playlist_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    playlist_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("playlists.id", ondelete="CASCADE"), nullable=False
+    )
+    beatmap_id: Mapped[str] = mapped_column(
+        String(20), ForeignKey("beatmaps.beatmap_id", ondelete="CASCADE"), nullable=False
+    )
+    position: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    added_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    playlist: Mapped["Playlist"] = relationship("Playlist", back_populates="items")
+    beatmap: Mapped["Beatmap"] = relationship("Beatmap")
+
+    __table_args__ = (
+        UniqueConstraint("playlist_id", "beatmap_id", name="uq_playlist_beatmap"),
+    )

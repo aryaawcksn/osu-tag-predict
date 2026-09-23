@@ -1,33 +1,51 @@
 import { useEffect, useState } from "react";
-import { BeatmapRecord } from "../types";
-import { getRecommendations, hideBeatmap, hideBeatmapset } from "../api";
+import { BeatmapRecord, CurrentUser, DominantPlaystyle } from "../types";
+import { getRecommendations, hideBeatmap, hideBeatmapset, getPlaystyleAnalysis } from "../api";
 import { BeatmapCard } from "./BeatmapCard";
 import SimilarBeatmapPanel from "./SimilarBeatmapPanel";
 
 interface Props {
-  playstyle: string;
-  avgDifficulty?: number;
+  currentUser: CurrentUser;
 }
 
 const STATUSES = ["ranked", "loved", "approved", "qualified", "pending", "graveyard", "wip"];
 const STATUS_COLORS: Record<string, string> = {
-  ranked: "#b8e994", loved: "#ff6b9d", approved: "#b8e994",
-  qualified: "#74b9ff", pending: "#fbbf24", graveyard: "#636e72", wip: "#fbbf24",
+  ranked: "#b8e994", loved: "#ff66aa", approved: "#b8e994",
+  qualified: "#74b9ff", pending: "#fbbf24", graveyard: "var(--muted2)", wip: "#fbbf24",
 };
 
-export default function RecommendationList({ playstyle, avgDifficulty }: Props) {
+export default function RecommendationList({ currentUser }: Props) {
+  const [dominant, setDominant] = useState<DominantPlaystyle | null>(null);
   const [records, setRecords] = useState<BeatmapRecord[]>([]);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [targetStars, setTargetStars] = useState<number>(avgDifficulty ?? 5);
-  const [appliedStars, setAppliedStars] = useState<number | null>(avgDifficulty ?? null);
+  const [source, setSource] = useState<"top" | "recent">("top");
+  const [targetStars, setTargetStars] = useState<number>(5);
+  const [appliedStars, setAppliedStars] = useState<number | null>(null);
   const [status, setStatus] = useState<string>("");
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [similarBeatmap, setSimilarBeatmap] = useState<BeatmapRecord | null>(null);
 
-  async function fetchRecs(off: number, replace: boolean) {
-    if (!playstyle) return;
+  async function runAnalysis() {
+    setAnalysisLoading(true);
+    setError(null);
+    setRecords([]);
+    setDominant(null);
+    try {
+      const result = await getPlaystyleAnalysis(source);
+      setDominant(result);
+      setAppliedStars(result.avg_difficulty ?? null);
+      setTargetStars(result.avg_difficulty ?? 5);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Analysis failed");
+    } finally {
+      setAnalysisLoading(false);
+    }
+  }
+
+  async function fetchRecs(playstyle: string, off: number, replace: boolean) {
     setLoading(true);
     setError(null);
     const minS = appliedStars != null ? appliedStars - 0.5 : undefined;
@@ -46,13 +64,11 @@ export default function RecommendationList({ playstyle, avgDifficulty }: Props) 
   }
 
   useEffect(() => {
-    setOffset(0);
-    fetchRecs(0, true);
-  }, [playstyle, appliedStars, status]);
-
-  function handleRefresh() {
-    fetchRecs(offset, false);
-  }
+    if (dominant) {
+      setOffset(0);
+      fetchRecs(dominant.label, 0, true);
+    }
+  }, [dominant, appliedStars, status]);
 
   async function handleHide(beatmapId: string) {
     setRecords(prev => prev.filter(r => r.beatmap_id !== beatmapId));
@@ -66,66 +82,104 @@ export default function RecommendationList({ playstyle, avgDifficulty }: Props) 
 
   return (
     <div style={containerStyle}>
+      {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
         <h2 style={headingStyle}>Map Recommendations</h2>
-        <button onClick={handleRefresh} disabled={loading} style={refreshBtnStyle} title="Load next 10 maps">
-          ↻ Refresh
-        </button>
+        {dominant && (
+          <button onClick={() => dominant && fetchRecs(dominant.label, offset, false)}
+            disabled={loading} style={refreshBtnStyle} title="Load more">
+            ↻ More
+          </button>
+        )}
       </div>
       <p style={subtextStyle}>
-        Maps matching your dominant playstyle:{" "}
-        <strong style={{ color: "#ff6b9d" }}>{playstyle}</strong>
-        <span style={{ color: "#636e72", fontSize: 11, marginLeft: 8 }}>right-click a card to hide</span>
+        Based on your play history — analyze first to see personalized recommendations.
       </p>
 
-      {/* Difficulty filter */}
-      <div style={filterRowStyle}>
-        <span style={filterLabelStyle}>Difficulty</span>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#a7a9be", marginBottom: 4 }}>
-            <span>★ 0.1</span>
-            <span style={{ color: "#ff6b9d", fontWeight: 600 }}>
-              ★ {targetStars.toFixed(1)}
-              {appliedStars === null ? (
-                <span style={{ color: "#a7a9be", fontWeight: 400, marginLeft: 5 }}>(Any)</span>
-              ) : appliedStars !== targetStars ? (
-                <span style={{ color: "#fbbf24", fontWeight: 400, marginLeft: 5 }}>(Applied: ★ {appliedStars.toFixed(1)})</span>
-              ) : (
-                <span style={{ color: "#b8e994", fontWeight: 400, marginLeft: 5 }}>(Applied)</span>
-              )}
+      {/* Analyze controls */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
+        <select value={source} onChange={e => setSource(e.target.value as "top" | "recent")}
+          className="osu-select" style={{ fontSize: 12, padding: "6px 28px 6px 10px", width: "auto" }}>
+          <option value="top">Top Plays</option>
+          <option value="recent">Recent Plays</option>
+        </select>
+        <button className="btn-pink" onClick={runAnalysis}
+          disabled={analysisLoading}
+          style={{ fontSize: 12, padding: "7px 16px", opacity: analysisLoading ? 0.5 : 1 }}>
+          {analysisLoading ? "Analyzing…" : "◈ Analyze & Recommend"}
+        </button>
+        {dominant && (
+          <span style={{ fontSize: 12, color: "var(--muted)" }}>
+            Dominant tag: <strong style={{ color: "#ff66aa" }}>{dominant.label}</strong>
+            <span style={{ color: "var(--muted2)", marginLeft: 6 }}>
+              ({dominant.beatmaps_analyzed} maps analyzed)
             </span>
-            <span>★ 15.0</span>
+          </span>
+        )}
+      </div>
+
+      {/* Difficulty + status filters — only shown after analysis */}
+      {dominant && (
+        <>
+          <div style={filterRowStyle}>
+            <span style={filterLabelStyle}>Difficulty</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>
+                <span>★ 0.1</span>
+                <span style={{ color: "#ff66aa", fontWeight: 600 }}>
+                  ★ {targetStars.toFixed(1)}
+                  {appliedStars === null
+                    ? <span style={{ color: "var(--muted)", fontWeight: 400, marginLeft: 5 }}>(Any)</span>
+                    : appliedStars !== targetStars
+                      ? <span style={{ color: "#fbbf24", fontWeight: 400, marginLeft: 5 }}>(Applied: ★{appliedStars.toFixed(1)})</span>
+                      : <span style={{ color: "#b8e994", fontWeight: 400, marginLeft: 5 }}>(Applied)</span>
+                  }
+                </span>
+                <span>★ 15.0</span>
+              </div>
+              <input type="range" min={0.1} max={15.0} step={0.1} value={targetStars}
+                onChange={e => setTargetStars(Number(e.target.value))}
+                style={{ width: "100%", cursor: "pointer" }} />
+            </div>
+            <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+              <button onClick={() => setAppliedStars(targetStars)} style={applyBtnStyle}>Apply</button>
+              {appliedStars != null && (
+                <button onClick={() => setAppliedStars(null)} style={clearBtnStyle}>✕</button>
+              )}
+            </div>
           </div>
-          <input type="range" min={0.1} max={15.0} step={0.1} value={targetStars}
-            onChange={e => setTargetStars(Number(e.target.value))}
-            style={{ width: "100%", accentColor: "#ff6b9d", cursor: "pointer" }} />
-        </div>
-        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-          <button onClick={() => setAppliedStars(targetStars)} style={applyBtnStyle}>Apply</button>
-          {appliedStars != null && (
-            <button onClick={() => setAppliedStars(null)} style={clearBtnStyle}>✕</button>
-          )}
-        </div>
-      </div>
 
-      {/* Status filter */}
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
-        {STATUSES.map(s => (
-          <button key={s} onClick={() => setStatus(status === s ? "" : s)} style={statusBtnStyle(status === s, s)}>
-            {s}
-          </button>
-        ))}
-      </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+            {STATUSES.map(s => (
+              <button key={s} onClick={() => setStatus(status === s ? "" : s)}
+                style={statusBtnStyle(status === s, s)}>
+                {s}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
-      {loading && records.length === 0 && (
-        <p style={{ color: "#a7a9be", fontSize: 13, textAlign: "center", padding: "16px 0" }}>
-          Loading recommendations…
+      {/* States */}
+      {analysisLoading && (
+        <p style={{ color: "var(--muted)", fontSize: 13, textAlign: "center", padding: "20px 0" }}>
+          Fetching play history and running predictions…
         </p>
       )}
       {error && <div style={errorStyle}>{error}</div>}
-      {!loading && !error && records.length === 0 && (
+      {!analysisLoading && !dominant && !error && (
         <div style={emptyStyle}>
-          No recommendations for "{playstyle}" yet. Try predicting more beatmaps first.
+          Press "Analyze &amp; Recommend" to get personalized beatmap suggestions.
+        </div>
+      )}
+      {loading && records.length === 0 && (
+        <p style={{ color: "var(--muted)", fontSize: 13, textAlign: "center", padding: "16px 0" }}>
+          Loading recommendations…
+        </p>
+      )}
+      {!loading && dominant && !error && records.length === 0 && (
+        <div style={emptyStyle}>
+          No recommendations for "{dominant.label}" yet. Try predicting more beatmaps first.
         </div>
       )}
 
@@ -135,7 +189,8 @@ export default function RecommendationList({ playstyle, avgDifficulty }: Props) 
             <BeatmapCard
               key={bm.beatmap_id}
               record={bm}
-              highlightTags={[playstyle]}
+              highlightTags={dominant ? [dominant.label] : []}
+              currentUser={currentUser}
               onHide={handleHide}
               onHideSet={handleHideSet}
               onFindSimilar={setSimilarBeatmap}
@@ -147,13 +202,15 @@ export default function RecommendationList({ playstyle, avgDifficulty }: Props) 
       {similarBeatmap && (
         <SimilarBeatmapPanel
           sourceBeatmap={similarBeatmap}
+          currentUser={currentUser}
           onClose={() => setSimilarBeatmap(null)}
           onFindSimilar={setSimilarBeatmap}
         />
       )}
 
-      {hasMore && (
-        <button onClick={() => fetchRecs(offset, false)} disabled={loading} style={loadMoreStyle}>
+      {hasMore && dominant && (
+        <button onClick={() => fetchRecs(dominant.label, offset, false)}
+          disabled={loading} style={loadMoreStyle}>
           {loading ? "Loading…" : "↓ Load more"}
         </button>
       )}
@@ -161,7 +218,8 @@ export default function RecommendationList({ playstyle, avgDifficulty }: Props) 
   );
 }
 
-// Styles
+// ── Styles ────────────────────────────────────────────────────
+
 const containerStyle: React.CSSProperties = {
   background: "var(--card)", border: "1px solid var(--border)",
   borderRadius: 12, padding: 22, marginTop: 24,
@@ -177,9 +235,7 @@ const filterRowStyle: React.CSSProperties = {
   background: "var(--card2)", border: "1px solid var(--border)",
   borderRadius: 8, padding: "10px 14px", marginBottom: 12,
 };
-const filterLabelStyle: React.CSSProperties = {
-  fontSize: 12, color: "var(--muted)", flexShrink: 0,
-};
+const filterLabelStyle: React.CSSProperties = { fontSize: 12, color: "var(--muted)", flexShrink: 0 };
 const applyBtnStyle: React.CSSProperties = {
   padding: "4px 10px", borderRadius: 6, border: "none",
   background: "linear-gradient(135deg, #ff66aa, #cc3377)",

@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { BeatmapRecord } from "../types";
+import { BeatmapRecord, CurrentUser } from "../types";
 import { getBeatmapsByTags } from "../api";
 import { BeatmapCard } from "./BeatmapCard";
 import { ALL_TAGS } from "../constants";
-import TagVoteModal from "./TagVoteModal";
 import SimilarBeatmapPanel from "./SimilarBeatmapPanel";
 
 const INITIAL_SHOW = 24;
@@ -17,10 +16,10 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 interface Props {
-  requireAuth?: boolean;
+  currentUser?: CurrentUser | null;
 }
 
-export default function BeatmapTagSearch({ requireAuth }: Props) {
+export default function BeatmapTagSearch({ currentUser }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showAll, setShowAll] = useState(false);
   const [targetStars, setTargetStars] = useState(5);
@@ -34,7 +33,6 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [offset, setOffset] = useState(0);
-  const [votingBeatmap, setVotingBeatmap] = useState<BeatmapRecord | null>(null);
   const [similarBeatmap, setSimilarBeatmap] = useState<BeatmapRecord | null>(null);
   const [activeSearch, setActiveSearch] = useState<{
     tags: string[]; minStars?: number; maxStars?: number;
@@ -266,7 +264,7 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
                     key={bm.beatmap_id}
                     record={bm}
                     highlightTags={Array.from(selected)}
-                    onReportWrongTags={setVotingBeatmap}
+                    currentUser={currentUser}
                     onFindSimilar={bm => setSimilarBeatmap(bm)}
                   />
                 ))}
@@ -280,7 +278,7 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
                   {loadingMore ? "Loading…" : "↓ Load more"}
                 </button>
               )}
-              {similarBeatmap && (
+      {similarBeatmap && (
                 <SimilarBeatmapPanel
                   sourceBeatmap={similarBeatmap}
                   onClose={() => setSimilarBeatmap(null)}
@@ -292,12 +290,7 @@ export default function BeatmapTagSearch({ requireAuth }: Props) {
         </div>
       )}
 
-      {votingBeatmap && (
-        <TagVoteModal
-          beatmap={votingBeatmap}
-          onClose={() => setVotingBeatmap(null)}
-        />
-      )}
+      
     </div>
   );
 }

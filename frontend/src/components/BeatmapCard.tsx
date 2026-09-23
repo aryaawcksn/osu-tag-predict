@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { BeatmapRecord } from "../types";
+import { BeatmapRecord, CurrentUser } from "../types";
+import SaveToPlaylistModal from "./SaveToPlaylistModal";
 
 const STATUS_COLOR: Record<string, string> = {
   ranked: "#b8e994", approved: "#b8e994", loved: "#ff66aa",
@@ -53,13 +54,12 @@ interface ContextMenuProps {
   x: number; y: number;
   onHideBeatmap?: () => void;
   onHideBeatmapset?: () => void;
-  onReportWrongTags?: () => void;
   onFindSimilar?: () => void;
   hasBeatmapset: boolean;
   onClose: () => void;
 }
 
-function ContextMenu({ x, y, onHideBeatmap, onHideBeatmapset, onReportWrongTags, onFindSimilar, hasBeatmapset, onClose }: ContextMenuProps) {
+function ContextMenu({ x, y, onHideBeatmap, onHideBeatmapset, onFindSimilar, hasBeatmapset, onClose }: ContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const handleClick = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
@@ -80,7 +80,6 @@ function ContextMenu({ x, y, onHideBeatmap, onHideBeatmapset, onReportWrongTags,
         background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8,
         boxShadow: "0 8px 24px rgba(0,0,0,0.6)", minWidth: menuW, overflow: "hidden" }}>
       {onFindSimilar && <CtxBtn icon="🎯" label="Find Similar Beatmap" onClick={() => { onFindSimilar(); onClose(); }} />}
-      {onReportWrongTags && <CtxBtn icon="⚠️" label="Tags aren't right" onClick={() => { onReportWrongTags(); onClose(); }} />}
       {onHideBeatmap && <CtxBtn icon="🚫" label="Hide this beatmap" onClick={() => { onHideBeatmap(); onClose(); }} />}
       {hasBeatmapset && onHideBeatmapset && <CtxBtn icon="🗂" label="Hide this beatmapset" onClick={() => { onHideBeatmapset!(); onClose(); }} />}
     </div>,
@@ -108,9 +107,11 @@ interface CoverProps {
   beatmapsetId: string | null;
   status: string | null;
   statusCol: string;
+  showSave?: boolean;
+  onSave?: () => void;
 }
 
-function CoverOverlay({ bgImg, beatmapId, beatmapsetId, status, statusCol }: CoverProps) {
+function CoverOverlay({ bgImg, beatmapId, beatmapsetId, status, statusCol, showSave, onSave }: CoverProps) {
   const [hovered, setHovered] = useState(false);
   const [playing, setPlaying] = useState(false);
   const stopRef = useRef<(() => void) | null>(null);
@@ -182,8 +183,8 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, status, statusCol }: Cov
           </button>
         )}
 
-        {/* Link + Download row */}
-        <div style={{ display: "flex", gap: 6 }}>
+        {/* Link + Download + Save row */}
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
           <a href={webUrl} target="_blank" rel="noopener noreferrer"
             onClick={e => e.stopPropagation()}
             title="Open on osu! website"
@@ -203,6 +204,17 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, status, statusCol }: Cov
                 display: "flex", alignItems: "center", gap: 4 }}>
               ⬇ .osz
             </a>
+          )}
+          {showSave && (
+            <button
+              onClick={e => { e.stopPropagation(); onSave?.(); }}
+              title="Save to playlist"
+              style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
+                color: "#fff", cursor: "pointer", backdropFilter: "blur(4px)",
+                display: "flex", alignItems: "center", gap: 4 }}>
+              🔖 Save
+            </button>
           )}
         </div>
       </div>
@@ -226,14 +238,15 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, status, statusCol }: Cov
 interface BeatmapCardProps {
   record: BeatmapRecord;
   highlightTags?: string[];
+  currentUser?: CurrentUser | null;
   onHide?: (beatmapId: string) => void;
   onHideSet?: (beatmapsetId: string) => void;
-  onReportWrongTags?: (record: BeatmapRecord) => void;
   onFindSimilar?: (record: BeatmapRecord) => void;
 }
 
-export function BeatmapCard({ record, highlightTags, onHide, onHideSet, onReportWrongTags, onFindSimilar }: BeatmapCardProps) {
+export function BeatmapCard({ record, highlightTags, currentUser, onHide, onHideSet, onFindSimilar }: BeatmapCardProps) {
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const [showPlaylist, setShowPlaylist] = useState(false);
 
   const title = record.title ?? `Beatmap #${record.beatmap_id}`;
   const stars = record.difficulty_rating;
@@ -248,7 +261,7 @@ export function BeatmapCard({ record, highlightTags, onHide, onHideSet, onReport
   const maxProb = coreLabels[0]?.probability ?? 1;
 
   function handleContextMenu(e: React.MouseEvent) {
-    if (!onHide && !onHideSet && !onReportWrongTags && !onFindSimilar) return;
+    if (!onHide && !onHideSet && !onFindSimilar) return;
     e.preventDefault(); e.stopPropagation();
     setMenu({ x: e.clientX, y: e.clientY });
   }
@@ -269,16 +282,16 @@ export function BeatmapCard({ record, highlightTags, onHide, onHideSet, onReport
         }}
         style={cardStyle}
       >
-        {/* Cover with hover overlay */}
         <CoverOverlay
           bgImg={bgImg}
           beatmapId={record.beatmap_id}
           beatmapsetId={record.beatmapset_id}
           status={record.status}
           statusCol={statusCol}
+          showSave={!!currentUser}
+          onSave={() => setShowPlaylist(true)}
         />
 
-        {/* Body */}
         <div style={bodyStyle}>
           <div style={titleStyle}>{title}</div>
           {record.artist && <div style={artistStyle}>{record.artist}</div>}
@@ -287,7 +300,6 @@ export function BeatmapCard({ record, highlightTags, onHide, onHideSet, onReport
             {record.bpm != null && <span style={{ color: "var(--muted2)" }}> · {fmt(record.bpm, 0)} BPM</span>}
           </div>
 
-          {/* Star + stats */}
           <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginBottom: 8 }}>
             {stars != null && (
               <span style={{ ...starBadgeStyle, color: starCol, borderColor: `${starCol}44`, background: `${starCol}14` }}>
@@ -300,7 +312,6 @@ export function BeatmapCard({ record, highlightTags, onHide, onHideSet, onReport
             {record.object_count != null && <span style={statBadge}>{fmt(record.object_count, 0)} obj</span>}
           </div>
 
-          {/* Tag bars */}
           {coreLabels.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
               {coreLabels.map(l => {
@@ -332,8 +343,15 @@ export function BeatmapCard({ record, highlightTags, onHide, onHideSet, onReport
           onFindSimilar={onFindSimilar ? () => onFindSimilar(record) : undefined}
           onHideBeatmap={onHide ? () => onHide(record.beatmap_id) : undefined}
           onHideBeatmapset={onHideSet && record.beatmapset_id ? () => onHideSet(record.beatmapset_id!) : undefined}
-          onReportWrongTags={onReportWrongTags ? () => onReportWrongTags(record) : undefined}
           onClose={() => setMenu(null)} />
+      )}
+
+      {showPlaylist && currentUser && (
+        <SaveToPlaylistModal
+          beatmapId={record.beatmap_id}
+          beatmapTitle={record.title ?? `Beatmap #${record.beatmap_id}`}
+          onClose={() => setShowPlaylist(false)}
+        />
       )}
     </>
   );

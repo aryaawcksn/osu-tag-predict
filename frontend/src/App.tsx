@@ -3,18 +3,24 @@ import LinkInput from "./components/LinkInput";
 import ResultCard from "./components/ResultCard";
 import NavBar from "./components/NavBar";
 import QueueBar from "./components/QueueBar";
-import AnalysisPanel from "./components/AnalysisPanel";
 import RecommendationList from "./components/RecommendationList";
 import BeatmapTagSearch from "./components/BeatmapTagSearch";
 import ProfilePage from "./components/ProfilePage";
+import PlaylistPage from "./components/PlaylistPage";
 import RelevanceSection from "./components/RelevanceSection";
 import RelabelBanner from "./components/RelabelBanner";
 import BeatmapsThisWeek from "./components/BeatmapsThisWeek";
-import { PredictResult, CurrentUser, QueueState, DominantPlaystyle } from "./types";
+import PublicPlaylists from "./components/PublicPlaylists";
+import { PredictResult, CurrentUser, QueueState } from "./types";
 import {
   getCurrentUser, getQueueState, predictFromLink, predictFromUpload,
   pollJobResult, setSessionToken, clearSessionToken,
 } from "./api";
+
+type Page =
+  | { type: "home" }
+  | { type: "profile" }
+  | { type: "playlist"; username: string };
 
 export default function App() {
   const [result, setResult] = useState<PredictResult | null>(null);
@@ -22,8 +28,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [queueState, setQueueState] = useState<QueueState | null>(null);
-  const [dominantPlaystyle, setDominantPlaystyle] = useState<DominantPlaystyle | null>(null);
-  const [showProfile, setShowProfile] = useState(false);
+  const [page, setPage] = useState<Page>({ type: "home" });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -83,12 +88,40 @@ export default function App() {
     window.location.reload();
   }
 
-  if (showProfile && user) {
+  const nav = (
+    <>
+      <NavBar
+        user={user}
+        onLogout={handleLogout}
+        onProfile={() => setPage({ type: "profile" })}
+      />
+      <RelabelBanner />
+    </>
+  );
+
+  if (page.type === "profile" && user) {
     return (
       <div style={rootStyle}>
-        <NavBar user={user} onLogout={handleLogout} onProfile={() => setShowProfile(false)} />
-        <RelabelBanner />
-        <ProfilePage user={user} onBack={() => setShowProfile(false)} />
+        {nav}
+        <ProfilePage
+          user={user}
+          onBack={() => setPage({ type: "home" })}
+          onOpenPlaylist={u => setPage({ type: "playlist", username: u })}
+        />
+        <InfoTooltip />
+      </div>
+    );
+  }
+
+  if (page.type === "playlist") {
+    return (
+      <div style={rootStyle}>
+        {nav}
+        <PlaylistPage
+          username={page.username}
+          currentUser={user}
+          onBack={() => setPage({ type: "home" })}
+        />
         <InfoTooltip />
       </div>
     );
@@ -96,8 +129,7 @@ export default function App() {
 
   return (
     <div style={rootStyle}>
-      <NavBar user={user} onLogout={handleLogout} onProfile={() => setShowProfile(true)} />
-      <RelabelBanner />
+      {nav}
       <QueueBar />
       <InfoTooltip />
 
@@ -106,7 +138,9 @@ export default function App() {
         <div style={headerStyle}>
           <h1 style={h1Style}>osu! Beatmap Tag Analyzer</h1>
           <p style={subtitleStyle}>
-            Paste a beatmap link or upload a <code style={{ fontFamily: "var(--font-m)", color: "#ff66aa" }}>.osu</code> file to predict its tags.
+            Paste a beatmap link or upload a{" "}
+            <code style={{ fontFamily: "var(--font-m)", color: "#ff66aa" }}>.osu</code>{" "}
+            file to predict its tags.
           </p>
         </div>
 
@@ -133,18 +167,16 @@ export default function App() {
           </p>
         )}
 
-        {error && (
-          <div style={errorStyle}>{error}</div>
-        )}
+        {error && <div style={errorStyle}>{error}</div>}
 
         {result && <ResultCard result={result} />}
-        {result && user && <RelevanceSection result={result} />}
+        {result && user && <RelevanceSection result={result} currentUser={user} />}
 
         {/* Auth gate */}
         {!user && (
           <div className="osu-card" style={{ marginTop: 32, textAlign: "center" }}>
             <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: 16 }}>
-              Log in with your osu! account to unlock playstyle analysis and map recommendations.
+              Log in with your osu! account to unlock map recommendations and playlists.
             </p>
             <a
               href={`${import.meta.env.VITE_API_URL ?? "http://localhost:8000"}/auth/login`}
@@ -157,22 +189,19 @@ export default function App() {
         )}
 
         {user && (
-          <>
-            <AnalysisPanel onPlaystyleResult={setDominantPlaystyle} />
-            {dominantPlaystyle && (
-              <RecommendationList playstyle={dominantPlaystyle.label} avgDifficulty={dominantPlaystyle.avg_difficulty} />
-            )}
-          </>
+          <RecommendationList currentUser={user} />
         )}
 
-        <BeatmapsThisWeek />
-        {user && <BeatmapTagSearch />}
+        <BeatmapsThisWeek currentUser={user} />
+
+        {/* Public playlists section */}
+        <PublicPlaylists onOpenPlaylist={u => setPage({ type: "playlist", username: u })} />
+
+        {user && <BeatmapTagSearch currentUser={user} />}
       </div>
     </div>
   );
 }
-
-// ── Styles ────────────────────────────────────────────────────
 
 const rootStyle: React.CSSProperties = { minHeight: "100vh", background: "var(--bg)", color: "#fff" };
 
@@ -182,36 +211,21 @@ const mainStyle: React.CSSProperties = {
   padding: "36px 24px 80px",
 };
 
-const headerStyle: React.CSSProperties = {
-  textAlign: "center",
-  marginBottom: 36,
-};
+const headerStyle: React.CSSProperties = { textAlign: "center", marginBottom: 36 };
 
 const h1Style: React.CSSProperties = {
   fontFamily: "var(--font-d)",
-  fontSize: 26,
-  fontWeight: 800,
-  color: "#fff",
-  letterSpacing: "0.02em",
-  marginBottom: 8,
+  fontSize: 26, fontWeight: 800, color: "#fff",
+  letterSpacing: "0.02em", marginBottom: 8,
 };
 
-const subtitleStyle: React.CSSProperties = {
-  color: "var(--muted)",
-  fontSize: 14,
-};
+const subtitleStyle: React.CSSProperties = { color: "var(--muted)", fontSize: 14 };
 
 const errorStyle: React.CSSProperties = {
-  marginTop: 16,
-  padding: "11px 16px",
-  background: "#1e0a10",
-  border: "1px solid #7f1d1d",
-  borderRadius: 8,
-  color: "#fca5a5",
-  fontSize: 13,
+  marginTop: 16, padding: "11px 16px",
+  background: "#1e0a10", border: "1px solid #7f1d1d",
+  borderRadius: 8, color: "#fca5a5", fontSize: 13,
 };
-
-// ── Info tooltip ──────────────────────────────────────────────
 
 function InfoTooltip() {
   const [visible, setVisible] = useState(false);
@@ -222,27 +236,18 @@ function InfoTooltip() {
       onMouseLeave={() => setVisible(false)}
     >
       {visible && (
-        <div style={tooltipBoxStyle}>
+        <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8,
+          padding: "10px 14px", fontSize: 12, color: "var(--muted)", maxWidth: 240, lineHeight: 1.5,
+          boxShadow: "0 4px 16px rgba(0,0,0,0.4)" }}>
           Analysis results are not 100% accurate. Your contributions when rating beatmaps
           in osu!lazer will greatly help improve the model.
         </div>
       )}
-      <div style={tooltipBtnStyle}>i</div>
+      <div style={{ width: 26, height: 26, borderRadius: "50%", background: "var(--card)",
+        border: "1px solid var(--border)", color: "var(--muted)", fontSize: 12, fontWeight: 700,
+        display: "flex", alignItems: "center", justifyContent: "center", cursor: "default", userSelect: "none" }}>
+        i
+      </div>
     </div>
   );
 }
-
-const tooltipBtnStyle: React.CSSProperties = {
-  width: 26, height: 26, borderRadius: "50%",
-  background: "var(--card)", border: "1px solid var(--border)",
-  color: "var(--muted)", fontSize: 12, fontWeight: 700,
-  display: "flex", alignItems: "center", justifyContent: "center",
-  cursor: "default", userSelect: "none",
-};
-
-const tooltipBoxStyle: React.CSSProperties = {
-  background: "var(--card)", border: "1px solid var(--border)",
-  borderRadius: 8, padding: "10px 14px",
-  fontSize: 12, color: "var(--muted)", maxWidth: 240, lineHeight: 1.5,
-  boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
-};

@@ -1,13 +1,14 @@
 import { useState } from "react";
-import { BeatmapRecord, LabelResult, PredictResult } from "../types";
+import { BeatmapRecord, LabelResult, PredictResult, CurrentUser } from "../types";
 import { getBeatmapsByRelevance } from "../api";
 import { BeatmapCard } from "./BeatmapCard";
 
 interface Props {
   result: PredictResult;
+  currentUser?: CurrentUser | null;
 }
 
-export default function RelevanceSection({ result }: Props) {
+export default function RelevanceSection({ result, currentUser }: Props) {
   const [open, setOpen] = useState(false);
   const [records, setRecords] = useState<BeatmapRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -126,7 +127,7 @@ export default function RelevanceSection({ result }: Props) {
               </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
                 {records.map(bm => (
-                  <BeatmapCard key={bm.beatmap_id} record={bm} highlightTags={topLabels.map(l => l.label)} />
+                  <BeatmapCard key={bm.beatmap_id} record={bm} highlightTags={topLabels.map(l => l.label)} currentUser={currentUser} />
                 ))}
               </div>
               {hasMore && (

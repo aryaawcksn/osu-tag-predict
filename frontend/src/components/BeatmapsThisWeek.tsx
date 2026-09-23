@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { BeatmapRecord } from "../types";
+import { BeatmapRecord, CurrentUser } from "../types";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -70,7 +70,7 @@ function starColor(stars?: number | null): string {
 
 // ── Main section ─────────────────────────────────────────────
 
-export default function BeatmapsThisWeek() {
+export default function BeatmapsThisWeek({ currentUser }: { currentUser?: CurrentUser | null }) {
   const [data, setData] = useState<ThisWeekResponse | null>(null);
   const [loading, setLoading] = useState(true);
 

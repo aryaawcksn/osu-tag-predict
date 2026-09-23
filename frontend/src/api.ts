@@ -248,3 +248,64 @@ export async function getUserBeatmapVotes(
 }
 
 
+
+// ── Playlist API ──────────────────────────────────────────────────────────────
+
+import { Playlist } from "./types";
+
+export async function getPublicPlaylists(offset = 0): Promise<{ playlists: Playlist[]; has_more: boolean }> {
+  const res = await fetch(`${BASE_URL}/playlists/public?offset=${offset}`);
+  return handleResponse(res);
+}
+
+export async function getMyPlaylists(): Promise<{ playlists: Playlist[] }> {
+  const res = await fetch(`${BASE_URL}/playlists/my`, {
+    headers: { ...authHeaders() }, credentials: "include",
+  });
+  return handleResponse(res);
+}
+
+export async function getUserPlaylists(username: string): Promise<{ owner: { username: string; avatar_url?: string; osu_id: number }; playlists: Playlist[] }> {
+  const res = await fetch(`${BASE_URL}/playlists/user/${encodeURIComponent(username)}`, {
+    headers: { ...authHeaders() }, credentials: "include",
+  });
+  return handleResponse(res);
+}
+
+export async function createPlaylist(name: string, isPublic = false): Promise<Playlist> {
+  const res = await fetch(`${BASE_URL}/playlists`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    credentials: "include",
+    body: JSON.stringify({ name, is_public: isPublic }),
+  });
+  return handleResponse(res);
+}
+
+export async function updatePlaylist(id: number, patch: { name?: string; is_public?: boolean }): Promise<Playlist> {
+  const res = await fetch(`${BASE_URL}/playlists/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    credentials: "include",
+    body: JSON.stringify(patch),
+  });
+  return handleResponse(res);
+}
+
+export async function deletePlaylist(id: number): Promise<void> {
+  await fetch(`${BASE_URL}/playlists/${id}`, {
+    method: "DELETE", headers: { ...authHeaders() }, credentials: "include",
+  });
+}
+
+export async function addToPlaylist(playlistId: number, beatmapId: string): Promise<void> {
+  await fetch(`${BASE_URL}/playlists/${playlistId}/items/${beatmapId}`, {
+    method: "POST", headers: { ...authHeaders() }, credentials: "include",
+  });
+}
+
+export async function removeFromPlaylist(playlistId: number, beatmapId: string): Promise<void> {
+  await fetch(`${BASE_URL}/playlists/${playlistId}/items/${beatmapId}`, {
+    method: "DELETE", headers: { ...authHeaders() }, credentials: "include",
+  });
+}

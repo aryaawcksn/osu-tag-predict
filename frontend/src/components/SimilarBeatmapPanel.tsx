@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
-import { BeatmapRecord, LabelResult } from "../types";
+import { BeatmapRecord, LabelResult, CurrentUser } from "../types";
 import { getBeatmapsByRelevance } from "../api";
 import { BeatmapCard } from "./BeatmapCard";
 
 interface Props {
   sourceBeatmap: BeatmapRecord;
+  currentUser?: CurrentUser | null;
   onClose: () => void;
   onFindSimilar: (record: BeatmapRecord) => void;
 }
 
-export default function SimilarBeatmapPanel({ sourceBeatmap, onClose, onFindSimilar }: Props) {
+export default function SimilarBeatmapPanel({ sourceBeatmap, currentUser, onClose, onFindSimilar }: Props) {
   const [records, setRecords] = useState<BeatmapRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -114,8 +115,13 @@ export default function SimilarBeatmapPanel({ sourceBeatmap, onClose, onFindSimi
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
             {records.map(bm => (
-              <BeatmapCard key={bm.beatmap_id} record={bm}
-                highlightTags={topLabels.map(l => l.label)} onFindSimilar={onFindSimilar} />
+              <BeatmapCard
+                key={bm.beatmap_id}
+                record={bm}
+                highlightTags={topLabels.map(l => l.label)}
+                currentUser={currentUser}
+                onFindSimilar={onFindSimilar}
+              />
             ))}
           </div>
           {hasMore && (
