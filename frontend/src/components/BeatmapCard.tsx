@@ -104,25 +104,30 @@ interface CoverProps {
   bgImg: string | null;
   beatmapId: string;
   beatmapsetId: string | null;
+  title?: string | null;
+  artist?: string | null;
   status: string | null;
   statusCol: string;
   showSave?: boolean;
   onSave?: () => void;
 }
 
-function CoverOverlay({ bgImg, beatmapId, beatmapsetId, status, statusCol, showSave, onSave }: CoverProps) {
+function CoverOverlay({ bgImg, beatmapId, beatmapsetId, title, artist, status, statusCol, showSave, onSave }: CoverProps) {
   const [hovered, setHovered] = useState(false);
   const [playing, setPlaying] = useState(false);
   const stopRef = useRef<(() => void) | null>(null);
 
   const previewUrl = beatmapsetId ? `https://b.ppy.sh/preview/${beatmapsetId}.mp3` : null;
-  // Open the specific diff page on osu! website
   const webUrl = beatmapsetId
     ? `https://osu.ppy.sh/beatmapsets/${beatmapsetId}#osu/${beatmapId}`
     : `https://osu.ppy.sh/beatmaps/${beatmapId}`;
-  // Proxy download via our backend (avoids osu! session cookie requirement)
-  const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
-  const dlUrl = beatmapsetId ? `${BASE_URL}/proxy/download/${beatmapsetId}` : null;
+  // Proxy download — pass title/artist for a clean filename
+  const dlParams = new URLSearchParams();
+  if (title) dlParams.set("title", title);
+  if (artist) dlParams.set("artist", artist);
+  const dlUrl = beatmapsetId
+    ? `${BASE_URL}/proxy/download/${beatmapsetId}?${dlParams}`
+    : null;
 
   const togglePlay = useCallback((e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
@@ -199,7 +204,7 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, status, statusCol, showS
             <IconExternalLink size={12} strokeWidth={2.5} /> osu!
           </a>
           {dlUrl && (
-            <a href={dlUrl} target="_blank" rel="noopener noreferrer"
+            <a href={dlUrl}
               onClick={e => e.stopPropagation()}
               title="Download .osz"
               style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
@@ -290,6 +295,8 @@ export function BeatmapCard({ record, highlightTags, currentUser, onHide, onHide
           bgImg={bgImg}
           beatmapId={record.beatmap_id}
           beatmapsetId={record.beatmapset_id}
+          title={record.title}
+          artist={record.artist}
           status={record.status}
           statusCol={statusCol}
           showSave={!!currentUser}

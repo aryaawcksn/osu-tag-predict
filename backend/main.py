@@ -209,12 +209,17 @@ async def get_stats():
 # --------------------------------------------------------------------------- #
 
 @app.get("/proxy/download/{beatmapset_id}")
-async def proxy_download(beatmapset_id: str):
+async def proxy_download(
+    beatmapset_id: str,
+    title: Optional[str] = Query(None),
+    artist: Optional[str] = Query(None),
+):
     """
     Proxy .osz download via public mirrors (no auth required).
     Tries chimu.moe first, falls back to beatconnect.
     """
     import httpx
+    import re as _re
     from fastapi.responses import StreamingResponse
 
     mirrors = [
@@ -251,7 +256,18 @@ async def proxy_download(beatmapset_id: str):
             await resp.aclose()
             await client.aclose()
 
-    headers = {"Content-Disposition": f'attachment; filename="{beatmapset_id}.osz"'}
+    # Build a clean filename: "artist - title (id).osz"
+    def _safe(s: str) -> str:
+        return _re.sub(r'[\\/*?:"<>|]', "", s).strip()[:80]
+
+    if title and artist:
+        fname = f"{_safe(artist)} - {_safe(title)} ({beatmapset_id}).osz"
+    elif title:
+        fname = f"{_safe(title)} ({beatmapset_id}).osz"
+    else:
+        fname = f"{beatmapset_id}.osz"
+
+    headers = {"Content-Disposition": f'attachment; filename="{fname}"'}
     if "content-length" in resp.headers:
         headers["Content-Length"] = resp.headers["content-length"]
 

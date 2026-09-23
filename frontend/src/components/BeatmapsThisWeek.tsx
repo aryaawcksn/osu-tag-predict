@@ -175,7 +175,10 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
   const [showPlaylist, setShowPlaylist] = useState(false);
   const stopRef = useRef<(() => void) | null>(null);
   const previewUrl = `https://b.ppy.sh/preview/${set.beatmapset_id}.mp3`;
-  const dlUrl = `${BASE_URL}/proxy/download/${set.beatmapset_id}`;
+  const dlParams = new URLSearchParams();
+  if (set.title) dlParams.set("title", set.title);
+  if (set.artist) dlParams.set("artist", set.artist);
+  const dlUrl = `${BASE_URL}/proxy/download/${set.beatmapset_id}?${dlParams}`;
   const webUrl = diff
     ? `https://osu.ppy.sh/beatmapsets/${set.beatmapset_id}#osu/${diff.beatmap_id}`
     : `https://osu.ppy.sh/beatmapsets/${set.beatmapset_id}`;
@@ -242,7 +245,7 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
                 display: "flex", alignItems: "center", gap: 4 }}>
               <IconExternalLink size={12} strokeWidth={2.5} /> osu!
             </a>
-            <a href={dlUrl} target="_blank" rel="noopener noreferrer"
+            <a href={dlUrl}
               onClick={e => e.stopPropagation()} title="Download .osz"
               style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                 background: "rgba(255,102,170,0.75)", border: "1px solid rgba(255,102,170,0.5)",
