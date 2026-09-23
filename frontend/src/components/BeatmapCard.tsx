@@ -183,7 +183,7 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, status, statusCol, showS
               background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
               color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
               display: "flex", alignItems: "center", gap: 4 }}>
-            🌐 osu!
+            osu!
           </a>
           {dlUrl && (
             <a href={dlUrl} target="_blank" rel="noopener noreferrer"
@@ -193,7 +193,7 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, status, statusCol, showS
                 background: "rgba(255,102,170,0.75)", border: "1px solid rgba(255,102,170,0.5)",
                 color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
                 display: "flex", alignItems: "center", gap: 4 }}>
-              ⬇ .osz
+              .osz
             </a>
           )}
           {showSave && (
@@ -204,7 +204,7 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, status, statusCol, showS
                 background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
                 color: "#fff", cursor: "pointer", backdropFilter: "blur(4px)",
                 display: "flex", alignItems: "center", gap: 4 }}>
-              🔖 Save
+              Save
             </button>
           )}
         </div>
