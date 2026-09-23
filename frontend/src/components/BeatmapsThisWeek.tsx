@@ -60,16 +60,6 @@ function fmtDateRange(start: string, end: string) {
   return `${M[s.getMonth()]} ${s.getDate()} – ${M[e.getMonth()]} ${e.getDate()}, ${e.getFullYear()}`;
 }
 
-function starColor(stars?: number | null): string {
-  if (!stars) return "var(--muted)";
-  if (stars < 2)   return "#88d8b0";
-  if (stars < 3)   return "#6bcfff";
-  if (stars < 4.5) return "#ffd700";
-  if (stars < 6)   return "#ff9a56";
-  if (stars < 7.5) return "#ff66aa";
-  return "#c084fc";
-}
-
 // ── Main section ─────────────────────────────────────────────
 
 export default function BeatmapsThisWeek({ currentUser }: { currentUser?: CurrentUser | null }) {
