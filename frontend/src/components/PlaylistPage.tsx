@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Playlist, CurrentUser } from "../types";
-import { getUserPlaylists, createPlaylist, deletePlaylist, updatePlaylist } from "../api";
+import { getUserPlaylists, createPlaylist, deletePlaylist, updatePlaylist, removeFromPlaylist } from "../api";
 import { BeatmapCard } from "./BeatmapCard";
 
 interface Props {
@@ -70,6 +70,15 @@ export default function PlaylistPage({ username, currentUser, onBack }: Props) {
   async function handleTogglePublic(pl: Playlist) {
     const updated = await updatePlaylist(pl.id, { is_public: !pl.is_public }).catch(() => null);
     if (updated) setPlaylists(prev => prev.map(p => p.id === pl.id ? updated : p));
+  }
+
+  async function handleUnsave(playlistId: number, beatmapId: string) {
+    await removeFromPlaylist(playlistId, beatmapId).catch(() => {});
+    setPlaylists(prev => prev.map(p => p.id !== playlistId ? p : {
+      ...p,
+      item_count: p.item_count - 1,
+      beatmaps: p.beatmaps.filter(b => b.beatmap_id !== beatmapId),
+    }));
   }
 
   return (
@@ -208,7 +217,12 @@ export default function PlaylistPage({ username, currentUser, onBack }: Props) {
                     <DiffDistribution distribution={activePl.diff_distribution ?? []} />
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
                       {activePl.beatmaps.map(bm => (
-                        <BeatmapCard key={bm.beatmap_id} record={bm} />
+                        <BeatmapCard
+                          key={bm.beatmap_id}
+                          record={bm}
+                          currentUser={currentUser}
+                          onUnsave={isOwner ? (id) => handleUnsave(activePl.id, id) : undefined}
+                        />
                       ))}
                     </div>
                   </>

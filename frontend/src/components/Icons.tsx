@@ -43,6 +43,15 @@ export function IconBookmark({ size = 14, strokeWidth = 2.5, style }: IconProps)
   </>, style);
 }
 
+/** Bookmark with X / unsave */
+export function IconBookmarkX({ size = 14, strokeWidth = 2.5, style }: IconProps) {
+  return base(size, strokeWidth, <>
+    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+    <line x1="9" y1="9" x2="15" y2="15" />
+    <line x1="15" y1="9" x2="9" y2="15" />
+  </>, style);
+}
+
 /** Target / find similar */
 export function IconTarget({ size = 14, strokeWidth = 2.5, style }: IconProps) {
   return base(size, strokeWidth, <>
