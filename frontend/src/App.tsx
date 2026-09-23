@@ -17,10 +17,28 @@ import {
   pollJobResult, setSessionToken, clearSessionToken,
 } from "./api";
 
+// ── Hash-based router ─────────────────────────────────────────────────────────
+
 type Page =
   | { type: "home" }
   | { type: "profile" }
   | { type: "playlist"; username: string };
+
+function parsePage(): Page {
+  const hash = window.location.hash; // e.g. "#/profile" or "#/playlist/peppy"
+  if (hash === "#/profile") return { type: "profile" };
+  const m = hash.match(/^#\/playlist\/(.+)$/);
+  if (m) return { type: "playlist", username: decodeURIComponent(m[1]) };
+  return { type: "home" };
+}
+
+function navigate(page: Page) {
+  if (page.type === "home") window.location.hash = "";
+  else if (page.type === "profile") window.location.hash = "/profile";
+  else window.location.hash = `/playlist/${encodeURIComponent(page.username)}`;
+}
+
+// ── App ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
   const [result, setResult] = useState<PredictResult | null>(null);
@@ -28,11 +46,23 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [queueState, setQueueState] = useState<QueueState | null>(null);
-  const [page, setPage] = useState<Page>({ type: "home" });
+  const [page, setPageState] = useState<Page>(parsePage);
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     const saved = localStorage.getItem("theme");
     return saved === "light" ? "light" : "dark";
   });
+
+  // Sync page state ↔ hash
+  function setPage(p: Page) {
+    navigate(p);
+    setPageState(p);
+  }
+
+  useEffect(() => {
+    const onHashChange = () => setPageState(parsePage());
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle("light", theme === "light");
@@ -135,7 +165,7 @@ export default function App() {
         <PlaylistPage
           username={page.username}
           currentUser={user}
-          onBack={() => setPage({ type: "home" })}
+          onBack={() => window.history.back()}
         />
         <InfoTooltip />
       </div>
@@ -149,7 +179,6 @@ export default function App() {
       <InfoTooltip />
 
       <div style={mainStyle}>
-        {/* Header */}
         <div style={headerStyle}>
           <h1 style={h1Style}>osu! Beatmap Tag Collection</h1>
           <p style={subtitleStyle}>
@@ -159,14 +188,12 @@ export default function App() {
           </p>
         </div>
 
-        {/* Queue full notice */}
         {queueFull && (
           <div className="osu-card" style={{ borderColor: "rgba(146,64,14,0.6)", background: "#1c1206", color: "#fbbf24", fontSize: 13, textAlign: "center", marginBottom: 16 }}>
             Queue is full (5/5 slots). New predictions are temporarily disabled.
           </div>
         )}
 
-        {/* Input */}
         <LinkInput
           onLinkSubmit={handleLinkSubmit}
           onFileSubmit={handleFileSubmit}
@@ -187,7 +214,6 @@ export default function App() {
         {result && <ResultCard result={result} />}
         {result && user && <RelevanceSection result={result} currentUser={user} />}
 
-        {/* Auth gate */}
         {!user && (
           <div className="osu-card" style={{ marginTop: 32, textAlign: "center" }}>
             <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: 16 }}>
@@ -203,13 +229,10 @@ export default function App() {
           </div>
         )}
 
-        {user && (
-          <RecommendationList currentUser={user} />
-        )}
+        {user && <RecommendationList currentUser={user} />}
 
         <BeatmapsThisWeek currentUser={user} />
 
-        {/* Public playlists section */}
         <PublicPlaylists onOpenPlaylist={u => setPage({ type: "playlist", username: u })} />
 
         {user && <BeatmapTagSearch currentUser={user} />}
@@ -218,7 +241,7 @@ export default function App() {
   );
 }
 
-const rootStyle: React.CSSProperties = { minHeight: "100vh", background: "var(--bg)", color: "#fff" };
+const rootStyle: React.CSSProperties = { minHeight: "100vh", background: "var(--bg)", color: "var(--text)" };
 
 const mainStyle: React.CSSProperties = {
   maxWidth: 1280,
@@ -230,7 +253,7 @@ const headerStyle: React.CSSProperties = { textAlign: "center", marginBottom: 36
 
 const h1Style: React.CSSProperties = {
   fontFamily: "var(--font-d)",
-  fontSize: 26, fontWeight: 800, color: "#fff",
+  fontSize: 26, fontWeight: 800, color: "var(--text)",
   letterSpacing: "0.02em", marginBottom: 8,
 };
 
