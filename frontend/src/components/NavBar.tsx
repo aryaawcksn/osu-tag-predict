@@ -24,9 +24,9 @@ export default function NavBar({ user, onLogout, onProfile, theme, onToggleTheme
         <img
           src="/favicon.png"
           alt="Bullet"
-          style={{ width: "12px", height: "12px", objectFit: "contain" }}
+          style={{ width: "24px", height: "24px", objectFit: "contain" }}
         />
-        <span style={logoTextStyle}>osu! Tag Collection</span>
+        <span style={logoTextStyle}>osu!BTC</span>
       </div>
 
       {/* Right */}

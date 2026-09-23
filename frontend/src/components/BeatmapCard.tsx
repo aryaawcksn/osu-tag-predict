@@ -367,7 +367,7 @@ const bodyStyle: React.CSSProperties = {
 };
 
 const titleStyle: React.CSSProperties = {
-  fontFamily: "var(--font-d)", fontWeight: 800, fontSize: 14, color: "#fff",
+  fontFamily: "var(--font-d)", fontWeight: 800, fontSize: 14, color: "var(--text)",
   lineHeight: 1.25, marginBottom: 2,
   whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
 };
@@ -390,6 +390,6 @@ const starBadgeStyle: React.CSSProperties = {
 const statBadge: React.CSSProperties = {
   fontFamily: "var(--font-m)", fontSize: 10,
   padding: "2px 6px", borderRadius: 4,
-  background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-  color: "#c0c0d0",
+  background: "var(--stat-bg)", border: "1px solid var(--stat-border)",
+  color: "var(--stat-color)",
 };

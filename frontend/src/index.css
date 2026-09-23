@@ -3,7 +3,26 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ── Dark theme (default) ─────────────────────────────────── */
+/* ── Light theme ──────────────────────────────────────────── */
+:root.light {
+  --bg:        #ece9f5;
+  --card:      #f8f6ff;
+  --card2:     #eeeaf8;
+  --border:    rgba(120, 80, 180, 0.22);
+  --border-h:  rgba(180, 30, 100, 0.5);
+  --pink:      #b02060;
+  --pink-dim:  #7a1040;
+  --muted:     #4a4a62;
+  --muted2:    #707088;
+  --text:      #16121e;
+  --text-inv:  #ffffff;
+  --stat-bg:   rgba(0, 0, 0, 0.06);
+  --stat-border: rgba(0, 0, 0, 0.12);
+  --stat-color: #3a3a52;
+  --overlay-bg: rgba(255,255,255,0.72);
+}
+
+/* ── Dark theme extra vars (keep parity) ──────────────────── */
 :root {
   --bg:        #0d0b14;
   --card:      #1a1726;
@@ -15,22 +34,13 @@
   --muted:     #a0a0b0;
   --muted2:    #6b6b80;
   --text:      #ffffff;
+  --text-inv:  #ffffff;
+  --stat-bg:   rgba(255,255,255,0.05);
+  --stat-border: rgba(255,255,255,0.1);
+  --stat-color: #c0c0d0;
+  --overlay-bg: rgba(0,0,0,0.65);
   --font-d:    'Exo 2', sans-serif;
   --font-m:    'JetBrains Mono', monospace;
-}
-
-/* ── Light theme ──────────────────────────────────────────── */
-:root.light {
-  --bg:        #f0eef8;
-  --card:      #ffffff;
-  --card2:     #f5f3fc;
-  --border:    rgba(140, 100, 200, 0.2);
-  --border-h:  rgba(204, 51, 119, 0.45);
-  --pink:      #cc3377;
-  --pink-dim:  #991155;
-  --muted:     #5a5a72;
-  --muted2:    #888898;
-  --text:      #1a1726;
 }
 
 html {
@@ -62,7 +72,7 @@ a { color: var(--pink); }
 /* ── Input / Select ──────────────────────────────────────── */
 .osu-input, .osu-select {
   background: var(--card2);
-  border: 1px solid rgba(180,130,220,0.25);
+  border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text);
   font-size: 13px;
@@ -115,7 +125,7 @@ a { color: var(--pink); }
 
 /* ── Tag chip ────────────────────────────────────────────── */
 .tag-chip {
-  border: 1px solid rgba(180,130,220,0.25);
+  border: 1px solid var(--border);
   border-radius: 6px;
   color: var(--muted);
   cursor: pointer;
@@ -123,9 +133,9 @@ a { color: var(--pink); }
   font-size: 11px;
   padding: 4px 10px;
   transition: all 0.12s;
-  background: rgba(255,255,255,0.03);
+  background: var(--stat-bg);
 }
-.tag-chip:hover { border-color: var(--border-h); color: #fff; }
+.tag-chip:hover { border-color: var(--border-h); color: var(--text); }
 .tag-chip.active {
   background: rgba(255,102,170,0.14);
   border-color: var(--pink);
@@ -173,7 +183,7 @@ input[type='range']::-moz-range-thumb {
 
 /* ── Section heading ─────────────────────────────────────── */
 .section-title {
-  color: #fff;
+  color: var(--text);
   font-family: var(--font-d);
   font-size: 17px;
   font-weight: 800;
@@ -188,4 +198,41 @@ input[type='range']::-moz-range-thumb {
 @keyframes eq-bar {
   from { transform: scaleY(0.3); }
   to   { transform: scaleY(1); }
+}
+
+/* ── Light theme component overrides ─────────────────────── */
+
+/* Cards that hardcode dark backgrounds in inline styles */
+:root.light .osu-card {
+  box-shadow: 0 2px 8px rgba(100, 60, 160, 0.08);
+}
+
+/* stat badges in BeatmapCard / BeatmapsThisWeek use hardcoded rgba whites */
+:root.light [data-stat-badge] {
+  background: var(--stat-bg) !important;
+  border-color: var(--stat-border) !important;
+  color: var(--stat-color) !important;
+}
+
+/* Section headings that hardcode #fff */
+:root.light h1, :root.light h2 {
+  color: var(--text);
+}
+
+/* Cover gradient needs to bleed into light card colour */
+:root.light .cover-gradient {
+  background: linear-gradient(to bottom, transparent 30%, var(--card) 100%);
+}
+
+/* Context menu and modals */
+:root.light [data-ctx-menu] {
+  box-shadow: 0 8px 24px rgba(80, 40, 120, 0.18);
+}
+
+/* Scrollbar tint for light */
+:root.light {
+  scrollbar-color: rgba(180, 30, 100, 0.25) transparent;
+}
+:root.light ::-webkit-scrollbar-thumb {
+  background: rgba(180, 30, 100, 0.2);
 }

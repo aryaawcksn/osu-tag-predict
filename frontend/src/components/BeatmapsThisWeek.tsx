@@ -79,7 +79,7 @@ export default function BeatmapsThisWeek({ currentUser }: { currentUser?: Curren
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 3 }}>
-            <h2 style={{ fontFamily: "var(--font-d)", fontSize: 18, fontWeight: 800, color: "#fff", margin: 0 }}>
+            <h2 style={{ fontFamily: "var(--font-d)", fontSize: 18, fontWeight: 800, color: "var(--text)", margin: 0 }}>
               {data.is_fallback ? "Recent Beatmaps" : "Beatmap This Week"}
             </h2>
             {!data.is_fallback && (
@@ -220,7 +220,7 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
 
         {/* Body */}
         <div style={{ padding: "12px 14px 0", flex: 1 }}>
-          <div style={{ fontFamily: "var(--font-d)", fontWeight: 800, fontSize: 14, color: "#fff",
+          <div style={{ fontFamily: "var(--font-d)", fontWeight: 800, fontSize: 14, color: "var(--text)",
             lineHeight: 1.25, marginBottom: 2,
             whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {set.title ?? `Beatmapset #${set.beatmapset_id}`}
@@ -336,6 +336,6 @@ const cardStyle: React.CSSProperties = {
 const statBadge: React.CSSProperties = {
   fontFamily: "var(--font-m)", fontSize: 10,
   padding: "2px 6px", borderRadius: 4,
-  background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-  color: "#c0c0d0",
+  background: "var(--stat-bg)", border: "1px solid var(--stat-border)",
+  color: "var(--stat-color)",
 };
