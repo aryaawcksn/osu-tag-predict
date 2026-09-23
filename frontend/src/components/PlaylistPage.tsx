@@ -9,7 +9,18 @@ interface Props {
   onBack: () => void;
 }
 
+function useIsMobile() {
+  const [mobile, setMobile] = useState(() => window.innerWidth < 640);
+  useEffect(() => {
+    const fn = () => setMobile(window.innerWidth < 640);
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, []);
+  return mobile;
+}
+
 export default function PlaylistPage({ username, currentUser, onBack }: Props) {
+  const isMobile = useIsMobile();
   const [owner, setOwner] = useState<{ username: string; avatar_url?: string; osu_id: number } | null>(null);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,7 +89,7 @@ export default function PlaylistPage({ username, currentUser, onBack }: Props) {
             <div style={{ width: 72, height: 72, borderRadius: "50%",
               background: "rgba(255,102,170,0.2)", margin: "0 auto 12px" }} />
           )}
-          <h1 style={{ fontFamily: "var(--font-d)", fontSize: 22, fontWeight: 800, color: "#fff", margin: 0 }}>
+          <h1 style={{ fontFamily: "var(--font-d)", fontSize: 22, fontWeight: 800, color: "var(--text)", margin: 0 }}>
             {owner.username}'s Playlists
           </h1>
           {globalTopTags.length > 0 && (
@@ -101,7 +112,12 @@ export default function PlaylistPage({ username, currentUser, onBack }: Props) {
       {loading && <p style={{ textAlign: "center", color: "var(--muted)", fontSize: 13 }}>Loading…</p>}
 
       {!loading && (
-        <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 20, alignItems: "start" }}>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: isMobile ? "1fr" : "220px 1fr",
+          gap: isMobile ? 16 : 20,
+          alignItems: "start",
+        }}>
           {/* Sidebar: playlist list */}
           <div>
             {isOwner && (
@@ -136,12 +152,12 @@ export default function PlaylistPage({ username, currentUser, onBack }: Props) {
                         style={{ display: "block", width: "100%", padding: "10px 12px",
                           background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}>
                         <div style={{ fontFamily: "var(--font-d)", fontSize: 13, fontWeight: 700,
-                          color: active ? "#ff66aa" : "#fff",
+                          color: active ? "var(--pink)" : "var(--text)",
                           whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                           {pl.name}
                         </div>
                         <div style={{ fontSize: 10, color: "var(--muted2)", marginTop: 2 }}>
-                          {pl.item_count} maps · {pl.is_public ? "🌐 Public" : "🔒 Private"}
+                          {pl.item_count} maps · {pl.is_public ? "Public" : "Private"}
                         </div>
                       </button>
                       {isOwner && (
@@ -172,7 +188,7 @@ export default function PlaylistPage({ username, currentUser, onBack }: Props) {
             {activePl ? (
               <>
                 <div style={{ marginBottom: 16 }}>
-                  <h2 style={{ fontFamily: "var(--font-d)", fontSize: 18, fontWeight: 800, color: "#fff", margin: 0 }}>
+                  <h2 style={{ fontFamily: "var(--font-d)", fontSize: 18, fontWeight: 800, color: "var(--text)", margin: 0 }}>
                     {activePl.name}
                   </h2>
                   <p style={{ fontSize: 12, color: "var(--muted2)", marginTop: 3 }}>

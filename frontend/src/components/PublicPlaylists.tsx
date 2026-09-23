@@ -62,7 +62,7 @@ function PlaylistCard({ playlist: pl, onOpen }: { playlist: Playlist; onOpen: ()
       {/* Body */}
       <div style={{ padding: "12px 14px 14px" }}>
         {/* Playlist name */}
-        <div style={{ fontFamily: "var(--font-d)", fontWeight: 800, fontSize: 14, color: "#fff",
+        <div style={{ fontFamily: "var(--font-d)", fontWeight: 800, fontSize: 14, color: "var(--text)",
           marginBottom: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {pl.name}
         </div>
@@ -96,25 +96,47 @@ function PlaylistCard({ playlist: pl, onOpen }: { playlist: Playlist; onOpen: ()
           </div>
         )}
 
-        {/* Compact diff distribution */}
+        {/* Diff distribution bar chart */}
         {pl.diff_distribution && pl.diff_distribution.length > 0 && (
-          <div style={{ display: "flex", gap: 3, alignItems: "center", flexWrap: "wrap" }}>
-            {pl.diff_distribution.map(d => (
-              <span key={d.range} title={`${d.range}: ${d.count} maps`}
-                style={{ fontSize: 9, padding: "2px 6px", borderRadius: 4, fontFamily: "var(--font-m)",
-                  background: `${d.color}18`, border: `1px solid ${d.color}55`, color: d.color }}>
-                {d.range} ×{d.count}
-              </span>
-            ))}
-          </div>
+          <MiniDiffChart distribution={pl.diff_distribution} />
         )}
       </div>
     </div>
   );
 }
 
-function CoverMosaic({ covers }: { covers: string[] }) {
-  const filled = [...covers, ...Array(4).fill(null)].slice(0, 4);
+function MiniDiffChart({ distribution }: { distribution: { range: string; count: number; color: string }[] }) {
+  const max = Math.max(...distribution.map(d => d.count), 1);
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 36, marginTop: 4 }}>
+      {distribution.map(d => {
+        const hasAny = d.count > 0;
+        const heightPct = hasAny ? Math.max((d.count / max) * 100, 10) : 4;
+        return (
+          <div key={d.range} title={`${d.range}: ${d.count} map${d.count !== 1 ? "s" : ""}`}
+            style={{ flex: 1, display: "flex", flexDirection: "column",
+              alignItems: "center", gap: 2, height: "100%", justifyContent: "flex-end" }}>
+            <div style={{
+              width: "100%", borderRadius: "2px 2px 0 0",
+              height: `${heightPct}%`,
+              background: hasAny ? `${d.color}55` : "rgba(255,255,255,0.04)",
+              border: `1px solid ${hasAny ? d.color + "70" : "rgba(255,255,255,0.07)"}`,
+              position: "relative", overflow: "hidden",
+            }}>
+              {hasAny && <div style={{ position: "absolute", inset: 0, background: `${d.color}40` }} />}
+            </div>
+            <div style={{ fontSize: 7, color: hasAny ? "var(--muted2)" : "transparent",
+              fontFamily: "var(--font-m)", lineHeight: 1 }}>
+              {d.range.replace("★", "")}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function CoverMosaic({ covers }: { covers: string[] }) {  const filled = [...covers, ...Array(4).fill(null)].slice(0, 4);
   return (
     <div style={{ height: 100, display: "grid",
       gridTemplateColumns: covers.length >= 2 ? "1fr 1fr" : "1fr",
