@@ -66,6 +66,9 @@ function fmtDateRange(start: string, end: string) {
 export default function BeatmapsThisWeek({ currentUser }: { currentUser?: CurrentUser | null }) {
   const [data, setData] = useState<ThisWeekResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showAll, setShowAll] = useState(false);
+
+  const PREVIEW_COUNT = 12; // ~3 rows at 4-col layout
 
   useEffect(() => {
     fetch(`${BASE_URL}/beatmaps/this-week`)
@@ -73,6 +76,9 @@ export default function BeatmapsThisWeek({ currentUser }: { currentUser?: Curren
   }, []);
 
   if (loading || !data || data.beatmapsets.length === 0) return null;
+
+  const sets = showAll ? data.beatmapsets : data.beatmapsets.slice(0, PREVIEW_COUNT);
+  const hasMore = data.beatmapsets.length > PREVIEW_COUNT;
 
   return (
     <section style={{ marginTop: 32 }}>
@@ -95,10 +101,54 @@ export default function BeatmapsThisWeek({ currentUser }: { currentUser?: Curren
         </div>
       </div>
 
-      {/* 4-col grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
-        {data.beatmapsets.map(set => <BeatmapsetCard key={set.beatmapset_id} set={set} currentUser={currentUser ?? null} />)}
+      {/* Grid with optional fade-out */}
+      <div style={{ position: "relative" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
+          {sets.map(set => <BeatmapsetCard key={set.beatmapset_id} set={set} currentUser={currentUser ?? null} />)}
+        </div>
+
+        {/* Fade + Show all button */}
+        {hasMore && !showAll && (
+          <div style={{
+            position: "absolute", bottom: 0, left: 0, right: 0, height: 120,
+            background: "linear-gradient(to bottom, transparent, var(--bg) 85%)",
+            display: "flex", alignItems: "flex-end", justifyContent: "center",
+            paddingBottom: 8, pointerEvents: "none",
+          }}>
+            <button
+              onClick={() => setShowAll(true)}
+              style={{
+                pointerEvents: "auto",
+                padding: "8px 22px", borderRadius: 20,
+                border: "1px solid var(--border-h)",
+                background: "var(--card)",
+                color: "var(--pink)", fontSize: 12, fontFamily: "var(--font-d)",
+                fontWeight: 700, cursor: "pointer", letterSpacing: "0.04em",
+                boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+              }}
+            >
+              Show all {data.beatmapsets.length} beatmapsets ↓
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Collapse button */}
+      {hasMore && showAll && (
+        <div style={{ textAlign: "center", marginTop: 12 }}>
+          <button
+            onClick={() => setShowAll(false)}
+            style={{
+              padding: "7px 20px", borderRadius: 20,
+              border: "1px solid var(--border)",
+              background: "transparent",
+              color: "var(--muted)", fontSize: 12, cursor: "pointer",
+            }}
+          >
+            Show less ↑
+          </button>
+        </div>
+      )}
     </section>
   );
 }

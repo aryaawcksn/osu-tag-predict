@@ -96,20 +96,27 @@ def load_artifacts(model_path: str, mlb_path: str):
     _mlb = joblib.load(mlb_path)
 
 
-def parse_beatmap_id(link: str) -> str | None:
+def parse_beatmap_id(link: str) -> tuple[str | None, str | None]:
+    """
+    Returns (beatmap_id, mode) where mode is one of 'osu','taiko','fruits','mania' or None.
+    Returns (None, None) if no beatmap ID found.
+    """
     link = link.strip()
-    m = re.search(r'#(?:osu|taiko|fruits|mania)/(\d+)', link)
+    # beatmapsets/123#taiko/456 or beatmapsets/123#osu/456
+    m = re.search(r'#(osu|taiko|fruits|mania)/(\d+)', link)
     if m:
-        return m.group(1)
+        return m.group(2), m.group(1)
+    # /beatmaps/456
     m = re.search(r'/beatmaps/(\d+)', link)
     if m:
-        return m.group(1)
+        return m.group(1), None
+    # /osu/456 (old redirect format)
     m = re.search(r'/osu/(\d+)', link)
     if m:
-        return m.group(1)
+        return m.group(1), "osu"
     if link.isdigit():
-        return link
-    return None
+        return link, None
+    return None, None
 
 
 def download_osu(beatmap_id: str, save_dir: str = "/tmp") -> str | None:
@@ -366,9 +373,13 @@ def predict_from_file(file_path: str) -> dict:
 
 
 def predict_from_link(link: str) -> dict:
-    beatmap_id = parse_beatmap_id(link)
+    beatmap_id, mode = parse_beatmap_id(link)
     if beatmap_id is None:
         raise ValueError(f"Tidak bisa ekstrak beatmap ID dari: {link}")
+    if mode is not None and mode != "osu":
+        raise ValueError(
+            f"Mode '{mode}' tidak didukung. Hanya beatmap osu! standard yang bisa diprediksi."
+        )
 
     file_path = download_osu(beatmap_id)
     if file_path is None:

@@ -14,6 +14,22 @@ const STATUS_COLORS: Record<string, string> = {
   qualified: "#74b9ff", pending: "#fbbf24", graveyard: "var(--muted2)", wip: "#fbbf24",
 };
 
+// Dice icon SVG
+function DiceIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
+      style={{ display: "inline-block", verticalAlign: "middle" }}>
+      <rect x="2" y="2" width="20" height="20" rx="4" ry="4" />
+      <circle cx="8" cy="8" r="1.5" fill={active ? "currentColor" : "currentColor"} stroke="none" />
+      <circle cx="16" cy="8" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="16" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="16" cy="16" r="1.5" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export default function RecommendationList({ currentUser }: Props) {
   const [dominant, setDominant] = useState<DominantPlaystyle | null>(null);
   const [records, setRecords] = useState<BeatmapRecord[]>([]);
@@ -27,6 +43,7 @@ export default function RecommendationList({ currentUser }: Props) {
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [similarBeatmap, setSimilarBeatmap] = useState<BeatmapRecord | null>(null);
+  const [randomMode, setRandomMode] = useState(false);
 
   async function runAnalysis() {
     setAnalysisLoading(true);
@@ -48,10 +65,10 @@ export default function RecommendationList({ currentUser }: Props) {
   async function fetchRecs(playstyle: string, off: number, replace: boolean) {
     setLoading(true);
     setError(null);
-    const minS = appliedStars != null ? appliedStars - 0.5 : undefined;
-    const maxS = appliedStars != null ? appliedStars + 0.5 : undefined;
+    const minS = appliedStars != null ? appliedStars - 0.1 : undefined;
+    const maxS = appliedStars != null ? appliedStars + 0.1 : undefined;
     try {
-      const res = await getRecommendations(playstyle, minS, maxS, status || undefined, off);
+      const res = await getRecommendations(playstyle, minS, maxS, status || undefined, off, randomMode);
       if (replace) setRecords(res.recommendations);
       else setRecords(prev => [...prev, ...res.recommendations]);
       setHasMore(res.has_more ?? false);
@@ -68,7 +85,7 @@ export default function RecommendationList({ currentUser }: Props) {
       setOffset(0);
       fetchRecs(dominant.label, 0, true);
     }
-  }, [dominant, appliedStars, status]);
+  }, [dominant, appliedStars, status, randomMode]);
 
   async function handleHide(beatmapId: string) {
     setRecords(prev => prev.filter(r => r.beatmap_id !== beatmapId));
@@ -86,9 +103,19 @@ export default function RecommendationList({ currentUser }: Props) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
         <h2 style={headingStyle}>Map Recommendations</h2>
         {dominant && (
-          <button onClick={() => dominant && fetchRecs(dominant.label, offset, false)}
-            disabled={loading} style={refreshBtnStyle} title="Load more">
-            ↻ More
+          <button
+            onClick={() => setRandomMode(m => !m)}
+            title={randomMode ? "Random mode ON — click to switch to ordered" : "Ordered mode — click for random"}
+            style={{
+              ...refreshBtnStyle,
+              color: randomMode ? "var(--pink)" : "var(--muted)",
+              borderColor: randomMode ? "var(--pink)" : "var(--border)",
+              background: randomMode ? "rgba(255,102,170,0.08)" : "transparent",
+              display: "flex", alignItems: "center", gap: 5,
+            }}
+          >
+            <DiceIcon active={randomMode} />
+            {randomMode ? "Random" : "Ordered"}
           </button>
         )}
       </div>
@@ -110,7 +137,7 @@ export default function RecommendationList({ currentUser }: Props) {
         </button>
         {dominant && (
           <span style={{ fontSize: 12, color: "var(--muted)" }}>
-            Dominant tag: <strong style={{ color: "#ff66aa" }}>{dominant.label}</strong>
+            Dominant tag: <strong style={{ color: "var(--pink)" }}>{dominant.label}</strong>
             <span style={{ color: "var(--muted2)", marginLeft: 6 }}>
               ({dominant.beatmaps_analyzed} maps analyzed)
             </span>
@@ -118,7 +145,7 @@ export default function RecommendationList({ currentUser }: Props) {
         )}
       </div>
 
-      {/* Difficulty + status filters — only shown after analysis */}
+      {/* Difficulty + status filters */}
       {dominant && (
         <>
           <div style={filterRowStyle}>
@@ -126,13 +153,13 @@ export default function RecommendationList({ currentUser }: Props) {
             <div style={{ flex: 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>
                 <span>★ 0.1</span>
-                <span style={{ color: "#ff66aa", fontWeight: 600 }}>
+                <span style={{ color: "var(--pink)", fontWeight: 600 }}>
                   ★ {targetStars.toFixed(1)}
                   {appliedStars === null
                     ? <span style={{ color: "var(--muted)", fontWeight: 400, marginLeft: 5 }}>(Any)</span>
                     : appliedStars !== targetStars
-                      ? <span style={{ color: "#fbbf24", fontWeight: 400, marginLeft: 5 }}>(Applied: ★{appliedStars.toFixed(1)})</span>
-                      : <span style={{ color: "#b8e994", fontWeight: 400, marginLeft: 5 }}>(Applied)</span>
+                      ? <span style={{ color: "#fbbf24", fontWeight: 400, marginLeft: 5 }}>(±0.1 from ★{appliedStars.toFixed(1)})</span>
+                      : <span style={{ color: "#b8e994", fontWeight: 400, marginLeft: 5 }}>(±0.1)</span>
                   }
                 </span>
                 <span>★ 15.0</span>

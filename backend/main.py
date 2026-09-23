@@ -497,14 +497,18 @@ async def recommend(
     max_stars: Optional[float] = Query(None),
     status: Optional[str] = Query(None),
     offset: int = Query(0, ge=0),
+    randomize: bool = Query(False),
     current_user: User = Depends(require_user),
 ):
+    import random as _random
     from recommendation import get_recommendations, get_hidden_ids
     hidden = await get_hidden_ids(current_user.id)
     results = await get_recommendations(
         playstyle, min_stars=min_stars, max_stars=max_stars,
         status=status, exclude_ids=hidden, offset=offset,
     )
+    if randomize and results:
+        _random.shuffle(results)
     has_more = len(results) == 10
     if not results and offset == 0:
         return {"recommendations": [], "has_more": False, "message": f"No recommendations available for playstyle '{playstyle}' yet."}

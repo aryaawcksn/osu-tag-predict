@@ -127,11 +127,13 @@ export async function getRecommendations(
   maxStars?: number,
   status?: string,
   offset = 0,
+  randomize = false,
 ): Promise<{ recommendations: BeatmapRecord[]; has_more: boolean; message?: string }> {
   const params = new URLSearchParams({ playstyle, offset: String(offset) });
   if (minStars != null) params.set("min_stars", String(minStars));
   if (maxStars != null) params.set("max_stars", String(maxStars));
   if (status) params.set("status", status);
+  if (randomize) params.set("randomize", "true");
   const res = await fetch(`${BASE_URL}/recommend?${params}`,
     { headers: { ...authHeaders() }, credentials: "include" }
   );

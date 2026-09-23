@@ -18,8 +18,17 @@ export default function LinkInput({ onLinkSubmit, onFileSubmit, onError, loading
 
   function handleLinkSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!link.trim()) return;
-    onLinkSubmit(link.trim());
+    const trimmed = link.trim();
+    if (!trimmed) return;
+
+    // Reject non-osu modes before submitting
+    const modeMatch = trimmed.match(/#(taiko|fruits|mania)\/\d+/);
+    if (modeMatch) {
+      onError(`Mode "${modeMatch[1]}" tidak didukung. Hanya beatmap osu! standard (#osu/...) yang bisa diprediksi.`);
+      return;
+    }
+
+    onLinkSubmit(trimmed);
     setLink("");
   }
 
@@ -44,7 +53,7 @@ export default function LinkInput({ onLinkSubmit, onFileSubmit, onError, loading
       <form onSubmit={handleLinkSubmit} style={{ display: "flex", gap: 8 }}>
         <input
           type="text"
-          placeholder="https://osu.ppy.sh/beatmapsets/123#osu/456"
+          placeholder="https://osu.ppy.sh/beatmapsets/123#osu/456  (osu! standard only)"
           value={link}
           onChange={(e) => setLink(e.target.value)}
           disabled={isDisabled}
