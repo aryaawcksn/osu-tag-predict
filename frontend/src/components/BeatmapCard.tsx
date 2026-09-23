@@ -114,8 +114,12 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, status, statusCol, showS
   const stopRef = useRef<(() => void) | null>(null);
 
   const previewUrl = beatmapsetId ? `https://b.ppy.sh/preview/${beatmapsetId}.mp3` : null;
-  const webUrl = `https://osu.ppy.sh/beatmaps/${beatmapId}`;
-  const dlUrl = beatmapsetId ? `https://osu.ppy.sh/beatmapsets/${beatmapsetId}/download` : null;
+  // Open the specific diff page on osu! website
+  const webUrl = beatmapsetId
+    ? `https://osu.ppy.sh/beatmapsets/${beatmapsetId}#osu/${beatmapId}`
+    : `https://osu.ppy.sh/beatmaps/${beatmapId}`;
+  // osu:// protocol opens the client directly and triggers download
+  const osuDirectUrl = beatmapsetId ? `osu://b/${beatmapId}` : null;
 
   const togglePlay = useCallback((e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
@@ -184,22 +188,22 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, status, statusCol, showS
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
           <a href={webUrl} target="_blank" rel="noopener noreferrer"
             onClick={e => e.stopPropagation()}
-            title="Open on osu! website"
+            title="Open beatmapset page on osu!"
             style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
               background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
               color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
               display: "flex", alignItems: "center", gap: 4 }}>
             <IconExternalLink size={12} strokeWidth={2.5} /> osu!
           </a>
-          {dlUrl && (
-            <a href={dlUrl} target="_blank" rel="noopener noreferrer"
+          {osuDirectUrl && (
+            <a href={osuDirectUrl}
               onClick={e => e.stopPropagation()}
-              title="Download .osz"
+              title="Open in osu! client (direct download)"
               style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                 background: "rgba(255,102,170,0.75)", border: "1px solid rgba(255,102,170,0.5)",
                 color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
                 display: "flex", alignItems: "center", gap: 4 }}>
-              <IconDownload size={12} strokeWidth={2.5} /> .osz
+              <IconDownload size={12} strokeWidth={2.5} /> osu!direct
             </a>
           )}
           {showSave && (

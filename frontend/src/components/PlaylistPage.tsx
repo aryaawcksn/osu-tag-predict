@@ -214,34 +214,52 @@ export default function PlaylistPage({ username, currentUser, onBack }: Props) {
 
 function DiffDistribution({ distribution }: { distribution: { range: string; count: number; color: string }[] }) {
   if (!distribution || distribution.length === 0) return null;
-  const max = Math.max(...distribution.map(d => d.count));
+  const max = Math.max(...distribution.map(d => d.count), 1);
+  const total = distribution.reduce((s, d) => s + d.count, 0);
 
   return (
     <div style={{ marginBottom: 16, padding: "12px 14px",
       background: "var(--card2)", borderRadius: 10, border: "1px solid var(--border)" }}>
-      <div style={{ fontSize: 11, color: "var(--muted)", fontFamily: "var(--font-m)",
-        letterSpacing: "0.06em", marginBottom: 10 }}>
-        DIFFICULTY DISTRIBUTION
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <span style={{ fontSize: 11, color: "var(--muted)", fontFamily: "var(--font-m)", letterSpacing: "0.06em" }}>
+          DIFFICULTY DISTRIBUTION
+        </span>
+        <span style={{ fontSize: 10, color: "var(--muted2)", fontFamily: "var(--font-m)" }}>
+          {total} map{total !== 1 ? "s" : ""}
+        </span>
       </div>
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 48 }}>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 52 }}>
         {distribution.map(d => {
-          const heightPct = max > 0 ? (d.count / max) * 100 : 0;
+          const hasAny = d.count > 0;
+          const heightPct = hasAny ? Math.max((d.count / max) * 100, 10) : 4;
           return (
             <div key={d.range} style={{ flex: 1, display: "flex", flexDirection: "column",
-              alignItems: "center", gap: 4, height: "100%", justifyContent: "flex-end" }}
+              alignItems: "center", gap: 3, height: "100%", justifyContent: "flex-end" }}
               title={`${d.range}: ${d.count} map${d.count !== 1 ? "s" : ""}`}>
-              <div style={{ fontSize: 10, color: d.color, fontFamily: "var(--font-m)", fontWeight: 700 }}>
-                {d.count}
+              {/* Count label — only show if non-zero */}
+              <div style={{ fontSize: 9, fontFamily: "var(--font-m)", fontWeight: 700,
+                color: hasAny ? d.color : "transparent", minHeight: 12, lineHeight: 1 }}>
+                {hasAny ? d.count : ""}
               </div>
-              <div style={{ width: "100%", background: `${d.color}22`,
-                border: `1px solid ${d.color}55`, borderRadius: "3px 3px 0 0",
-                height: `${Math.max(heightPct, 8)}%`, transition: "height 0.3s ease",
-                position: "relative" }}>
-                <div style={{ position: "absolute", inset: 0, background: `${d.color}44`, borderRadius: "3px 3px 0 0" }} />
+              {/* Bar */}
+              <div style={{
+                width: "100%",
+                background: hasAny ? `${d.color}30` : "rgba(255,255,255,0.04)",
+                border: `1px solid ${hasAny ? d.color + "60" : "rgba(255,255,255,0.08)"}`,
+                borderRadius: "3px 3px 0 0",
+                height: `${heightPct}%`,
+                transition: "height 0.35s ease",
+                position: "relative", overflow: "hidden",
+              }}>
+                {hasAny && (
+                  <div style={{ position: "absolute", inset: 0,
+                    background: `${d.color}50`, borderRadius: "3px 3px 0 0" }} />
+                )}
               </div>
-              <div style={{ fontSize: 9, color: "var(--muted2)", fontFamily: "var(--font-m)",
-                whiteSpace: "nowrap", textAlign: "center" }}>
-                {d.range}
+              {/* Label */}
+              <div style={{ fontSize: 8, color: hasAny ? "var(--muted)" : "var(--muted2)",
+                fontFamily: "var(--font-m)", whiteSpace: "nowrap", opacity: hasAny ? 1 : 0.4 }}>
+                {d.range.replace("★", "")}★
               </div>
             </div>
           );

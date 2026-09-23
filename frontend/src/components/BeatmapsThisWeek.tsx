@@ -175,8 +175,10 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
   const [showPlaylist, setShowPlaylist] = useState(false);
   const stopRef = useRef<(() => void) | null>(null);
   const previewUrl = `https://b.ppy.sh/preview/${set.beatmapset_id}.mp3`;
-  const dlUrl = `https://osu.ppy.sh/beatmapsets/${set.beatmapset_id}/download`;
-  const webUrl = `https://osu.ppy.sh/beatmapsets/${set.beatmapset_id}`;
+  const osuDirectUrl = diff ? `osu://b/${diff.beatmap_id}` : `osu://s/${set.beatmapset_id}`;
+  const webUrl = diff
+    ? `https://osu.ppy.sh/beatmapsets/${set.beatmapset_id}#osu/${diff.beatmap_id}`
+    : `https://osu.ppy.sh/beatmapsets/${set.beatmapset_id}`;
 
   useEffect(() => () => { stopRef.current?.(); }, []);
 
@@ -233,20 +235,20 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
           </button>
           <div style={{ display: "flex", gap: 6 }}>
             <a href={webUrl} target="_blank" rel="noopener noreferrer"
-              onClick={e => e.stopPropagation()} title="Open on osu!"
+              onClick={e => e.stopPropagation()} title="Open beatmapset on osu!"
               style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                 background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
                 color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
                 display: "flex", alignItems: "center", gap: 4 }}>
               <IconExternalLink size={12} strokeWidth={2.5} /> osu!
             </a>
-            <a href={dlUrl} target="_blank" rel="noopener noreferrer"
-              onClick={e => e.stopPropagation()} title="Download .osz"
+            <a href={osuDirectUrl}
+              onClick={e => e.stopPropagation()} title="Open in osu! client (direct download)"
               style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                 background: "rgba(255,102,170,0.75)", border: "1px solid rgba(255,102,170,0.5)",
                 color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
                 display: "flex", alignItems: "center", gap: 4 }}>
-              <IconDownload size={12} strokeWidth={2.5} /> .osz
+              <IconDownload size={12} strokeWidth={2.5} /> osu!direct
             </a>
             {currentUser && (
               <button onClick={e => { e.stopPropagation(); setShowPlaylist(true); }}

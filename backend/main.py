@@ -165,11 +165,11 @@ async def _predict_link_task(input_value: str) -> dict:
 
 
 async def _predict_file_task(input_value: str) -> dict:
-    """Run predict_from_file in a thread pool; input_value is a temp file path."""
+    """Run predict_from_file in a thread pool; input_value is a temp file path.
+    File uploads are NOT saved to DB — they have no beatmap_id."""
     loop = asyncio.get_event_loop()
     try:
         result = await loop.run_in_executor(None, predictor.predict_from_file, input_value)
-        await _upsert_beatmap_safe(result)
         return result
     finally:
         try:
@@ -1051,14 +1051,18 @@ async def _build_playlist_response(playlist, include_items: bool = True) -> dict
     # Cover previews: up to 4 card_url from items
     covers = [r["card_url"] or r["cover_url"] for r in items_data if r.get("card_url") or r.get("cover_url")][:4]
 
-    # Difficulty distribution — bucket by star rating
+    # Difficulty distribution — one bucket per integer star rating, 1–10+
     diff_buckets = [
-        {"range": "0-2★",  "min": 0,   "max": 2,   "color": "#88d8b0"},
-        {"range": "2-3★",  "min": 2,   "max": 3,   "color": "#6bcfff"},
-        {"range": "3-4.5★","min": 3,   "max": 4.5, "color": "#ffd700"},
-        {"range": "4.5-6★","min": 4.5, "max": 6,   "color": "#ff9a56"},
-        {"range": "6-7.5★","min": 6,   "max": 7.5, "color": "#ff66aa"},
-        {"range": "7.5+★", "min": 7.5, "max": 99,  "color": "#c084fc"},
+        {"range": "1", "label": "1★",  "min": 0.5, "max": 1.5,  "color": "#4FC0FF"},
+        {"range": "2", "label": "2★",  "min": 1.5, "max": 2.5,  "color": "#4FFFD5"},
+        {"range": "3", "label": "3★",  "min": 2.5, "max": 3.5,  "color": "#7CFF4F"},
+        {"range": "4", "label": "4★",  "min": 3.5, "max": 4.5,  "color": "#F6F05C"},
+        {"range": "5", "label": "5★",  "min": 4.5, "max": 5.5,  "color": "#FF8068"},
+        {"range": "6", "label": "6★",  "min": 5.5, "max": 6.5,  "color": "#FF4E6F"},
+        {"range": "7", "label": "7★",  "min": 6.5, "max": 7.5,  "color": "#C645B8"},
+        {"range": "8", "label": "8★",  "min": 7.5, "max": 8.5,  "color": "#6563DE"},
+        {"range": "9", "label": "9★",  "min": 8.5, "max": 9.5,  "color": "#18158E"},
+        {"range": "10+","label": "10+★","min": 9.5, "max": 99,   "color": "#aaaaaa"},
     ]
     diff_distribution = []
     for bucket in diff_buckets:
@@ -1067,8 +1071,11 @@ async def _build_playlist_response(playlist, include_items: bool = True) -> dict
             if r.get("difficulty_rating") is not None
             and bucket["min"] <= (r["difficulty_rating"] or 0) < bucket["max"]
         )
-        if count > 0:
-            diff_distribution.append({"range": bucket["range"], "count": count, "color": bucket["color"]})
+        diff_distribution.append({
+            "range": bucket["label"],
+            "count": count,
+            "color": bucket["color"],
+        })
 
     return {
         "id": playlist.id,
