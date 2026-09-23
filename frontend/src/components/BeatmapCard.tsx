@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { BeatmapRecord, CurrentUser } from "../types";
 import SaveToPlaylistModal from "./SaveToPlaylistModal";
+import { starColor } from "../utils/starColor";
 
 const STATUS_COLOR: Record<string, string> = {
   ranked: "#b8e994", approved: "#b8e994", loved: "#ff66aa",
@@ -11,16 +12,6 @@ const STATUS_COLOR: Record<string, string> = {
 function fmt(n?: number | null, decimals = 1): string {
   if (n == null) return "—";
   return Number.isInteger(n) ? String(n) : n.toFixed(decimals);
-}
-
-function starColor(stars?: number | null): string {
-  if (!stars) return "var(--muted)";
-  if (stars < 2)   return "#88d8b0";
-  if (stars < 3)   return "#6bcfff";
-  if (stars < 4.5) return "#ffd700";
-  if (stars < 6)   return "#ff9a56";
-  if (stars < 7.5) return "#ff66aa";
-  return "#c084fc";
 }
 
 // ── Global audio singleton — only one preview plays at a time ────────────────

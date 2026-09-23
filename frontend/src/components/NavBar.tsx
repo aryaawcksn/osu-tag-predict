@@ -5,9 +5,11 @@ interface Props {
   user: CurrentUser | null;
   onLogout: () => void;
   onProfile: () => void;
+  theme: "dark" | "light";
+  onToggleTheme: () => void;
 }
 
-export default function NavBar({ user, onLogout, onProfile }: Props) {
+export default function NavBar({ user, onLogout, onProfile, theme, onToggleTheme }: Props) {
   const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
   async function handleLogout() {
@@ -19,12 +21,25 @@ export default function NavBar({ user, onLogout, onProfile }: Props) {
     <nav style={navStyle}>
       {/* Logo */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={dotStyle}>●</div>
-        <span style={logoTextStyle}>osu! Tag Analyzer</span>
+        <img
+          src="/favicon.png"
+          alt="Bullet"
+          style={{ width: "12px", height: "12px", objectFit: "contain" }}
+        />
+        <span style={logoTextStyle}>osu! Tag Collection</span>
       </div>
 
       {/* Right */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {/* Theme toggle */}
+        <button
+          onClick={onToggleTheme}
+          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          style={themeToggleStyle}
+        >
+          {theme === "dark" ? "☀️" : "🌙"}
+        </button>
+
         {user ? (
           <>
             {user.avatar_url && (
@@ -53,24 +68,12 @@ const navStyle: React.CSSProperties = {
   alignItems: "center",
   padding: "0 24px",
   height: 52,
-  background: "rgba(13,11,20,0.95)",
-  borderBottom: "1px solid rgba(180,130,220,0.15)",
+  background: "var(--card)",
+  borderBottom: "1px solid var(--border)",
   position: "sticky",
   top: 0,
   zIndex: 100,
   backdropFilter: "blur(8px)",
-};
-
-const dotStyle: React.CSSProperties = {
-  width: 28,
-  height: 28,
-  borderRadius: "50%",
-  background: "linear-gradient(135deg, #ff66aa, #cc3377)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: 13,
-  flexShrink: 0,
 };
 
 const logoTextStyle: React.CSSProperties = {
@@ -93,7 +96,18 @@ const userNameStyle: React.CSSProperties = {
   background: "none",
   border: "none",
   cursor: "pointer",
-  color: "#fff",
+  color: "var(--text)",
   fontSize: 13,
   fontWeight: 600,
+};
+
+const themeToggleStyle: React.CSSProperties = {
+  background: "transparent",
+  border: "1px solid var(--border)",
+  borderRadius: 8,
+  cursor: "pointer",
+  fontSize: 15,
+  padding: "4px 8px",
+  lineHeight: 1,
+  transition: "border-color 0.15s",
 };

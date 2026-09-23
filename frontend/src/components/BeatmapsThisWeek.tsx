@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { BeatmapRecord, CurrentUser } from "../types";
 import SaveToPlaylistModal from "./SaveToPlaylistModal";
+import { starColor } from "../utils/starColor";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 

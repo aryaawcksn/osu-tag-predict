@@ -29,6 +29,19 @@ export default function App() {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [queueState, setQueueState] = useState<QueueState | null>(null);
   const [page, setPage] = useState<Page>({ type: "home" });
+  const [theme, setTheme] = useState<"dark" | "light">(() => {
+    const saved = localStorage.getItem("theme");
+    return saved === "light" ? "light" : "dark";
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("light", theme === "light");
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  function handleToggleTheme() {
+    setTheme(t => t === "dark" ? "light" : "dark");
+  }
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -94,6 +107,8 @@ export default function App() {
         user={user}
         onLogout={handleLogout}
         onProfile={() => setPage({ type: "profile" })}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
       />
       <RelabelBanner />
     </>
@@ -136,7 +151,7 @@ export default function App() {
       <div style={mainStyle}>
         {/* Header */}
         <div style={headerStyle}>
-          <h1 style={h1Style}>osu! Beatmap Tag Analyzer</h1>
+          <h1 style={h1Style}>osu! Beatmap Tag Collection</h1>
           <p style={subtitleStyle}>
             Paste a beatmap link or upload a{" "}
             <code style={{ fontFamily: "var(--font-m)", color: "#ff66aa" }}>.osu</code>{" "}
