@@ -50,6 +50,10 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
     a: "Yes. The site is not fully released yet — prediction accuracy sits around 80% across 58 labels, which is not stable enough for a full launch. Expect gradual improvements as more community votes come in and the model gets retrained.",
   },
   {
+    q: "Are there other game modes supported?",
+    a: "Not yet, but it's planned. Support for other osu! modes (Taiko, Catch, Mania) is on the roadmap — no confirmed timeline yet.",
+  },
+  {
     q: "Found a bug or have a suggestion?",
     a: <>This site is a solo personal project. If something is broken or you have a feature request, feel free to DM me on osu!: <a href="https://osu.ppy.sh/users/35514313" target="_blank" rel="noopener noreferrer" style={{ color: "#ff66aa" }}>my profile</a>. Take care of this place :)</>,
   },
