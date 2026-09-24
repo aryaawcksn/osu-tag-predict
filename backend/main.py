@@ -1098,7 +1098,7 @@ class PlaylistUpdate(BaseModel):
     is_public: Optional[bool] = None
 
 
-async def _build_playlist_response(playlist, include_items: bool = True) -> dict:
+async def _build_playlist_response(playlist, include_items: bool = True, current_user_id: Optional[int] = None) -> dict:
     """Serialize a Playlist ORM object to a dict, optionally with beatmap records."""
     from recommendation import _build_records
     from models import Beatmap as BeatmapModel
@@ -1127,6 +1127,11 @@ async def _build_playlist_response(playlist, include_items: bool = True) -> dict
     # Cover previews: up to 4 card_url from items
     covers = [r["card_url"] or r["cover_url"] for r in items_data if r.get("card_url") or r.get("cover_url")][:4]
 
+    # Snapshot hash: deterministic hash of sorted beatmap IDs (detects content changes)
+    import hashlib
+    sorted_ids = sorted(item.beatmap_id for item in playlist.items)
+    snapshot_hash = hashlib.md5(",".join(sorted_ids).encode()).hexdigest() if sorted_ids else ""
+
     # Difficulty distribution — one bucket per integer star rating, 1–10+
     diff_buckets = [
         {"range": "1", "label": "1★",  "min": 0.5, "max": 1.5,  "color": "#4FC0FF"},
@@ -1153,6 +1158,22 @@ async def _build_playlist_response(playlist, include_items: bool = True) -> dict
             "color": bucket["color"],
         })
 
+    # Current user's love status
+    loved = False
+    love_snapshot_hash = None
+    if current_user_id is not None:
+        from models import PlaylistLove
+        async with AsyncSessionFactory() as db:
+            love_row = (await db.execute(
+                select(PlaylistLove).where(
+                    PlaylistLove.user_id == current_user_id,
+                    PlaylistLove.playlist_id == playlist.id,
+                )
+            )).scalar_one_or_none()
+            if love_row:
+                loved = True
+                love_snapshot_hash = love_row.snapshot_hash
+
     return {
         "id": playlist.id,
         "name": playlist.name,
@@ -1169,6 +1190,10 @@ async def _build_playlist_response(playlist, include_items: bool = True) -> dict
         "beatmaps": items_data if include_items else [],
         "created_at": playlist.created_at.isoformat(),
         "updated_at": playlist.updated_at.isoformat(),
+        "love_count": playlist.love_count if hasattr(playlist, "love_count") else 0,
+        "snapshot_hash": snapshot_hash,
+        "loved": loved,
+        "love_snapshot_hash": love_snapshot_hash,
     }
 
 
@@ -1176,6 +1201,7 @@ async def _build_playlist_response(playlist, include_items: bool = True) -> dict
 async def list_public_playlists(
     offset: int = Query(0, ge=0),
     limit: int = Query(20, le=50),
+    current_user: Optional[User] = Depends(get_current_user),
 ):
     """List all public playlists — visible to anyone on the homepage."""
     from models import Playlist as PlaylistModel
@@ -1189,9 +1215,10 @@ async def list_public_playlists(
             .offset(offset).limit(limit)
         )).scalars().all())
 
+    uid = current_user.id if current_user else None
     result = []
     for pl in rows:
-        result.append(await _build_playlist_response(pl, include_items=True))
+        result.append(await _build_playlist_response(pl, include_items=True, current_user_id=uid))
     return {"playlists": result, "has_more": len(rows) == limit}
 
 
@@ -1224,7 +1251,7 @@ async def get_user_playlists(
 
     result = []
     for pl in rows:
-        result.append(await _build_playlist_response(pl, include_items=True))
+        result.append(await _build_playlist_response(pl, include_items=True, current_user_id=current_user.id if current_user else None))
 
     return {
         "owner": {"username": owner.username, "avatar_url": owner.avatar_url, "osu_id": owner.osu_id},
@@ -1372,6 +1399,169 @@ async def remove_from_playlist(
                 )
             )
     return {"ok": True}
+
+
+@app.post("/playlists/{playlist_id}/love", status_code=200)
+async def love_playlist(
+    playlist_id: int,
+    current_user: User = Depends(require_user),
+):
+    """Love (favorite) a public playlist. Returns loved=True and current snapshot_hash."""
+    from models import Playlist as PlaylistModel, PlaylistLove
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
+    import hashlib
+
+    async with AsyncSessionFactory() as db:
+        pl = (await db.execute(
+            select(PlaylistModel).where(PlaylistModel.id == playlist_id)
+        )).scalar_one_or_none()
+        if not pl or not pl.is_public:
+            raise HTTPException(status_code=404, detail="Playlist not found")
+        if pl.user_id == current_user.id:
+            raise HTTPException(status_code=400, detail="Cannot love your own playlist")
+
+    # Compute current snapshot hash
+    async with AsyncSessionFactory() as db:
+        from models import PlaylistItem
+        item_ids = list((await db.execute(
+            select(PlaylistItem.beatmap_id).where(PlaylistItem.playlist_id == playlist_id)
+        )).scalars().all())
+    sorted_ids = sorted(item_ids)
+    snapshot_hash = hashlib.md5(",".join(sorted_ids).encode()).hexdigest() if sorted_ids else ""
+
+    async with AsyncSessionFactory() as db:
+        async with db.begin():
+            stmt = pg_insert(PlaylistLove).values(
+                user_id=current_user.id,
+                playlist_id=playlist_id,
+                snapshot_hash=snapshot_hash,
+            ).on_conflict_do_update(
+                index_elements=["user_id", "playlist_id"],
+                set_={"snapshot_hash": snapshot_hash, "loved_at": func.now()},
+            )
+            await db.execute(stmt)
+            # Update love_count
+            from sqlalchemy import func as sqlfunc
+            count = (await db.execute(
+                select(sqlfunc.count()).select_from(PlaylistLove)
+                .where(PlaylistLove.playlist_id == playlist_id)
+            )).scalar_one()
+            await db.execute(
+                select(PlaylistModel).where(PlaylistModel.id == playlist_id)
+            )
+            await db.execute(
+                PlaylistModel.__table__.update()
+                .where(PlaylistModel.id == playlist_id)
+                .values(love_count=count)
+            )
+    return {"ok": True, "loved": True, "love_count": count, "snapshot_hash": snapshot_hash}
+
+
+@app.delete("/playlists/{playlist_id}/love", status_code=200)
+async def unlove_playlist(
+    playlist_id: int,
+    current_user: User = Depends(require_user),
+):
+    """Remove love from a playlist."""
+    from models import PlaylistLove, Playlist as PlaylistModel
+    from sqlalchemy import delete as sa_delete, func as sqlfunc
+
+    async with AsyncSessionFactory() as db:
+        async with db.begin():
+            await db.execute(
+                sa_delete(PlaylistLove).where(
+                    PlaylistLove.user_id == current_user.id,
+                    PlaylistLove.playlist_id == playlist_id,
+                )
+            )
+            count = (await db.execute(
+                select(sqlfunc.count()).select_from(PlaylistLove)
+                .where(PlaylistLove.playlist_id == playlist_id)
+            )).scalar_one()
+            await db.execute(
+                PlaylistModel.__table__.update()
+                .where(PlaylistModel.id == playlist_id)
+                .values(love_count=count)
+            )
+    return {"ok": True, "loved": False, "love_count": count}
+
+
+@app.get("/playlists/loved")
+async def get_loved_playlists(current_user: User = Depends(require_user)):
+    """Get all playlists loved by the current user, with update detection."""
+    from models import Playlist as PlaylistModel, PlaylistLove
+    from sqlalchemy.orm import selectinload
+    import hashlib
+
+    async with AsyncSessionFactory() as db:
+        love_rows = list((await db.execute(
+            select(PlaylistLove).where(PlaylistLove.user_id == current_user.id)
+            .order_by(PlaylistLove.loved_at.desc())
+        )).scalars().all())
+
+    if not love_rows:
+        return {"playlists": []}
+
+    playlist_ids = [r.playlist_id for r in love_rows]
+    love_map = {r.playlist_id: r.snapshot_hash for r in love_rows}
+
+    async with AsyncSessionFactory() as db:
+        rows = list((await db.execute(
+            select(PlaylistModel)
+            .where(PlaylistModel.id.in_(playlist_ids), PlaylistModel.is_public == 1)
+            .options(selectinload(PlaylistModel.user), selectinload(PlaylistModel.items))
+        )).scalars().all())
+
+    result = []
+    for pl in rows:
+        data = await _build_playlist_response(pl, include_items=False, current_user_id=current_user.id)
+        # Check if playlist was updated since love
+        current_hash = data["snapshot_hash"]
+        saved_hash = love_map.get(pl.id)
+        data["is_updated"] = bool(saved_hash and current_hash != saved_hash)
+        result.append(data)
+
+    return {"playlists": result}
+
+
+@app.post("/playlists/{playlist_id}/love/sync", status_code=200)
+async def sync_love_snapshot(
+    playlist_id: int,
+    current_user: User = Depends(require_user),
+):
+    """Update the user's love snapshot to the current playlist version (acknowledge update)."""
+    from models import PlaylistLove, PlaylistItem
+    from sqlalchemy import func as sqlfunc
+    import hashlib
+
+    async with AsyncSessionFactory() as db:
+        love_row = (await db.execute(
+            select(PlaylistLove).where(
+                PlaylistLove.user_id == current_user.id,
+                PlaylistLove.playlist_id == playlist_id,
+            )
+        )).scalar_one_or_none()
+        if not love_row:
+            raise HTTPException(status_code=404, detail="You haven't loved this playlist")
+
+    async with AsyncSessionFactory() as db:
+        item_ids = list((await db.execute(
+            select(PlaylistItem.beatmap_id).where(PlaylistItem.playlist_id == playlist_id)
+        )).scalars().all())
+    sorted_ids = sorted(item_ids)
+    new_hash = hashlib.md5(",".join(sorted_ids).encode()).hexdigest() if sorted_ids else ""
+
+    async with AsyncSessionFactory() as db:
+        async with db.begin():
+            await db.execute(
+                PlaylistLove.__table__.update()
+                .where(
+                    PlaylistLove.user_id == current_user.id,
+                    PlaylistLove.playlist_id == playlist_id,
+                )
+                .values(snapshot_hash=new_hash)
+            )
+    return {"ok": True, "snapshot_hash": new_hash}
 
 
 @app.get("/playlists/my")

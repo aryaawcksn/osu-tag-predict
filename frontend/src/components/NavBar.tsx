@@ -25,6 +25,7 @@ export default function NavBar({ user, onLogout, onProfile, theme, onToggleTheme
         <img
           src="/favicon.png"
           alt="Bullet"
+          className="nav-logo"
           style={{ width: "24px", height: "24px", objectFit: "contain" }}
         />
         <span style={logoTextStyle}>o!btc</span>

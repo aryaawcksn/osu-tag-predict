@@ -89,11 +89,6 @@ export default function BeatmapsThisWeek({ currentUser }: { currentUser?: Curren
             <h2 style={{ fontFamily: "var(--font-d)", fontSize: 18, fontWeight: 800, color: "var(--text)", margin: 0 }}>
               {data.is_fallback ? "Recent Beatmaps" : "Beatmap This Week"}
             </h2>
-            {!data.is_fallback && (
-              <span style={{ background: "linear-gradient(135deg, #ff66aa, #cc3377)", borderRadius: 5,
-                padding: "2px 8px", fontFamily: "var(--font-d)", fontWeight: 800, fontSize: 10,
-                color: "#fff", letterSpacing: "0.1em" }}>✦ LIVE</span>
-            )}
           </div>
           <p style={{ fontSize: 12, color: "var(--muted2)" }}>
             {fmtDateRange(data.week_start, data.week_end)} · {data.beatmapsets.length} beatmapsets

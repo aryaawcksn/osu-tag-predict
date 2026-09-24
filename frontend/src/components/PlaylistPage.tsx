@@ -5,6 +5,7 @@ import { BeatmapCard } from "./BeatmapCard";
 
 interface Props {
   username: string;
+  initialPlaylistId?: number;
   currentUser: CurrentUser | null;
   onBack: () => void;
 }
@@ -19,12 +20,12 @@ function useIsMobile() {
   return mobile;
 }
 
-export default function PlaylistPage({ username, currentUser, onBack }: Props) {
+export default function PlaylistPage({ username, initialPlaylistId, currentUser, onBack }: Props) {
   const isMobile = useIsMobile();
   const [owner, setOwner] = useState<{ username: string; avatar_url?: string; osu_id: number } | null>(null);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeId, setActiveId] = useState<number | null>(null);
+  const [activeId, setActiveId] = useState<number | null>(initialPlaylistId ?? null);
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
 

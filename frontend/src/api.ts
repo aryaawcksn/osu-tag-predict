@@ -311,3 +311,31 @@ export async function removeFromPlaylist(playlistId: number, beatmapId: string):
     method: "DELETE", headers: { ...authHeaders() }, credentials: "include",
   });
 }
+
+export async function lovePlaylist(playlistId: number): Promise<{ ok: boolean; loved: boolean; love_count: number; snapshot_hash: string }> {
+  const res = await fetch(`${BASE_URL}/playlists/${playlistId}/love`, {
+    method: "POST", headers: { ...authHeaders() }, credentials: "include",
+  });
+  return handleResponse(res);
+}
+
+export async function unlovePlaylist(playlistId: number): Promise<{ ok: boolean; loved: boolean; love_count: number }> {
+  const res = await fetch(`${BASE_URL}/playlists/${playlistId}/love`, {
+    method: "DELETE", headers: { ...authHeaders() }, credentials: "include",
+  });
+  return handleResponse(res);
+}
+
+export async function getLoveddPlaylists(): Promise<{ playlists: Playlist[] }> {
+  const res = await fetch(`${BASE_URL}/playlists/loved`, {
+    headers: { ...authHeaders() }, credentials: "include",
+  });
+  return handleResponse(res);
+}
+
+export async function syncLoveSnapshot(playlistId: number): Promise<{ ok: boolean; snapshot_hash: string }> {
+  const res = await fetch(`${BASE_URL}/playlists/${playlistId}/love/sync`, {
+    method: "POST", headers: { ...authHeaders() }, credentials: "include",
+  });
+  return handleResponse(res);
+}

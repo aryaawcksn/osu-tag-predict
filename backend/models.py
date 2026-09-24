@@ -183,6 +183,8 @@ class Playlist(Base):
     )
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     is_public: Mapped[bool] = mapped_column(Integer, nullable=False, default=0)
+    love_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    snapshot_hash: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
@@ -192,6 +194,26 @@ class Playlist(Base):
     items: Mapped[list["PlaylistItem"]] = relationship(
         "PlaylistItem", back_populates="playlist", cascade="all, delete-orphan",
         order_by="PlaylistItem.position",
+    )
+
+
+class PlaylistLove(Base):
+    """A user loving/favoriting a public playlist."""
+    __tablename__ = "playlist_loves"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    playlist_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("playlists.id", ondelete="CASCADE"), nullable=False
+    )
+    loved_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    # Hash of playlist item IDs at time of love — used to detect if playlist was updated
+    snapshot_hash: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "playlist_id", name="uq_playlist_love"),
     )
 
 

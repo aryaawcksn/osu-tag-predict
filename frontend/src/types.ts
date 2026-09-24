@@ -105,4 +105,10 @@ export interface Playlist {
   diff_distribution: { range: string; count: number; color: string }[];
   created_at: string;
   updated_at: string;
+  love_count: number;
+  snapshot_hash: string;
+  loved: boolean;
+  love_snapshot_hash: string | null;
+  /** Set only in loved playlists list — true if playlist changed since user loved it */
+  is_updated?: boolean;
 }

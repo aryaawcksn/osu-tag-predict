@@ -22,20 +22,23 @@ import {
 type Page =
   | { type: "home" }
   | { type: "profile" }
-  | { type: "playlist"; username: string };
+  | { type: "playlist"; username: string; playlistId?: number };
 
 function parsePage(): Page {
-  const hash = window.location.hash; // e.g. "#/profile" or "#/playlist/peppy"
+  const hash = window.location.hash; // e.g. "#/profile" or "#/playlist/peppy" or "#/playlist/peppy/123"
   if (hash === "#/profile") return { type: "profile" };
-  const m = hash.match(/^#\/playlist\/(.+)$/);
-  if (m) return { type: "playlist", username: decodeURIComponent(m[1]) };
+  const m = hash.match(/^#\/playlist\/([^/]+)(?:\/(\d+))?$/);
+  if (m) return { type: "playlist", username: decodeURIComponent(m[1]), playlistId: m[2] ? Number(m[2]) : undefined };
   return { type: "home" };
 }
 
 function navigate(page: Page) {
   if (page.type === "home") window.location.hash = "";
   else if (page.type === "profile") window.location.hash = "/profile";
-  else window.location.hash = `/playlist/${encodeURIComponent(page.username)}`;
+  else {
+    const base = `/playlist/${encodeURIComponent(page.username)}`;
+    window.location.hash = page.playlistId ? `${base}/${page.playlistId}` : base;
+  }
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
@@ -177,6 +180,7 @@ export default function App() {
         {nav}
         <PlaylistPage
           username={page.username}
+          initialPlaylistId={page.playlistId}
           currentUser={user}
           onBack={() => window.history.back()}
         />
@@ -246,7 +250,10 @@ export default function App() {
 
         <BeatmapsThisWeek currentUser={user} />
 
-        <PublicPlaylists onOpenPlaylist={u => setPage({ type: "playlist", username: u })} />
+        <PublicPlaylists
+          currentUser={user}
+          onOpenPlaylist={(u, id) => setPage({ type: "playlist", username: u, playlistId: id })}
+        />
 
         {user && <BeatmapTagSearch currentUser={user} />}
       </div>

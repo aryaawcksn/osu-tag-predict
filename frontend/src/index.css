@@ -200,7 +200,13 @@ input[type='range']::-moz-range-thumb {
   to   { transform: scaleY(1); }
 }
 
-/* ── Light theme component overrides ─────────────────────── */
+/* ── Nav logo: invert on light theme so dark logo stays visible ── */
+.nav-logo {
+  filter: none;
+}
+:root.light .nav-logo {
+  filter: invert(1) hue-rotate(180deg);
+}
 
 /* Cards that hardcode dark backgrounds in inline styles */
 :root.light .osu-card {

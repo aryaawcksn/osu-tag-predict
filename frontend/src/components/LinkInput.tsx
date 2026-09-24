@@ -53,7 +53,7 @@ export default function LinkInput({ onLinkSubmit, onFileSubmit, onError, loading
       <form onSubmit={handleLinkSubmit} style={{ display: "flex", gap: 8 }}>
         <input
           type="text"
-          placeholder="https://osu.ppy.sh/beatmapsets/123#osu/456  (osu! standard only)"
+          placeholder="https://osu.ppy.sh/beatmapsets/123#osu/456"
           value={link}
           onChange={(e) => setLink(e.target.value)}
           disabled={isDisabled}
