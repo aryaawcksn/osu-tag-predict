@@ -12,7 +12,7 @@ const ANNOUNCEMENTS = [
   },
   {
     id: 2,
-    date: "2026-09-15",
+    date: "2026-09-24",
     title: "Public playlists & community loves",
     body: "You can now make your playlists public and let other players love them. Loved playlists appear in your profile, and you'll be notified when a playlist you loved gets updated.",
     type: "feature" as const,
@@ -20,14 +20,14 @@ const ANNOUNCEMENTS = [
 
 ];
 
-const FAQ: { q: string; a: string }[] = [
+const FAQ: { q: string; a: React.ReactNode }[] = [
   {
     q: "What is o!btc?",
     a: "osu! Beatmap Tag Collection (o!btc) is a community tool that uses a machine learning model to predict playstyle tags for osu! beatmaps. Tags like 'aim', 'stream', 'tech', or 'reading' help you find maps that match your playstyle.",
   },
   {
     q: "How accurate are the predictions?",
-    a: "The model is around 80–85% accurate on average, but individual maps can vary. Some maps are genuinely hard to classify — hybrid maps especially. That's why community tag voting exists: your corrections feed back into the next model version.",
+    a: "The model is around 80–85% accurate on average, but individual maps can vary. Some maps are genuinely hard to classify — hybrid maps especially. That's why we need your help to cast a vote in osu!lazer after playing it, this will help refine our model for the next update.",
   },
   {
     q: "Why do I need to log in with osu!?",
@@ -44,6 +44,14 @@ const FAQ: { q: string; a: string }[] = [
   {
     q: "Why is a beatmap missing from the database?",
     a: "We crawl ranked beatmaps daily, but the database isn't exhaustive. You can paste any beatmap link into the predictor to run a fresh prediction — it will be stored automatically after that.",
+  },
+  {
+    q: "Is this site still in development?",
+    a: "Yes. The site is not fully released yet — prediction accuracy sits around 80% across 58 labels, which is not stable enough for a full launch. Expect gradual improvements as more community votes come in and the model gets retrained.",
+  },
+  {
+    q: "Found a bug or have a suggestion?",
+    a: <>This site is a solo personal project. If something is broken or you have a feature request, feel free to DM me on osu!: <a href="https://osu.ppy.sh/users/35514313" target="_blank" rel="noopener noreferrer" style={{ color: "#ff66aa" }}>my profile</a>. Take care of this place :)</>,
   },
 ];
 
@@ -90,7 +98,7 @@ function AnnouncementCard({ ann }: { ann: typeof ANNOUNCEMENTS[0] }) {
   );
 }
 
-function FaqItem({ q, a }: { q: string; a: string }) {
+function FaqItem({ q, a }: { q: string; a: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
     <div style={{

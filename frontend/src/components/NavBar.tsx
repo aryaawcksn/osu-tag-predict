@@ -124,7 +124,7 @@ const infoButtonStyle: React.CSSProperties = {
   transition: "border-color 0.15s, color 0.15s",
 };
 
-
+const themeToggleStyle: React.CSSProperties = {
   background: "transparent",
   border: "1px solid var(--border)",
   borderRadius: 8,

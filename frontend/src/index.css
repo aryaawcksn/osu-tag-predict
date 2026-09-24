@@ -210,12 +210,12 @@ input[type='range']::-moz-range-thumb {
   }
 }
 
-/* ── Nav logo: invert on light theme so dark logo stays visible ── */
+/* ── Nav logo: force white on dark theme, adjust on light theme ── */
 .nav-logo {
-  filter: none;
+  filter: brightness(0) invert(1);
 }
 :root.light .nav-logo {
-  filter: invert(1) hue-rotate(180deg);
+  filter: none;
 }
 
 /* Cards that hardcode dark backgrounds in inline styles */
