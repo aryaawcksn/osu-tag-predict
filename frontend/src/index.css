@@ -210,9 +210,9 @@ input[type='range']::-moz-range-thumb {
   }
 }
 
-/* ── Nav logo: no filter, preserve original colors ── */
+/* ── Nav logo: invert on dark theme to make dark logo visible ── */
 .nav-logo {
-  filter: none;
+  filter: invert(1);
 }
 :root.light .nav-logo {
   filter: none;

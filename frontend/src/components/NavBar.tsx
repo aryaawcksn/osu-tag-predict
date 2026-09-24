@@ -23,12 +23,11 @@ export default function NavBar({ user, onLogout, onProfile, onInfo, theme, onTog
     <nav style={navStyle}>
       {/* Logo */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <img
-          src="/favicon.png"
-          alt="Bullet"
-          className="nav-logo"
-          style={{ width: "24px", height: "24px", objectFit: "contain" }}
-        />
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="11" cy="11" r="10" stroke="#ff66aa" strokeWidth="2" />
+          <circle cx="11" cy="11" r="5.5" stroke="#ff66aa" strokeWidth="2" />
+          <circle cx="11" cy="11" r="1.5" fill="#ff66aa" />
+        </svg>
         <span style={logoTextStyle}>o!btc</span>
       </div>
 
