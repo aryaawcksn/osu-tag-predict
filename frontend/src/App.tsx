@@ -10,6 +10,7 @@ import PlaylistPage from "./components/PlaylistPage";
 import RelevanceSection from "./components/RelevanceSection";
 import RelabelBanner from "./components/RelabelBanner";
 import BeatmapsThisWeek from "./components/BeatmapsThisWeek";
+import PublicPlaylists from "./components/PublicPlaylists";
 import InfoPage from "./components/InfoPage";
 import { PredictResult, CurrentUser, QueueState } from "./types";
 import {

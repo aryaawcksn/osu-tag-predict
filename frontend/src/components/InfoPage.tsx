@@ -23,7 +23,7 @@ const ANNOUNCEMENTS = [
 const FAQ: { q: string; a: React.ReactNode }[] = [
   {
     q: "What is o!btc?",
-    a: "osu! Beatmap Tag Collection (o!btc) is a community tool that uses a machine learning model to predict playstyle tags for osu! beatmaps. Tags like 'aim', 'stream', 'tech', or 'reading' help you find maps that match your playstyle.",
+    a: "osu! Beatmap Tag Collection (o!btc) is a community tool inspired by the osu! beatmap collection feature, using a Recurrent Neural Network model to predict playstyle tags for osu! beatmaps. Tags like 'aim', 'stream', 'tech', or 'reading' help you find maps that match your playstyle.",
   },
   {
     q: "How accurate are the predictions?",
