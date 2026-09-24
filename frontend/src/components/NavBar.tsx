@@ -6,11 +6,12 @@ interface Props {
   user: CurrentUser | null;
   onLogout: () => void;
   onProfile: () => void;
+  onInfo: () => void;
   theme: "dark" | "light";
   onToggleTheme: () => void;
 }
 
-export default function NavBar({ user, onLogout, onProfile, theme, onToggleTheme }: Props) {
+export default function NavBar({ user, onLogout, onProfile, onInfo, theme, onToggleTheme }: Props) {
   const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
   async function handleLogout() {
@@ -33,6 +34,15 @@ export default function NavBar({ user, onLogout, onProfile, theme, onToggleTheme
 
       {/* Right */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {/* Info button — hidden on mobile */}
+        <button
+          onClick={onInfo}
+          className="nav-info-btn"
+          style={infoButtonStyle}
+        >
+          Info &amp; FAQ
+        </button>
+
         {/* Theme toggle */}
         <button
           onClick={onToggleTheme}
@@ -103,7 +113,18 @@ const userNameStyle: React.CSSProperties = {
   fontWeight: 600,
 };
 
-const themeToggleStyle: React.CSSProperties = {
+const infoButtonStyle: React.CSSProperties = {
+  background: "transparent",
+  border: "1px solid var(--border)",
+  borderRadius: 8,
+  cursor: "pointer",
+  fontSize: 12,
+  color: "var(--muted)",
+  padding: "5px 12px",
+  transition: "border-color 0.15s, color 0.15s",
+};
+
+
   background: "transparent",
   border: "1px solid var(--border)",
   borderRadius: 8,

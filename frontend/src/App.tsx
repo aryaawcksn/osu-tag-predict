@@ -10,7 +10,7 @@ import PlaylistPage from "./components/PlaylistPage";
 import RelevanceSection from "./components/RelevanceSection";
 import RelabelBanner from "./components/RelabelBanner";
 import BeatmapsThisWeek from "./components/BeatmapsThisWeek";
-import PublicPlaylists from "./components/PublicPlaylists";
+import InfoPage from "./components/InfoPage";
 import { PredictResult, CurrentUser, QueueState } from "./types";
 import {
   getCurrentUser, getQueueState, predictFromLink, predictFromUpload,
@@ -22,11 +22,13 @@ import {
 type Page =
   | { type: "home" }
   | { type: "profile" }
+  | { type: "info" }
   | { type: "playlist"; username: string; playlistId?: number };
 
 function parsePage(): Page {
-  const hash = window.location.hash; // e.g. "#/profile" or "#/playlist/peppy" or "#/playlist/peppy/123"
+  const hash = window.location.hash;
   if (hash === "#/profile") return { type: "profile" };
+  if (hash === "#/info") return { type: "info" };
   const m = hash.match(/^#\/playlist\/([^/]+)(?:\/(\d+))?$/);
   if (m) return { type: "playlist", username: decodeURIComponent(m[1]), playlistId: m[2] ? Number(m[2]) : undefined };
   return { type: "home" };
@@ -35,6 +37,7 @@ function parsePage(): Page {
 function navigate(page: Page) {
   if (page.type === "home") window.location.hash = "";
   else if (page.type === "profile") window.location.hash = "/profile";
+  else if (page.type === "info") window.location.hash = "/info";
   else {
     const base = `/playlist/${encodeURIComponent(page.username)}`;
     window.location.hash = page.playlistId ? `${base}/${page.playlistId}` : base;
@@ -141,6 +144,7 @@ export default function App() {
         user={user}
         onLogout={handleLogout}
         onProfile={() => setPage({ type: "profile" })}
+        onInfo={() => setPage({ type: "info" })}
         theme={theme}
         onToggleTheme={handleToggleTheme}
       />
@@ -152,6 +156,15 @@ export default function App() {
     return (
       <div style={rootStyle}>
         {nav}
+      </div>
+    );
+  }
+
+  if (page.type === "info") {
+    return (
+      <div style={rootStyle}>
+        {nav}
+        <InfoPage onBack={() => setPage({ type: "home" })} />
       </div>
     );
   }

@@ -200,6 +200,16 @@ input[type='range']::-moz-range-thumb {
   to   { transform: scaleY(1); }
 }
 
+/* ── Nav info button: hide on mobile ─────────────────────── */
+.nav-info-btn {
+  display: inline-flex;
+}
+@media (max-width: 540px) {
+  .nav-info-btn {
+    display: none;
+  }
+}
+
 /* ── Nav logo: invert on light theme so dark logo stays visible ── */
 .nav-logo {
   filter: none;
