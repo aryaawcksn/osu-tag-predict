@@ -1407,8 +1407,9 @@ async def love_playlist(
     current_user: User = Depends(require_user),
 ):
     """Love (favorite) a public playlist. Returns loved=True and current snapshot_hash."""
-    from models import Playlist as PlaylistModel, PlaylistLove
+    from models import Playlist as PlaylistModel, PlaylistLove, PlaylistItem
     from sqlalchemy.dialects.postgresql import insert as pg_insert
+    from sqlalchemy import func as sqlfunc
     import hashlib
 
     async with AsyncSessionFactory() as db:
@@ -1422,7 +1423,6 @@ async def love_playlist(
 
     # Compute current snapshot hash
     async with AsyncSessionFactory() as db:
-        from models import PlaylistItem
         item_ids = list((await db.execute(
             select(PlaylistItem.beatmap_id).where(PlaylistItem.playlist_id == playlist_id)
         )).scalars().all())
@@ -1437,18 +1437,13 @@ async def love_playlist(
                 snapshot_hash=snapshot_hash,
             ).on_conflict_do_update(
                 index_elements=["user_id", "playlist_id"],
-                set_={"snapshot_hash": snapshot_hash, "loved_at": func.now()},
+                set_={"snapshot_hash": snapshot_hash},
             )
             await db.execute(stmt)
-            # Update love_count
-            from sqlalchemy import func as sqlfunc
             count = (await db.execute(
                 select(sqlfunc.count()).select_from(PlaylistLove)
                 .where(PlaylistLove.playlist_id == playlist_id)
             )).scalar_one()
-            await db.execute(
-                select(PlaylistModel).where(PlaylistModel.id == playlist_id)
-            )
             await db.execute(
                 PlaylistModel.__table__.update()
                 .where(PlaylistModel.id == playlist_id)
@@ -1474,6 +1469,9 @@ async def unlove_playlist(
                     PlaylistLove.playlist_id == playlist_id,
                 )
             )
+
+    async with AsyncSessionFactory() as db:
+        async with db.begin():
             count = (await db.execute(
                 select(sqlfunc.count()).select_from(PlaylistLove)
                 .where(PlaylistLove.playlist_id == playlist_id)
