@@ -2,28 +2,10 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { BeatmapRecord, CurrentUser } from "../types";
 import SaveToPlaylistModal from "./SaveToPlaylistModal";
 import { starColor } from "../utils/starColor";
+import { playPreview as _playPreview } from "../utils/audioStore";
 import { IconExternalLink, IconDownload, IconBookmark, IconPlay, IconPause } from "./Icons";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
-
-// ── Shared audio singleton (same as BeatmapCard) ─────────────────────────────
-let _globalAudio: HTMLAudioElement | null = null;
-let _globalStop: (() => void) | null = null;
-
-function playPreview(url: string, onStop: () => void): () => void {
-  if (_globalAudio) { _globalAudio.pause(); _globalAudio.src = ""; _globalStop?.(); }
-  const audio = new Audio(url);
-  audio.volume = 0.6;
-  _globalAudio = audio;
-  _globalStop = onStop;
-  audio.play().catch(() => {});
-  audio.addEventListener("ended", () => { _globalStop?.(); _globalAudio = null; _globalStop = null; });
-  return () => {
-    audio.pause(); audio.src = "";
-    if (_globalAudio === audio) { _globalAudio = null; _globalStop = null; }
-    onStop();
-  };
-}
 
 interface BeatmapsetGroup {
   beatmapset_id: string;
@@ -161,9 +143,14 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
   const statusCol = STATUS_COLOR[set.status ?? ""] ?? "var(--muted)";
   const starCol = starColor(diff?.difficulty_rating);
 
-  const topLabels = [...(diff?.labels ?? [])]
-    .sort((a, b) => b.probability - a.probability).slice(0, 3);
-  const maxProb = topLabels[0]?.probability ?? 1;
+  const PAGE_SIZE = 3;
+  const allLabels = [...(diff?.labels ?? [])].sort((a, b) => b.probability - a.probability);
+  const totalLabelPages = Math.ceil(allLabels.length / PAGE_SIZE);
+  const [labelPage, setLabelPage] = useState(0);
+  const [labelHovered, setLabelHovered] = useState(false);
+  const topLabels = allLabels.slice(labelPage * PAGE_SIZE, labelPage * PAGE_SIZE + PAGE_SIZE);
+  const maxProb = allLabels[0]?.probability ?? 1;
+  const hasMultiplePages = totalLabelPages > 1;
 
   const [hovered, setHovered] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -178,13 +165,20 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
     ? `https://osu.ppy.sh/beatmapsets/${set.beatmapset_id}#osu/${diff.beatmap_id}`
     : `https://osu.ppy.sh/beatmapsets/${set.beatmapset_id}`;
 
-  useEffect(() => () => { stopRef.current?.(); }, []);
+  useEffect(() => () => { stopRef.current = null; }, []);
 
   const togglePlay = useCallback((e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
     if (playing) { stopRef.current?.(); stopRef.current = null; setPlaying(false); }
-    else { stopRef.current = playPreview(previewUrl, () => setPlaying(false)); setPlaying(true); }
-  }, [playing, previewUrl]);
+    else {
+      stopRef.current = _playPreview(
+        previewUrl,
+        { title: set.title ?? `Beatmapset #${set.beatmapset_id}`, artist: set.artist ?? "Unknown", beatmapsetId: set.beatmapset_id },
+        () => setPlaying(false),
+      );
+      setPlaying(true);
+    }
+  }, [playing, previewUrl, set]);
 
   return (
     <>
@@ -315,7 +309,12 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
 
           {/* Tag bars */}
           {topLabels.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 12 }}>
+            <div
+              onClick={e => { if (!hasMultiplePages) return; e.stopPropagation(); setLabelPage(p => (p + 1) % totalLabelPages); }}
+              onMouseEnter={() => setLabelHovered(true)}
+              onMouseLeave={() => { setLabelHovered(false); setLabelPage(0); }}
+              style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 12, cursor: hasMultiplePages ? "pointer" : "default" }}
+            >
               {topLabels.map(l => (
                 <div key={l.label}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
@@ -331,6 +330,12 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
                   </div>
                 </div>
               ))}
+              {hasMultiplePages && (
+                <div style={{ textAlign: "right", fontFamily: "var(--font-m)", fontSize: 9,
+                  color: labelHovered ? "var(--muted)" : "var(--muted2)", transition: "color 0.15s", marginTop: 1 }}>
+                  {labelPage + 1}/{totalLabelPages} · click to cycle
+                </div>
+              )}
             </div>
           )}
         </div>

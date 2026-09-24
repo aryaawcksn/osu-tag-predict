@@ -17,11 +17,16 @@ export default function AudioOverlay() {
     });
   }, []);
 
-  // Auto-hide after 15s of no activity
+  // Auto-hide 30s after playback stops (not when it starts)
   useEffect(() => {
     if (!track) { setVisible(false); return; }
+    if (playing) {
+      setVisible(true);
+      return; // don't start timer while playing
+    }
+    // playing just stopped — start 30s hide timer
     setVisible(true);
-    const t = setTimeout(() => setVisible(false), HIDE_AFTER_MS);
+    const t = setTimeout(() => setVisible(false), 15000);
     return () => clearTimeout(t);
   }, [track, playing]);
 
