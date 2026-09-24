@@ -1,7 +1,192 @@
 import { useEffect, useState } from "react";
-import { Playlist, CurrentUser } from "../types";
+import { Playlist, BeatmapRecord, CurrentUser } from "../types";
 import { getUserPlaylists, createPlaylist, deletePlaylist, updatePlaylist, removeFromPlaylist } from "../api";
 import { BeatmapCard } from "./BeatmapCard";
+import { starColor } from "../utils/starColor";
+import { IconExternalLink, IconDownload, IconBookmark } from "./Icons";
+import SaveToPlaylistModal from "./SaveToPlaylistModal";
+
+const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+
+function fmt(n?: number | null, d = 1) {
+  if (n == null) return "—";
+  return Number.isInteger(n) ? String(n) : n.toFixed(d);
+}
+
+// Group beatmaps by beatmapset_id, preserving playlist order
+function groupBySet(beatmaps: BeatmapRecord[]): Array<{ key: string; diffs: BeatmapRecord[] }> {
+  const map = new Map<string, BeatmapRecord[]>();
+  const order: string[] = [];
+  for (const bm of beatmaps) {
+    const key = bm.beatmapset_id ?? bm.beatmap_id;
+    if (!map.has(key)) { map.set(key, []); order.push(key); }
+    map.get(key)!.push(bm);
+  }
+  return order.map(key => ({ key, diffs: map.get(key)! }));
+}
+
+// ── Grouped set card (multiple diffs from same set in playlist) ───────────────
+function GroupedSetCard({ diffs, currentUser }: { diffs: BeatmapRecord[]; currentUser: CurrentUser | null }) {
+  const sorted = [...diffs].sort((a, b) => (a.difficulty_rating ?? 0) - (b.difficulty_rating ?? 0));
+  const midIdx = Math.max(0, Math.floor((sorted.length - 1) / 2));
+  const [selectedIdx, setSelectedIdx] = useState(midIdx);
+  const [hovered, setHovered] = useState(false);
+  const [showPlaylist, setShowPlaylist] = useState(false);
+
+  const diff = sorted[selectedIdx];
+  const starCol = starColor(diff?.difficulty_rating);
+  const bgImg = diff?.card_url || diff?.cover_url ||
+    (diff?.beatmapset_id ? `https://assets.ppy.sh/beatmaps/${diff.beatmapset_id}/covers/card.jpg` : null);
+
+  const topLabels = [...(diff?.labels ?? [])].sort((a, b) => b.probability - a.probability).slice(0, 3);
+  const maxProb = topLabels[0]?.probability ?? 1;
+
+  const webUrl = diff?.beatmapset_id
+    ? `https://osu.ppy.sh/beatmapsets/${diff.beatmapset_id}#osu/${diff.beatmap_id}`
+    : `https://osu.ppy.sh/beatmaps/${diff?.beatmap_id}`;
+  const dlParams = new URLSearchParams();
+  if (diff?.title) dlParams.set("title", diff.title);
+  if (diff?.artist) dlParams.set("artist", diff.artist);
+  const dlUrl = diff?.beatmapset_id ? `${BASE_URL}/proxy/download/${diff.beatmapset_id}?${dlParams}` : null;
+
+  return (
+    <>
+      <div
+        style={{
+          background: "var(--card)", border: `1px solid ${hovered ? "rgba(255,102,170,0.45)" : "rgba(180,130,220,0.18)"}`,
+          borderRadius: 12, overflow: "hidden", display: "flex", flexDirection: "column",
+          transition: "border-color 0.2s, transform 0.15s, box-shadow 0.2s",
+          transform: hovered ? "translateY(-2px)" : "none",
+          boxShadow: hovered ? "0 8px 24px rgba(0,0,0,0.45)" : "none",
+        }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        {/* Cover */}
+        <div style={{ position: "relative", height: 130, overflow: "hidden", background: "var(--bg)", flexShrink: 0 }}>
+          {bgImg && <img src={bgImg} alt="" loading="lazy"
+            style={{ width: "100%", height: "100%", objectFit: "cover", opacity: hovered ? 0.45 : 0.65, transition: "opacity 0.2s" }} />}
+          <div style={{ position: "absolute", inset: 0, pointerEvents: "none",
+            background: "linear-gradient(to bottom, transparent 30%, var(--card) 100%)" }} />
+          {diff?.status && (
+            <span style={{ position: "absolute", top: 8, left: 8, fontSize: 9, fontWeight: 700,
+              padding: "2px 7px", borderRadius: 4, color: "#b8e994", background: "rgba(0,0,0,0.6)",
+              fontFamily: "var(--font-m)", border: "1px solid #b8e99488", letterSpacing: "0.06em" }}>
+              {diff.status.toUpperCase()}
+            </span>
+          )}
+          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column",
+            alignItems: "center", justifyContent: "center", gap: 8,
+            opacity: hovered ? 1 : 0, transition: "opacity 0.18s" }}>
+            <div style={{ display: "flex", gap: 6 }}>
+              <a href={webUrl} target="_blank" rel="noopener noreferrer"
+                style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                  background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
+                  color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
+                  display: "flex", alignItems: "center", gap: 4 }}>
+                <IconExternalLink size={12} strokeWidth={2.5} /> osu!
+              </a>
+              {dlUrl && (
+                <a href={dlUrl}
+                  style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                    background: "rgba(255,102,170,0.75)", border: "1px solid rgba(255,102,170,0.5)",
+                    color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
+                    display: "flex", alignItems: "center", gap: 4 }}>
+                  <IconDownload size={12} strokeWidth={2.5} /> .osz
+                </a>
+              )}
+              {currentUser && (
+                <button onClick={() => setShowPlaylist(true)}
+                  style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                    background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
+                    color: "#fff", cursor: "pointer", backdropFilter: "blur(4px)",
+                    display: "flex", alignItems: "center", gap: 4 }}>
+                  <IconBookmark size={12} strokeWidth={2.5} /> Save
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: "12px 14px 8px", flex: 1 }}>
+          <div style={{ fontFamily: "var(--font-d)", fontWeight: 800, fontSize: 14, color: "var(--text)",
+            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: 2 }}>
+            {diff?.title ?? `Beatmapset`}
+          </div>
+          <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6,
+            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {diff?.artist}
+          </div>
+
+          {/* Active diff */}
+          <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6, flexWrap: "wrap" }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: starCol, display: "inline-block" }} />
+            <span style={{ fontFamily: "var(--font-d)", fontWeight: 700, fontSize: 12, color: starCol }}>
+              {diff?.version ?? "—"}
+            </span>
+            <span style={{ fontFamily: "var(--font-m)", fontSize: 11, color: "#ffd700",
+              background: "rgba(255,204,0,0.1)", border: "1px solid rgba(255,204,0,0.25)",
+              borderRadius: 4, padding: "1px 6px" }}>
+              ★ {fmt(diff?.difficulty_rating)}
+            </span>
+          </div>
+
+          {/* Labels */}
+          {topLabels.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 8 }}>
+              {topLabels.map(l => (
+                <div key={l.label}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+                    <span style={{ fontFamily: "var(--font-m)", fontSize: 10, color: "var(--muted)" }}>{l.label}</span>
+                    <span style={{ fontFamily: "var(--font-m)", fontSize: 10, color: starCol, fontWeight: 600 }}>
+                      {(l.probability * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                  <div style={{ height: 3, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
+                    <div style={{ width: `${(l.probability / maxProb) * 100}%`, height: "100%", borderRadius: 2,
+                      background: `linear-gradient(90deg, ${starCol}cc, ${starCol}55)` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Diff picker */}
+        <div style={{ borderTop: "1px solid rgba(180,130,220,0.1)", padding: "8px 10px",
+          display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 4,
+          background: "rgba(0,0,0,0.2)" }}>
+          {sorted.map((d, i) => {
+            const col = starColor(d.difficulty_rating);
+            const active = i === selectedIdx;
+            return (
+              <button key={d.beatmap_id} title={`${d.version ?? "?"} ★${fmt(d.difficulty_rating)}`}
+                onClick={() => setSelectedIdx(i)}
+                style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 5,
+                  border: `1px solid ${active ? col : "transparent"}`,
+                  background: active ? `${col}1a` : "transparent", cursor: "pointer" }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: col, display: "inline-block" }} />
+                <span style={{ fontFamily: "var(--font-d)", fontSize: 11, fontWeight: active ? 700 : 500,
+                  color: active ? col : "var(--muted2)", whiteSpace: "nowrap" }}>
+                  {d.version ?? `#${d.beatmap_id}`}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {showPlaylist && currentUser && diff && (
+        <SaveToPlaylistModal
+          beatmapId={diff.beatmap_id}
+          beatmapTitle={`${diff.title ?? "Beatmap"} [${diff.version ?? ""}]`}
+          onClose={() => setShowPlaylist(false)}
+        />
+      )}
+    </>
+  );
+}
 
 interface Props {
   username: string;
@@ -204,7 +389,7 @@ export default function PlaylistPage({ username, initialPlaylistId, currentUser,
                   <p style={{ fontSize: 12, color: "var(--muted2)", marginTop: 3 }}>
                     {activePl.item_count} beatmap{activePl.item_count !== 1 ? "s" : ""}
                     {activePl.top_tags.length > 0 && (
-                      <> · top tags: <span style={{ color: "#ff66aa" }}>{activePl.top_tags.join(", ")}</span></>
+                      <> · top tags: <span style={{ color: "#ff66aa" }}>{activePl.top_tags.slice(0, 3).join(", ")}</span></>
                     )}
                   </p>
                 </div>
@@ -217,13 +402,13 @@ export default function PlaylistPage({ username, initialPlaylistId, currentUser,
                   <>
                     <DiffDistribution distribution={activePl.diff_distribution ?? []} />
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
-                      {activePl.beatmaps.map(bm => (
-                        <BeatmapCard
-                          key={bm.beatmap_id}
-                          record={bm}
-                          currentUser={currentUser}
-                        />
-                      ))}
+                      {groupBySet(activePl.beatmaps).map(({ key, diffs }) =>
+                        diffs.length === 1 ? (
+                          <BeatmapCard key={key} record={diffs[0]} currentUser={currentUser} />
+                        ) : (
+                          <GroupedSetCard key={key} diffs={diffs} currentUser={currentUser} />
+                        )
+                      )}
                     </div>
                   </>
                 )}

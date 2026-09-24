@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { subscribeAudio, stopAudio, toggleAudio, TrackInfo } from "../utils/audioStore";
 import { IconPlay, IconPause } from "./Icons";
 
-const HIDE_AFTER_MS = 15000;
+const HIDE_AFTER_MS = 30000;
 
 export default function AudioOverlay() {
   const [track, setTrack] = useState<TrackInfo | null>(null);
@@ -26,7 +26,7 @@ export default function AudioOverlay() {
     }
     // playing just stopped — start 30s hide timer
     setVisible(true);
-    const t = setTimeout(() => setVisible(false), 15000);
+    const t = setTimeout(() => setVisible(false), 30000);
     return () => clearTimeout(t);
   }, [track, playing]);
 

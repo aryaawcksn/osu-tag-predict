@@ -39,7 +39,7 @@ export default function NavBar({ user, onLogout, onProfile, onInfo, theme, onTog
           className="nav-info-btn"
           style={infoButtonStyle}
         >
-          Info &amp; FAQ
+          Notices
         </button>
 
         {/* Theme toggle */}
