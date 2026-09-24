@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { BeatmapRecord, CurrentUser } from "../types";
 import SaveToPlaylistModal from "./SaveToPlaylistModal";
 import { starColor } from "../utils/starColor";
+import { playPreview as _playPreview } from "../utils/audioStore";
 import {
   IconExternalLink, IconDownload, IconBookmark, IconBookmarkX,
   IconTarget, IconBan, IconFolderMinus,
@@ -19,31 +20,6 @@ const STATUS_COLOR: Record<string, string> = {
 function fmt(n?: number | null, decimals = 1): string {
   if (n == null) return "—";
   return Number.isInteger(n) ? String(n) : n.toFixed(decimals);
-}
-
-// ── Global audio singleton — only one preview plays at a time ────────────────
-let _globalAudio: HTMLAudioElement | null = null;
-let _globalStop: (() => void) | null = null;
-
-function playPreview(url: string, onStop: () => void): () => void {
-  // Stop any currently playing preview
-  if (_globalAudio) {
-    _globalAudio.pause();
-    _globalAudio.src = "";
-    _globalStop?.();
-  }
-  const audio = new Audio(url);
-  audio.volume = 0.6;
-  _globalAudio = audio;
-  _globalStop = onStop;
-  audio.play().catch(() => {});
-  audio.addEventListener("ended", () => { _globalStop?.(); _globalAudio = null; _globalStop = null; });
-  return () => {
-    audio.pause();
-    audio.src = "";
-    if (_globalAudio === audio) { _globalAudio = null; _globalStop = null; }
-    onStop();
-  };
 }
 
 // ── Context menu ─────────────────────────────────────────────────────────────
@@ -137,13 +113,23 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, title, artist, status, s
       stopRef.current = null;
       setPlaying(false);
     } else {
-      stopRef.current = playPreview(previewUrl, () => setPlaying(false));
+      stopRef.current = _playPreview(
+        previewUrl,
+        { title: title ?? `Beatmap #${beatmapId}`, artist: artist ?? "Unknown", beatmapsetId: beatmapsetId ?? "" },
+        () => setPlaying(false),
+      );
       setPlaying(true);
     }
-  }, [playing, previewUrl]);
+  }, [playing, previewUrl, title, artist, beatmapId, beatmapsetId]);
 
-  // Stop on unmount
-  useEffect(() => () => { stopRef.current?.(); }, []);
+  // On unmount: only stop if this card is NOT the current global audio
+  // (so navigating away doesn't kill audio still playing)
+  useEffect(() => () => {
+    if (stopRef.current) {
+      // Don't call onStop callback — just detach. The audioStore keeps playing.
+      stopRef.current = null;
+    }
+  }, []);
 
   return (
     <div
@@ -256,6 +242,8 @@ interface BeatmapCardProps {
 export function BeatmapCard({ record, highlightTags, currentUser, onHide, onHideSet, onFindSimilar }: BeatmapCardProps) {
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const [showPlaylist, setShowPlaylist] = useState(false);
+  const [labelPage, setLabelPage] = useState(0);
+  const [labelHovered, setLabelHovered] = useState(false);
 
   const title = record.title ?? `Beatmap #${record.beatmap_id}`;
   const stars = record.difficulty_rating;
@@ -266,8 +254,11 @@ export function BeatmapCard({ record, highlightTags, currentUser, onHide, onHide
     (record.beatmapset_id ? `https://assets.ppy.sh/beatmaps/${record.beatmapset_id}/covers/card.jpg` : null);
 
   const sortedLabels = [...record.labels].sort((a, b) => b.probability - a.probability);
-  const coreLabels = sortedLabels.slice(0, 3);
-  const maxProb = coreLabels[0]?.probability ?? 1;
+  const PAGE_SIZE = 3;
+  const totalLabelPages = Math.ceil(sortedLabels.length / PAGE_SIZE);
+  const coreLabels = sortedLabels.slice(labelPage * PAGE_SIZE, labelPage * PAGE_SIZE + PAGE_SIZE);
+  const maxProb = sortedLabels[0]?.probability ?? 1;
+  const hasMultiplePages = totalLabelPages > 1;
 
   function handleContextMenu(e: React.MouseEvent) {
     if (!onHide && !onHideSet && !onFindSimilar) return;
@@ -324,7 +315,12 @@ export function BeatmapCard({ record, highlightTags, currentUser, onHide, onHide
           </div>
 
           {coreLabels.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            <div
+              onClick={e => { if (!hasMultiplePages) return; e.stopPropagation(); setLabelPage(p => (p + 1) % totalLabelPages); }}
+              onMouseEnter={() => setLabelHovered(true)}
+              onMouseLeave={() => { setLabelHovered(false); setLabelPage(0); }}
+              style={{ display: "flex", flexDirection: "column", gap: 5, cursor: hasMultiplePages ? "pointer" : "default" }}
+            >
               {coreLabels.map(l => {
                 const highlighted = highlightTags?.includes(l.label);
                 const barColor = highlighted ? "#ff66aa" : starCol;
@@ -344,6 +340,12 @@ export function BeatmapCard({ record, highlightTags, currentUser, onHide, onHide
                   </div>
                 );
               })}
+              {hasMultiplePages && (
+                <div style={{ textAlign: "right", fontFamily: "var(--font-m)", fontSize: 9,
+                  color: labelHovered ? "var(--muted)" : "var(--muted2)", transition: "color 0.15s", marginTop: 1 }}>
+                  {labelPage + 1}/{totalLabelPages} · click to cycle
+                </div>
+              )}
             </div>
           )}
         </div>

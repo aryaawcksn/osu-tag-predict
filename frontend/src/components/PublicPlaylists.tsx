@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Playlist, CurrentUser } from "../types";
 import { getPublicPlaylists, lovePlaylist, unlovePlaylist } from "../api";
 
@@ -70,15 +70,10 @@ interface CardProps {
 function PlaylistCard({ playlist: pl, currentUser, onOpen, onLoveChange }: CardProps) {
   const [hovered, setHovered] = useState(false);
   const [lovePending, setLovePending] = useState(false);
-  const [tagPopover, setTagPopover] = useState<PopoverState | null>(null);
 
   const isOwn = currentUser?.username === pl.owner.username;
   const canLove = !!currentUser && !isOwn;
   const isUpdated = pl.loved && pl.love_snapshot_hash !== null && pl.love_snapshot_hash !== pl.snapshot_hash;
-
-  // Show only first 3 tags in card, rest in popover
-  const visibleTags = pl.top_tags.slice(0, 3);
-  const hasMore = pl.top_tags.length > 3;
 
   async function handleLove(e: React.MouseEvent) {
     e.stopPropagation();
@@ -153,32 +148,14 @@ function PlaylistCard({ playlist: pl, currentUser, onOpen, onLoveChange }: CardP
         {/* Top tags */}
         {pl.top_tags.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 8 }}>
-            {visibleTags.map(tag => (
+            {pl.top_tags.slice(0, 3).map(tag => (
               <span key={tag} style={{ fontFamily: "var(--font-m)", fontSize: 10, padding: "2px 8px",
                 borderRadius: 4, background: "rgba(255,102,170,0.12)", border: "1px solid rgba(255,102,170,0.4)",
                 color: "#ff66aa" }}>
                 {tag}
               </span>
             ))}
-            {hasMore && (
-              <span
-                onClick={e => {
-                  e.stopPropagation();
-                  const rect = (e.target as HTMLElement).getBoundingClientRect();
-                  setTagPopover({ tags: pl.top_tags, x: rect.left, y: rect.bottom });
-                }}
-                style={{ fontFamily: "var(--font-m)", fontSize: 10, padding: "2px 8px",
-                  borderRadius: 4, background: "rgba(180,130,220,0.1)", border: "1px solid rgba(180,130,220,0.3)",
-                  color: "var(--muted)", cursor: "pointer", userSelect: "none" }}>
-                +{pl.top_tags.length - 3} more
-              </span>
-            )}
           </div>
-        )}
-
-        {/* Tag popover */}
-        {tagPopover && (
-          <TagPopover state={tagPopover} onClose={() => setTagPopover(null)} />
         )}
 
         {/* Diff distribution bar chart */}
@@ -213,64 +190,6 @@ function PlaylistCard({ playlist: pl, currentUser, onOpen, onLoveChange }: CardP
             {daysAgo(pl.updated_at)}
           </span>
         </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Tag Popover ───────────────────────────────────────────────────────────────
-
-interface PopoverState {
-  tags: string[];
-  x: number;
-  y: number;
-}
-
-function TagPopover({ state, onClose }: { state: PopoverState; onClose: () => void }) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    }
-    // slight delay so the opening click doesn't immediately close it
-    const t = setTimeout(() => document.addEventListener("mousedown", handleClick), 50);
-    return () => { clearTimeout(t); document.removeEventListener("mousedown", handleClick); };
-  }, [onClose]);
-
-  // Keep popover inside viewport
-  const width = 200;
-  const left = Math.min(state.x, window.innerWidth - width - 12);
-  const top = state.y + 8;
-
-  return (
-    <div
-      ref={ref}
-      style={{
-        position: "fixed",
-        left, top, width,
-        background: "var(--card)",
-        border: "1px solid rgba(255,102,170,0.35)",
-        borderRadius: 10,
-        padding: "10px 12px",
-        boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
-        zIndex: 999,
-      }}
-    >
-      <div style={{ fontSize: 10, color: "var(--muted2)", fontFamily: "var(--font-m)",
-        marginBottom: 8, letterSpacing: "0.05em" }}>
-        ALL TAGS
-      </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-        {state.tags.map(tag => (
-          <span key={tag} style={{
-            fontFamily: "var(--font-m)", fontSize: 10, padding: "2px 8px",
-            borderRadius: 4, background: "rgba(255,102,170,0.12)",
-            border: "1px solid rgba(255,102,170,0.4)", color: "#ff66aa",
-          }}>
-            {tag}
-          </span>
-        ))}
       </div>
     </div>
   );

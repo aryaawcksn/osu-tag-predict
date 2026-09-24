@@ -12,6 +12,7 @@ import RelabelBanner from "./components/RelabelBanner";
 import BeatmapsThisWeek from "./components/BeatmapsThisWeek";
 import PublicPlaylists from "./components/PublicPlaylists";
 import InfoPage from "./components/InfoPage";
+import AudioOverlay from "./components/AudioOverlay";
 import { PredictResult, CurrentUser, QueueState } from "./types";
 import {
   getCurrentUser, getQueueState, predictFromLink, predictFromUpload,
@@ -150,6 +151,7 @@ export default function App() {
         onToggleTheme={handleToggleTheme}
       />
       <RelabelBanner />
+      <AudioOverlay />
     </>
   );
 
