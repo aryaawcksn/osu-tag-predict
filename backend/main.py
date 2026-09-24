@@ -1444,10 +1444,11 @@ async def love_playlist(
                 select(sqlfunc.count()).select_from(PlaylistLove)
                 .where(PlaylistLove.playlist_id == playlist_id)
             )).scalar_one()
+            # Use raw SQL UPDATE to avoid triggering updated_at onupdate
+            from sqlalchemy import text
             await db.execute(
-                PlaylistModel.__table__.update()
-                .where(PlaylistModel.id == playlist_id)
-                .values(love_count=count)
+                text("UPDATE playlists SET love_count = :count WHERE id = :id"),
+                {"count": count, "id": playlist_id},
             )
     return {"ok": True, "loved": True, "love_count": count, "snapshot_hash": snapshot_hash}
 
@@ -1476,10 +1477,10 @@ async def unlove_playlist(
                 select(sqlfunc.count()).select_from(PlaylistLove)
                 .where(PlaylistLove.playlist_id == playlist_id)
             )).scalar_one()
+            from sqlalchemy import text
             await db.execute(
-                PlaylistModel.__table__.update()
-                .where(PlaylistModel.id == playlist_id)
-                .values(love_count=count)
+                text("UPDATE playlists SET love_count = :count WHERE id = :id"),
+                {"count": count, "id": playlist_id},
             )
     return {"ok": True, "loved": False, "love_count": count}
 
@@ -1489,7 +1490,6 @@ async def get_loved_playlists(current_user: User = Depends(require_user)):
     """Get all playlists loved by the current user, with update detection."""
     from models import Playlist as PlaylistModel, PlaylistLove
     from sqlalchemy.orm import selectinload
-    import hashlib
 
     async with AsyncSessionFactory() as db:
         love_rows = list((await db.execute(
@@ -1512,8 +1512,8 @@ async def get_loved_playlists(current_user: User = Depends(require_user)):
 
     result = []
     for pl in rows:
-        data = await _build_playlist_response(pl, include_items=False, current_user_id=current_user.id)
-        # Check if playlist was updated since love
+        # include_items=True so covers are populated
+        data = await _build_playlist_response(pl, include_items=True, current_user_id=current_user.id)
         current_hash = data["snapshot_hash"]
         saved_hash = love_map.get(pl.id)
         data["is_updated"] = bool(saved_hash and current_hash != saved_hash)

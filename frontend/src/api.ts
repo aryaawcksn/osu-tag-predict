@@ -256,7 +256,9 @@ export async function getUserBeatmapVotes(
 import { Playlist } from "./types";
 
 export async function getPublicPlaylists(offset = 0): Promise<{ playlists: Playlist[]; has_more: boolean }> {
-  const res = await fetch(`${BASE_URL}/playlists/public?offset=${offset}`);
+  const res = await fetch(`${BASE_URL}/playlists/public?offset=${offset}`, {
+    headers: { ...authHeaders() }, credentials: "include",
+  });
   return handleResponse(res);
 }
 
