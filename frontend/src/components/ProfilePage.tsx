@@ -318,11 +318,11 @@ function LovedPlaylistRow({ playlist: pl, onOpen, onUnlove, onSync, onSaveToo }:
             Update this version
           </button>
           <button
-            onClick={() => { onSaveToo(); setShowUpdateChoice(false); }}
+            onClick={() => setShowUpdateChoice(false)}
             style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6,
               border: "1px solid var(--border)", background: "transparent",
               color: "var(--muted)", cursor: "pointer" }}>
-            Save this version too
+            Dismiss
           </button>
         </div>
       )}
