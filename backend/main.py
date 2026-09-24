@@ -1124,8 +1124,19 @@ async def _build_playlist_response(playlist, include_items: bool = True, current
             tag_counter[lbl["label"]] += lbl["probability"]
     top_tags = [t for t, _ in tag_counter.most_common(12)]
 
-    # Cover previews: up to 4 card_url from items
-    covers = [r["card_url"] or r["cover_url"] for r in items_data if r.get("card_url") or r.get("cover_url")][:4]
+    # Cover previews: up to 4 unique covers (one per beatmapset)
+    seen_sets: set = set()
+    covers = []
+    for r in items_data:
+        sid = r.get("beatmapset_id") or r.get("beatmap_id")
+        if sid in seen_sets:
+            continue
+        seen_sets.add(sid)
+        url = r.get("card_url") or r.get("cover_url")
+        if url:
+            covers.append(url)
+        if len(covers) == 4:
+            break
 
     # Snapshot hash: deterministic hash of sorted beatmap IDs (detects content changes)
     import hashlib

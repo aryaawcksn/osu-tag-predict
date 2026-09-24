@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Playlist, BeatmapRecord, CurrentUser } from "../types";
 import { getUserPlaylists, createPlaylist, deletePlaylist, updatePlaylist, removeFromPlaylist } from "../api";
 import { BeatmapCard } from "./BeatmapCard";
 import { starColor } from "../utils/starColor";
-import { IconExternalLink, IconDownload, IconBookmark } from "./Icons";
+import { IconExternalLink, IconDownload, IconBookmark, IconPlay, IconPause } from "./Icons";
 import SaveToPlaylistModal from "./SaveToPlaylistModal";
+import { playPreview as _playPreview } from "../utils/audioStore";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -32,6 +33,8 @@ function GroupedSetCard({ diffs, currentUser }: { diffs: BeatmapRecord[]; curren
   const [selectedIdx, setSelectedIdx] = useState(midIdx);
   const [hovered, setHovered] = useState(false);
   const [showPlaylist, setShowPlaylist] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const stopRef = useRef<(() => void) | null>(null);
 
   const diff = sorted[selectedIdx];
   const starCol = starColor(diff?.difficulty_rating);
@@ -48,6 +51,23 @@ function GroupedSetCard({ diffs, currentUser }: { diffs: BeatmapRecord[]; curren
   if (diff?.title) dlParams.set("title", diff.title);
   if (diff?.artist) dlParams.set("artist", diff.artist);
   const dlUrl = diff?.beatmapset_id ? `${BASE_URL}/proxy/download/${diff.beatmapset_id}?${dlParams}` : null;
+  const previewUrl = diff?.beatmapset_id ? `https://b.ppy.sh/preview/${diff.beatmapset_id}.mp3` : null;
+
+  useEffect(() => () => { stopRef.current = null; }, []);
+
+  function togglePlay(e: React.MouseEvent) {
+    e.preventDefault(); e.stopPropagation();
+    if (!previewUrl) return;
+    if (playing) { stopRef.current?.(); stopRef.current = null; setPlaying(false); }
+    else {
+      stopRef.current = _playPreview(
+        previewUrl,
+        { title: diff?.title ?? "Unknown", artist: diff?.artist ?? "Unknown", beatmapsetId: diff?.beatmapset_id ?? "" },
+        () => setPlaying(false),
+      );
+      setPlaying(true);
+    }
+  }
 
   return (
     <>
@@ -75,9 +95,28 @@ function GroupedSetCard({ diffs, currentUser }: { diffs: BeatmapRecord[]; curren
               {diff.status.toUpperCase()}
             </span>
           )}
+          {playing && (
+            <div style={{ position: "absolute", bottom: 8, right: 8, display: "flex", gap: 2, alignItems: "flex-end" }}>
+              {[1, 1.5, 0.8, 1.2, 1].map((h, i) => (
+                <div key={i} style={{ width: 3, borderRadius: 2, background: "#ff66aa",
+                  animation: `eq-bar ${0.5 + i * 0.1}s ease-in-out infinite alternate`,
+                  height: `${h * 10}px` }} />
+              ))}
+            </div>
+          )}
           <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column",
             alignItems: "center", justifyContent: "center", gap: 8,
             opacity: hovered ? 1 : 0, transition: "opacity 0.18s" }}>
+            {previewUrl && (
+              <button onClick={togglePlay}
+                style={{ width: 44, height: 44, borderRadius: "50%",
+                  background: playing ? "rgba(255,102,170,0.9)" : "rgba(0,0,0,0.65)",
+                  border: `2px solid ${playing ? "#ff66aa" : "rgba(255,255,255,0.35)"}`,
+                  color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer", backdropFilter: "blur(4px)" }}>
+                {playing ? <IconPause size={18} strokeWidth={2.5} /> : <IconPlay size={18} strokeWidth={2.5} />}
+              </button>
+            )}
             <div style={{ display: "flex", gap: 6 }}>
               <a href={webUrl} target="_blank" rel="noopener noreferrer"
                 style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
