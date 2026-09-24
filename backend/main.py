@@ -1122,7 +1122,7 @@ async def _build_playlist_response(playlist, include_items: bool = True, current
     for item_rec in items_data:
         for lbl in item_rec.get("labels", []):
             tag_counter[lbl["label"]] += lbl["probability"]
-    top_tags = [t for t, _ in tag_counter.most_common(3)]
+    top_tags = [t for t, _ in tag_counter.most_common(10)]
 
     # Cover previews: up to 4 card_url from items
     covers = [r["card_url"] or r["cover_url"] for r in items_data if r.get("card_url") or r.get("cover_url")][:4]
