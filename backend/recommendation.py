@@ -27,15 +27,18 @@ THRESHOLD = float(os.environ.get("PREDICT_THRESHOLD", "0.1"))
 # --------------------------------------------------------------------------- #
 
 _app_token: Optional[str] = None
+_app_token_expires_at: float = 0.0
 _app_token_lock = asyncio.Lock()
 
 
-async def _get_app_token() -> Optional[str]:
-    global _app_token
-    if _app_token:
+async def _get_app_token(force_refresh: bool = False) -> Optional[str]:
+    import time
+    global _app_token, _app_token_expires_at
+    # Return cached token if still valid (with 60s buffer)
+    if not force_refresh and _app_token and time.time() < _app_token_expires_at - 60:
         return _app_token
     async with _app_token_lock:
-        if _app_token:
+        if not force_refresh and _app_token and time.time() < _app_token_expires_at - 60:
             return _app_token
         client_id = os.environ.get("OSU_CLIENT_ID", "")
         client_secret = os.environ.get("OSU_CLIENT_SECRET", "")
@@ -54,7 +57,11 @@ async def _get_app_token() -> Optional[str]:
                     timeout=10,
                 )
             if resp.status_code == 200:
-                _app_token = resp.json().get("access_token")
+                import time as _time
+                data = resp.json()
+                _app_token = data.get("access_token")
+                expires_in = data.get("expires_in", 86400)
+                _app_token_expires_at = _time.time() + expires_in
                 return _app_token
         except Exception:
             pass
@@ -83,10 +90,9 @@ async def _fetch_osu_metadata(beatmap_id: str) -> Optional[dict]:
     if resp is None:
         return None
 
-    # Token expired — reset and retry once
+    # Token expired — force refresh and retry once
     if resp.status_code == 401:
-        _app_token = None
-        token = await _get_app_token()
+        token = await _get_app_token(force_refresh=True)
         if not token:
             return None
         resp = await _call(token)

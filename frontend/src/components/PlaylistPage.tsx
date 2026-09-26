@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Playlist, BeatmapRecord, CurrentUser } from "../types";
-import { getUserPlaylists, createPlaylist, deletePlaylist, updatePlaylist, removeFromPlaylist } from "../api";
+import { getUserPlaylists, createPlaylist, deletePlaylist, updatePlaylist, removeFromPlaylist, lovePlaylist, unlovePlaylist } from "../api";
 import { BeatmapCard } from "./BeatmapCard";
 import { starColor } from "../utils/starColor";
 import { IconExternalLink, IconDownload, IconBookmark, IconPlay, IconPause } from "./Icons";
 import SaveToPlaylistModal from "./SaveToPlaylistModal";
-import { playPreview as _playPreview } from "../utils/audioStore";
+import { playPreview as _playPreview, pauseAudio, resumeAudio, subscribeAudio } from "../utils/audioStore";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -53,19 +53,31 @@ function GroupedSetCard({ diffs, currentUser }: { diffs: BeatmapRecord[]; curren
   const dlUrl = diff?.beatmapset_id ? `${BASE_URL}/proxy/download/${diff.beatmapset_id}?${dlParams}` : null;
   const previewUrl = diff?.beatmapset_id ? `https://b.ppy.sh/preview/${diff.beatmapset_id}.mp3` : null;
 
+  const beatmapsetId = diff?.beatmapset_id ?? "";
+
+  // Sync playing state from global store
+  useEffect(() => {
+    return subscribeAudio((track, globalPlaying) => {
+      const isOurs = track?.beatmapsetId === beatmapsetId && stopRef.current !== null;
+      setPlaying(isOurs && globalPlaying);
+    });
+  }, [beatmapsetId]);
+
   useEffect(() => () => { stopRef.current = null; }, []);
 
   function togglePlay(e: React.MouseEvent) {
     e.preventDefault(); e.stopPropagation();
     if (!previewUrl) return;
-    if (playing) { stopRef.current?.(); stopRef.current = null; setPlaying(false); }
-    else {
+    if (playing) {
+      pauseAudio();
+    } else if (stopRef.current) {
+      resumeAudio();
+    } else {
       stopRef.current = _playPreview(
         previewUrl,
-        { title: diff?.title ?? "Unknown", artist: diff?.artist ?? "Unknown", beatmapsetId: diff?.beatmapset_id ?? "" },
-        () => setPlaying(false),
+        { title: diff?.title ?? "Unknown", artist: diff?.artist ?? "Unknown", beatmapsetId },
+        () => { stopRef.current = null; },
       );
-      setPlaying(true);
     }
   }
 
@@ -297,6 +309,21 @@ export default function PlaylistPage({ username, initialPlaylistId, currentUser,
     if (updated) setPlaylists(prev => prev.map(p => p.id === pl.id ? updated : p));
   }
 
+  async function handleLove(pl: Playlist) {
+    if (!currentUser || currentUser.username === username) return;
+    try {
+      if (pl.loved) {
+        const res = await unlovePlaylist(pl.id);
+        setPlaylists(prev => prev.map(p => p.id === pl.id
+          ? { ...p, loved: false, love_count: res.love_count } : p));
+      } else {
+        const res = await lovePlaylist(pl.id);
+        setPlaylists(prev => prev.map(p => p.id === pl.id
+          ? { ...p, loved: true, love_count: res.love_count, love_snapshot_hash: res.snapshot_hash } : p));
+      }
+    } catch { /* ignore */ }
+  }
+
   async function handleUnsave(playlistId: number, beatmapId: string) {
     await removeFromPlaylist(playlistId, beatmapId).catch(() => {});
     setPlaylists(prev => prev.map(p => p.id !== playlistId ? p : {
@@ -390,8 +417,17 @@ export default function PlaylistPage({ username, initialPlaylistId, currentUser,
                           whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                           {pl.name}
                         </div>
-                        <div style={{ fontSize: 10, color: "var(--muted2)", marginTop: 2 }}>
-                          {pl.item_count} maps · {pl.is_public ? "Public" : "Private"}
+                        <div style={{ fontSize: 10, color: "var(--muted2)", marginTop: 2, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <span>{pl.item_count} maps · {pl.is_public ? "Public" : "Private"}</span>
+                          {!isOwner && currentUser && (
+                            <span
+                              onClick={e => { e.stopPropagation(); handleLove(pl); }}
+                              title={pl.loved ? "Remove love" : "Love this playlist"}
+                              style={{ color: pl.loved ? "#ff66aa" : "var(--muted2)", cursor: "pointer",
+                                fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}>
+                              {pl.loved ? "♥" : "♡"} {pl.love_count}
+                            </span>
+                          )}
                         </div>
                       </button>
                       {isOwner && (

@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { BeatmapRecord, CurrentUser } from "../types";
 import SaveToPlaylistModal from "./SaveToPlaylistModal";
 import { starColor } from "../utils/starColor";
-import { playPreview as _playPreview } from "../utils/audioStore";
+import { playPreview as _playPreview, pauseAudio, resumeAudio, subscribeAudio } from "../utils/audioStore";
 import {
   IconExternalLink, IconDownload, IconBookmark, IconBookmarkX,
   IconTarget, IconBan, IconFolderMinus,
@@ -97,7 +97,6 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, title, artist, status, s
   const webUrl = beatmapsetId
     ? `https://osu.ppy.sh/beatmapsets/${beatmapsetId}#osu/${beatmapId}`
     : `https://osu.ppy.sh/beatmaps/${beatmapId}`;
-  // Proxy download — pass title/artist for a clean filename
   const dlParams = new URLSearchParams();
   if (title) dlParams.set("title", title);
   if (artist) dlParams.set("artist", artist);
@@ -105,20 +104,29 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, title, artist, status, s
     ? `${BASE_URL}/proxy/download/${beatmapsetId}?${dlParams}`
     : null;
 
+  // Sync playing state from global store (handles external pause/stop)
+  useEffect(() => {
+    return subscribeAudio((track, globalPlaying) => {
+      const isOurs = track?.beatmapsetId === beatmapsetId && stopRef.current !== null;
+      setPlaying(isOurs && globalPlaying);
+    });
+  }, [beatmapsetId]);
+
   const togglePlay = useCallback((e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
     if (!previewUrl) return;
     if (playing) {
-      stopRef.current?.();
-      stopRef.current = null;
-      setPlaying(false);
+      pauseAudio();
+    } else if (stopRef.current) {
+      // we own the current audio — just resume
+      resumeAudio();
     } else {
+      // start fresh
       stopRef.current = _playPreview(
         previewUrl,
         { title: title ?? `Beatmap #${beatmapId}`, artist: artist ?? "Unknown", beatmapsetId: beatmapsetId ?? "" },
-        () => setPlaying(false),
+        () => { stopRef.current = null; },
       );
-      setPlaying(true);
     }
   }, [playing, previewUrl, title, artist, beatmapId, beatmapsetId]);
 

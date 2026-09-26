@@ -1,39 +1,46 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { subscribeAudio, stopAudio, toggleAudio, TrackInfo } from "../utils/audioStore";
 import { IconPlay, IconPause } from "./Icons";
-
-const HIDE_AFTER_MS = 30000;
 
 export default function AudioOverlay() {
   const [track, setTrack] = useState<TrackInfo | null>(null);
   const [playing, setPlaying] = useState(false);
   const [visible, setVisible] = useState(false);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return subscribeAudio((t, p) => {
       setTrack(t);
       setPlaying(p);
-      if (t) setVisible(true);
     });
   }, []);
 
-  // Auto-hide 30s after playback stops (not when it starts)
   useEffect(() => {
-    if (!track) { setVisible(false); return; }
-    if (playing) {
-      setVisible(true);
-      return; // don't start timer while playing
-    }
-    // playing just stopped — start 30s hide timer
-    setVisible(true);
-    const t = setTimeout(() => setVisible(false), 30000);
-    return () => clearTimeout(t);
-  }, [track, playing]);
+    if (!track) return; // never had a track
 
-  if (!track) return null;
+    if (playing) {
+      // Playing — show and cancel any pending hide
+      setVisible(true);
+      if (hideTimer.current) { clearTimeout(hideTimer.current); hideTimer.current = null; }
+    } else {
+      // Paused or ended — start 30s hide timer
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+      hideTimer.current = setTimeout(() => setVisible(false), 30000);
+    }
+
+    return () => {
+      if (hideTimer.current) { clearTimeout(hideTimer.current); hideTimer.current = null; }
+    };
+  }, [playing, track]);
+
+  if (!track && !visible) return null;
 
   return (
     <div
+      onMouseEnter={() => {
+        setVisible(true);
+        if (hideTimer.current) { clearTimeout(hideTimer.current); hideTimer.current = null; }
+      }}
       style={{
         position: "fixed",
         bottom: 24,
@@ -55,9 +62,8 @@ export default function AudioOverlay() {
         maxWidth: "calc(100vw - 40px)",
         pointerEvents: visible ? "auto" : "none",
       }}
-      onMouseEnter={() => setVisible(true)}
     >
-      {/* EQ bars / cover placeholder */}
+      {/* EQ / music icon */}
       <div style={{ width: 32, height: 32, borderRadius: 6, flexShrink: 0, overflow: "hidden",
         background: "rgba(255,102,170,0.15)", border: "1px solid rgba(255,102,170,0.25)",
         display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -80,17 +86,18 @@ export default function AudioOverlay() {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: "var(--font-d)", fontSize: 12, fontWeight: 700,
           color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {track.title}
+          {track?.title}
         </div>
         <div style={{ fontFamily: "var(--font-m)", fontSize: 10, color: "rgba(255,255,255,0.5)",
           whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {track.artist}
+          {track?.artist}
         </div>
       </div>
 
       {/* Play/Pause */}
       <button
-        onClick={() => { toggleAudio(); setVisible(true); }}
+        onClick={toggleAudio}
+        title={playing ? "Pause" : "Play"}
         style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0,
           background: playing ? "rgba(255,102,170,0.9)" : "rgba(255,255,255,0.12)",
           border: `1px solid ${playing ? "#ff66aa" : "rgba(255,255,255,0.2)"}`,
@@ -101,16 +108,16 @@ export default function AudioOverlay() {
           : <IconPlay size={12} strokeWidth={2.5} />}
       </button>
 
-      {/* Stop */}
+      {/* Close / Stop */}
       <button
-        onClick={() => stopAudio()}
-        title="Stop"
+        onClick={() => { stopAudio(); setVisible(false); }}
+        title="Stop & close"
         style={{ width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
           background: "transparent", border: "1px solid rgba(255,255,255,0.15)",
           color: "rgba(255,255,255,0.45)", cursor: "pointer",
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 10, transition: "all 0.15s" }}>
-        ■
+        ✕
       </button>
     </div>
   );

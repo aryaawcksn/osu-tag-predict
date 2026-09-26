@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { BeatmapRecord, CurrentUser } from "../types";
 import SaveToPlaylistModal from "./SaveToPlaylistModal";
 import { starColor } from "../utils/starColor";
-import { playPreview as _playPreview } from "../utils/audioStore";
+import { playPreview as _playPreview, pauseAudio, resumeAudio, subscribeAudio } from "../utils/audioStore";
 import { IconExternalLink, IconDownload, IconBookmark, IconPlay, IconPause } from "./Icons";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
@@ -165,18 +165,28 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
     ? `https://osu.ppy.sh/beatmapsets/${set.beatmapset_id}#osu/${diff.beatmap_id}`
     : `https://osu.ppy.sh/beatmapsets/${set.beatmapset_id}`;
 
+  // Sync playing state from global store
+  useEffect(() => {
+    return subscribeAudio((track, globalPlaying) => {
+      const isOurs = track?.beatmapsetId === set.beatmapset_id && stopRef.current !== null;
+      setPlaying(isOurs && globalPlaying);
+    });
+  }, [set.beatmapset_id]);
+
   useEffect(() => () => { stopRef.current = null; }, []);
 
   const togglePlay = useCallback((e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
-    if (playing) { stopRef.current?.(); stopRef.current = null; setPlaying(false); }
-    else {
+    if (playing) {
+      pauseAudio();
+    } else if (stopRef.current) {
+      resumeAudio();
+    } else {
       stopRef.current = _playPreview(
         previewUrl,
         { title: set.title ?? `Beatmapset #${set.beatmapset_id}`, artist: set.artist ?? "Unknown", beatmapsetId: set.beatmapset_id },
-        () => setPlaying(false),
+        () => { stopRef.current = null; },
       );
-      setPlaying(true);
     }
   }, [playing, previewUrl, set]);
 

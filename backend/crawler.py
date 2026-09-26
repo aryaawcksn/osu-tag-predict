@@ -104,6 +104,20 @@ async def _fetch_page(
                 params=params,
                 timeout=20,
             )
+        if resp.status_code == 401:
+            logger.warning("Crawler: token expired (401), refreshing…")
+            from recommendation import _get_app_token
+            new_token = await _get_app_token(force_refresh=True)
+            if not new_token:
+                logger.warning("Crawler: failed to refresh token")
+                return [], cursor_string
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(
+                    "https://osu.ppy.sh/api/v2/beatmapsets/search",
+                    headers={"Authorization": f"Bearer {new_token}"},
+                    params=params,
+                    timeout=20,
+                )
         if resp.status_code == 429:
             logger.warning("Crawler: rate-limited, sleeping 60s")
             await asyncio.sleep(60)
