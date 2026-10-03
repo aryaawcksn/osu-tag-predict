@@ -215,67 +215,30 @@ async def proxy_download(
     artist: Optional[str] = Query(None),
 ):
     """
-    Proxy .osz download via public mirrors (no auth required).
+    Redirect to a working .osz download mirror.
     Tries chimu.moe first, falls back to beatconnect.
+    Using redirect instead of proxying avoids Cloudflare streaming issues.
     """
     import httpx
-    import re as _re
-    from fastapi.responses import StreamingResponse
+    from fastapi.responses import RedirectResponse
 
     mirrors = [
         f"https://chimu.moe/d/{beatmapset_id}",
         f"https://beatconnect.io/b/{beatmapset_id}",
     ]
 
-    client = httpx.AsyncClient(follow_redirects=True, timeout=60)
-    resp = None
+    # Check which mirror is reachable with a HEAD request (no body download)
+    async with httpx.AsyncClient(follow_redirects=True, timeout=10) as client:
+        for url in mirrors:
+            try:
+                r = await client.head(url)
+                if r.status_code in (200, 302, 303, 307, 308):
+                    return RedirectResponse(url=url, status_code=302)
+            except Exception:
+                continue
 
-    for url in mirrors:
-        try:
-            req = client.build_request("GET", url)
-            r = await client.send(req, stream=True)
-            if r.status_code == 200:
-                resp = r
-                break
-            await r.aclose()
-        except Exception:
-            continue
-
-    if resp is None:
-        await client.aclose()
-        raise HTTPException(
-            status_code=502,
-            detail="All download mirrors failed. Try downloading directly from osu! website.",
-        )
-
-    async def stream_and_close():
-        try:
-            async for chunk in resp.aiter_bytes(65536):
-                yield chunk
-        finally:
-            await resp.aclose()
-            await client.aclose()
-
-    # Build a clean filename: "artist - title (id).osz"
-    def _safe(s: str) -> str:
-        return _re.sub(r'[\\/*?:"<>|]', "", s).strip()[:80]
-
-    if title and artist:
-        fname = f"{_safe(artist)} - {_safe(title)} ({beatmapset_id}).osz"
-    elif title:
-        fname = f"{_safe(title)} ({beatmapset_id}).osz"
-    else:
-        fname = f"{beatmapset_id}.osz"
-
-    headers = {"Content-Disposition": f'attachment; filename="{fname}"'}
-    if "content-length" in resp.headers:
-        headers["Content-Length"] = resp.headers["content-length"]
-
-    return StreamingResponse(
-        stream_and_close(),
-        media_type="application/x-osu-beatmap-archive",
-        headers=headers,
-    )
+    # If HEAD checks fail, just redirect to chimu.moe anyway — let the browser handle it
+    return RedirectResponse(url=mirrors[0], status_code=302)
 
 
 @app.get("/crawler/status")
