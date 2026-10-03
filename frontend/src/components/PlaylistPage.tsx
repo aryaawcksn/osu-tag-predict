@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Playlist, BeatmapRecord, CurrentUser } from "../types";
 import { getUserPlaylists, createPlaylist, deletePlaylist, updatePlaylist, removeFromPlaylist, lovePlaylist, unlovePlaylist } from "../api";
 import { BeatmapCard } from "./BeatmapCard";
-import { starColor } from "../utils/starColor";
+import { starColor, starTextColor } from "../utils/starColor";
 import { IconExternalLink, IconDownload, IconBookmark, IconPlay, IconPause } from "./Icons";
 import SaveToPlaylistModal from "./SaveToPlaylistModal";
 import { playPreview as _playPreview, pauseAudio, resumeAudio, subscribeAudio } from "../utils/audioStore";
@@ -38,6 +38,7 @@ function GroupedSetCard({ diffs, currentUser }: { diffs: BeatmapRecord[]; curren
 
   const diff = sorted[selectedIdx];
   const starCol = starColor(diff?.difficulty_rating);
+  const starTxtCol = starTextColor(diff?.difficulty_rating);
   const bgImg = diff?.card_url || diff?.cover_url ||
     (diff?.beatmapset_id ? `https://assets.ppy.sh/beatmaps/${diff.beatmapset_id}/covers/card.jpg` : null);
 
@@ -190,7 +191,7 @@ function GroupedSetCard({ diffs, currentUser }: { diffs: BeatmapRecord[]; curren
                 <div key={l.label}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
                     <span style={{ fontFamily: "var(--font-m)", fontSize: 10, color: "var(--muted)" }}>{l.label}</span>
-                    <span style={{ fontFamily: "var(--font-m)", fontSize: 10, color: starCol, fontWeight: 600 }}>
+                    <span style={{ fontFamily: "var(--font-m)", fontSize: 10, color: starTxtCol, fontWeight: 600 }}>
                       {(l.probability * 100).toFixed(0)}%
                     </span>
                   </div>

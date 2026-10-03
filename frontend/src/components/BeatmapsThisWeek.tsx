@@ -326,7 +326,7 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
                 <div key={l.label}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
                     <span style={{ fontFamily: "var(--font-m)", fontSize: 10, color: "var(--muted)" }}>{l.label}</span>
-                    <span style={{ fontFamily: "var(--font-m)", fontSize: 10, color: starCol, fontWeight: 600 }}>
+                    <span style={{ fontFamily: "var(--font-m)", fontSize: 10, color: starTextColor(diff?.difficulty_rating), fontWeight: 600 }}>
                       {(l.probability * 100).toFixed(0)}%
                     </span>
                   </div>

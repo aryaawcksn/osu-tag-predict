@@ -258,6 +258,7 @@ export function BeatmapCard({ record, highlightTags, currentUser, onHide, onHide
   const title = record.title ?? `Beatmap #${record.beatmap_id}`;
   const stars = record.difficulty_rating;
   const starCol = starColor(stars);
+  const starTxtCol = starTextColor(stars);
   const statusCol = STATUS_COLOR[record.status ?? ""] ?? "var(--muted)";
 
   const bgImg = record.card_url || record.cover_url ||
@@ -331,13 +332,14 @@ export function BeatmapCard({ record, highlightTags, currentUser, onHide, onHide
               {coreLabels.map(l => {
                 const highlighted = highlightTags?.includes(l.label);
                 const barColor = highlighted ? "#ff66aa" : starCol;
+                const pctColor = highlighted ? "#ff66aa" : starTxtCol;
                 return (
                   <div key={l.label}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
                       <span style={{ fontFamily: "var(--font-m)", fontSize: 10,
                         color: highlighted ? "#ff66aa" : "var(--muted)" }}>{l.label}</span>
                       <span style={{ fontFamily: "var(--font-m)", fontSize: 10,
-                        color: barColor, fontWeight: 600 }}>{(l.probability * 100).toFixed(0)}%</span>
+                        color: pctColor, fontWeight: 600 }}>{(l.probability * 100).toFixed(0)}%</span>
                     </div>
                     <div style={{ height: 3, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
                       <div style={{ width: `${(l.probability / maxProb) * 100}%`, height: "100%", borderRadius: 2,
