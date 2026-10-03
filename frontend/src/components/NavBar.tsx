@@ -1,6 +1,6 @@
 import { CurrentUser } from "../types";
 import { logout } from "../api";
-import { IconSun, IconMoon } from "./Icons";
+import { IconSun, IconMoon, IconInfo, IconLogOut } from "./Icons";
 
 interface Props {
   user: CurrentUser | null;
@@ -13,6 +13,7 @@ interface Props {
 
 export default function NavBar({ user, onLogout, onProfile, onInfo, theme, onToggleTheme }: Props) {
   const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+  const isDark = theme === "dark";
 
   async function handleLogout() {
     await logout();
@@ -21,50 +22,67 @@ export default function NavBar({ user, onLogout, onProfile, onInfo, theme, onTog
 
   return (
     <nav style={navStyle}>
-      {/* Logo */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="11" cy="11" r="10" stroke="#ff66aa" strokeWidth="2" />
-          <circle cx="11" cy="11" r="5.5" stroke="#ff66aa" strokeWidth="2" />
-          <circle cx="11" cy="11" r="1.5" fill="#ff66aa" />
-        </svg>
+      {/* ── Left: logo ── */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <img src="/favicon.png" alt="o!btc" style={{ width: 24, height: 24, objectFit: "contain" }} />
         <span style={logoTextStyle}>o!btc</span>
       </div>
 
-      {/* Right */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        {/* Info button — hidden on mobile */}
+      {/* ── Right: actions ── */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+
+        {/* Info & FAQ */}
         <button
           onClick={onInfo}
           className="nav-info-btn"
-          style={infoButtonStyle}
+          title="Info & FAQ"
+          style={ghostBtn}
         >
-          Notices
+          <IconInfo size={14} strokeWidth={2} style={{ color: isDark ? "rgba(255,255,255,0.6)" : "var(--muted)" }} />
+          <span style={{ fontSize: 12, color: "var(--muted)" }}>Info</span>
         </button>
 
         {/* Theme toggle */}
         <button
           onClick={onToggleTheme}
-          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-          style={themeToggleStyle}
+          title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+          style={{ ...ghostBtn, padding: "5px 8px" }}
         >
-          {theme === "dark" ? <IconSun size={15} strokeWidth={2} /> : <IconMoon size={15} strokeWidth={2} />}
+          {isDark
+            ? <IconSun size={15} strokeWidth={2} style={{ color: "#fff" }} />
+            : <IconMoon size={15} strokeWidth={2} style={{ color: "#4a4a62" }} />}
         </button>
+
+        {/* Divider */}
+        <div style={{ width: 1, height: 20, background: "var(--border)", margin: "0 2px" }} />
 
         {user ? (
           <>
-            {user.avatar_url && (
-              <img src={user.avatar_url} alt={user.username} style={avatarStyle} />
-            )}
-            <button onClick={onProfile} style={userNameStyle}>
-              {user.username}
+            {/* Avatar + username */}
+            <button onClick={onProfile} style={userBtn} title="My profile">
+              {user.avatar_url
+                ? <img src={user.avatar_url} alt={user.username} style={avatarStyle} />
+                : <div style={{ ...avatarStyle, background: "rgba(255,102,170,0.2)" }} />}
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", maxWidth: 120,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {user.username}
+              </span>
             </button>
-            <button onClick={handleLogout} className="btn-ghost" style={{ padding: "5px 12px", fontSize: 12 }}>
-              Logout
+
+            {/* Logout */}
+            <button onClick={handleLogout} title="Logout" style={{ ...ghostBtn, padding: "5px 8px" }}>
+              <IconLogOut size={14} strokeWidth={2} style={{ color: "var(--muted)" }} />
+              <span className="nav-logout-text" style={{ fontSize: 12, color: "var(--muted)" }}>
+                Logout
+              </span>
             </button>
           </>
         ) : (
-          <a href={`${BASE_URL}/auth/login`} className="btn-pink" style={{ textDecoration: "none", fontSize: 13 }}>
+          <a
+            href={`${BASE_URL}/auth/login`}
+            className="btn-pink"
+            style={{ textDecoration: "none", fontSize: 13 }}
+          >
             Login with osu!
           </a>
         )}
@@ -73,11 +91,13 @@ export default function NavBar({ user, onLogout, onProfile, onInfo, theme, onTog
   );
 }
 
+// ── Styles ────────────────────────────────────────────────────────────────────
+
 const navStyle: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  padding: "0 24px",
+  padding: "0 20px",
   height: 52,
   background: "var(--card)",
   borderBottom: "1px solid var(--border)",
@@ -95,41 +115,35 @@ const logoTextStyle: React.CSSProperties = {
   letterSpacing: "0.02em",
 };
 
+const ghostBtn: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 5,
+  background: "transparent",
+  border: "1px solid var(--border)",
+  borderRadius: 8,
+  cursor: "pointer",
+  padding: "5px 10px",
+  transition: "border-color 0.15s",
+};
+
+const userBtn: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 7,
+  background: "transparent",
+  border: "1px solid var(--border)",
+  borderRadius: 8,
+  cursor: "pointer",
+  padding: "4px 10px 4px 5px",
+  transition: "border-color 0.15s",
+};
+
 const avatarStyle: React.CSSProperties = {
-  width: 28,
-  height: 28,
+  width: 26,
+  height: 26,
   borderRadius: "50%",
   objectFit: "cover",
   border: "1.5px solid rgba(255,102,170,0.4)",
-};
-
-const userNameStyle: React.CSSProperties = {
-  background: "none",
-  border: "none",
-  cursor: "pointer",
-  color: "var(--text)",
-  fontSize: 13,
-  fontWeight: 600,
-};
-
-const infoButtonStyle: React.CSSProperties = {
-  background: "transparent",
-  border: "1px solid var(--border)",
-  borderRadius: 8,
-  cursor: "pointer",
-  fontSize: 12,
-  color: "var(--muted)",
-  padding: "5px 12px",
-  transition: "border-color 0.15s, color 0.15s",
-};
-
-const themeToggleStyle: React.CSSProperties = {
-  background: "transparent",
-  border: "1px solid var(--border)",
-  borderRadius: 8,
-  cursor: "pointer",
-  fontSize: 15,
-  padding: "4px 8px",
-  lineHeight: 1,
-  transition: "border-color 0.15s",
+  flexShrink: 0,
 };

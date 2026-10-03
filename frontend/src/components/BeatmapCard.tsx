@@ -4,6 +4,7 @@ import { BeatmapRecord, CurrentUser } from "../types";
 import SaveToPlaylistModal from "./SaveToPlaylistModal";
 import { starColor } from "../utils/starColor";
 import { playPreview as _playPreview, pauseAudio, resumeAudio, subscribeAudio } from "../utils/audioStore";
+import { BeatmapStats } from "./BeatmapStats";
 import {
   IconExternalLink, IconDownload, IconBookmark, IconBookmarkX,
   IconTarget, IconBan, IconFolderMinus,
@@ -311,16 +312,13 @@ export function BeatmapCard({ record, highlightTags, currentUser, onHide, onHide
             {record.bpm != null && <span style={{ color: "var(--muted2)" }}> · {fmt(record.bpm, 0)} BPM</span>}
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginBottom: 8 }}>
-            {stars != null && (
-              <span style={{ ...starBadgeStyle, color: starCol, borderColor: `${starCol}44`, background: `${starCol}14` }}>
-                ★ {stars.toFixed(2)}
-              </span>
-            )}
-            {record.ar != null && <span style={statBadge}>AR{fmt(record.ar)}</span>}
-            {record.cs != null && <span style={statBadge}>CS{fmt(record.cs)}</span>}
-            {record.od != null && <span style={statBadge}>OD{fmt(record.od)}</span>}
-            {record.object_count != null && <span style={statBadge}>{fmt(record.object_count, 0)} obj</span>}
+          <div style={{ marginBottom: 8 }}>
+            <BeatmapStats
+              ar={record.ar} cs={record.cs} od={record.od}
+              objectCount={record.object_count}
+              difficultyRating={stars}
+              starColor={starCol}
+            />
           </div>
 
           {coreLabels.length > 0 && (

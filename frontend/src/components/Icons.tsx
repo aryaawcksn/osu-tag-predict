@@ -125,6 +125,24 @@ export function IconMusic({ size = 14, strokeWidth = 2, style }: IconProps) {
   </>, style);
 }
 
+/** Info circle */
+export function IconInfo({ size = 14, strokeWidth = 2, style }: IconProps) {
+  return base(size, strokeWidth, <>
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="8" x2="12" y2="8" strokeWidth={3} strokeLinecap="round" />
+    <line x1="12" y1="12" x2="12" y2="16" />
+  </>, style);
+}
+
+/** Log out */
+export function IconLogOut({ size = 14, strokeWidth = 2, style }: IconProps) {
+  return base(size, strokeWidth, <>
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
+  </>, style);
+}
+
 /** Sun (light mode) */
 export function IconSun({ size = 15, strokeWidth = 2, style }: IconProps) {
   return base(size, strokeWidth, <>

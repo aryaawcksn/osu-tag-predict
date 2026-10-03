@@ -208,6 +208,9 @@ input[type='range']::-moz-range-thumb {
   .nav-info-btn {
     display: none;
   }
+  .nav-logout-text {
+    display: none;
+  }
 }
 
 /* ── Nav logo: invert on dark theme to make dark logo visible ── */

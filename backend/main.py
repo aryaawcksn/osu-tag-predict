@@ -1278,14 +1278,15 @@ async def create_playlist(
     from models import Playlist as PlaylistModel
     from sqlalchemy.orm import selectinload
     from sqlalchemy import func as sqlfunc
-    # Enforce max 3 playlists per user
-    async with AsyncSessionFactory() as db:
-        count = (await db.execute(
-            select(sqlfunc.count()).select_from(PlaylistModel)
-            .where(PlaylistModel.user_id == current_user.id)
-        )).scalar_one()
-    if count >= 3:
-        raise HTTPException(status_code=400, detail="Maximum 3 playlists allowed per user")
+    # Enforce max 3 PUBLIC playlists per user
+    if payload.is_public:
+        async with AsyncSessionFactory() as db:
+            public_count = (await db.execute(
+                select(sqlfunc.count()).select_from(PlaylistModel)
+                .where(PlaylistModel.user_id == current_user.id, PlaylistModel.is_public == 1)
+            )).scalar_one()
+        if public_count >= 3:
+            raise HTTPException(status_code=400, detail="Maximum 3 public playlists allowed per user")
     async with AsyncSessionFactory() as db:
         async with db.begin():
             pl = PlaylistModel(
@@ -1312,6 +1313,22 @@ async def update_playlist(
 ):
     from models import Playlist as PlaylistModel
     from sqlalchemy.orm import selectinload
+    from sqlalchemy import func as sqlfunc
+
+    # If trying to make public, check 3 public playlist limit
+    if payload.is_public is True:
+        async with AsyncSessionFactory() as db:
+            public_count = (await db.execute(
+                select(sqlfunc.count()).select_from(PlaylistModel)
+                .where(
+                    PlaylistModel.user_id == current_user.id,
+                    PlaylistModel.is_public == 1,
+                    PlaylistModel.id != playlist_id,
+                )
+            )).scalar_one()
+        if public_count >= 3:
+            raise HTTPException(status_code=400, detail="Maximum 3 public playlists allowed per user")
+
     async with AsyncSessionFactory() as db:
         async with db.begin():
             pl = (await db.execute(

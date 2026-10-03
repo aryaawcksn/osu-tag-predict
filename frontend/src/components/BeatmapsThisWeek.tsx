@@ -3,6 +3,7 @@ import { BeatmapRecord, CurrentUser } from "../types";
 import SaveToPlaylistModal from "./SaveToPlaylistModal";
 import { starColor } from "../utils/starColor";
 import { playPreview as _playPreview, pauseAudio, resumeAudio, subscribeAudio } from "../utils/audioStore";
+import { BeatmapStats } from "./BeatmapStats";
 import { IconExternalLink, IconDownload, IconBookmark, IconPlay, IconPause } from "./Icons";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
@@ -291,29 +292,25 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
             {diff?.bpm != null && <span>{fmt(diff.bpm, 0)} BPM</span>}
           </div>
 
-          {/* Active diff star + stats */}
+          {/* Active diff info + battery stats */}
           {diff && (
             <>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6, flexWrap: "wrap" }}>
-                {/* Diff dot + name */}
+              <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 8, flexWrap: "wrap" }}>
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: starCol,
                   display: "inline-block", flexShrink: 0 }} />
                 <span style={{ fontFamily: "var(--font-d)", fontWeight: 700, fontSize: 12, color: starCol }}>
                   {diff.version ?? "—"}
                 </span>
-                <span style={{ fontFamily: "var(--font-m)", fontSize: 11, color: "#ffd700",
-                  background: "rgba(255,204,0,0.1)", border: "1px solid rgba(255,204,0,0.25)",
-                  borderRadius: 4, padding: "1px 6px" }}>
-                  ★ {fmt(diff.difficulty_rating)}
-                </span>
               </div>
 
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
-                {diff.ar != null && <span style={statBadge}>AR{fmt(diff.ar)}</span>}
-                {diff.cs != null && <span style={statBadge}>CS{fmt(diff.cs)}</span>}
-                {diff.od != null && <span style={statBadge}>OD{fmt(diff.od)}</span>}
-                {diff.object_count != null && <span style={statBadge}>{fmt(diff.object_count, 0)} obj</span>}
-              </div>
+              <BeatmapStats
+                ar={diff.ar}
+                cs={diff.cs}
+                od={diff.od}
+                objectCount={diff.object_count}
+                difficultyRating={diff.difficulty_rating}
+                starColor={starCol}
+              />
             </>
           )}
 
