@@ -168,7 +168,7 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
   // Sync playing state from global store
   useEffect(() => {
     return subscribeAudio((track, globalPlaying) => {
-      const isOurs = track?.beatmapsetId === set.beatmapset_id && stopRef.current !== null;
+      const isOurs = track?.beatmapsetId === set.beatmapset_id;
       setPlaying(isOurs && globalPlaying);
     });
   }, [set.beatmapset_id]);

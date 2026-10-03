@@ -58,7 +58,7 @@ function GroupedSetCard({ diffs, currentUser }: { diffs: BeatmapRecord[]; curren
   // Sync playing state from global store
   useEffect(() => {
     return subscribeAudio((track, globalPlaying) => {
-      const isOurs = track?.beatmapsetId === beatmapsetId && stopRef.current !== null;
+      const isOurs = track?.beatmapsetId === beatmapsetId;
       setPlaying(isOurs && globalPlaying);
     });
   }, [beatmapsetId]);

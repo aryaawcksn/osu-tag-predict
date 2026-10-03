@@ -4,12 +4,13 @@ export interface TrackInfo {
   title: string;
   artist: string;
   beatmapsetId: string;
+  previewUrl?: string; // filled by playPreview internally
 }
 
 type Listener = (track: TrackInfo | null, playing: boolean) => void;
 
 let _audio: HTMLAudioElement | null = null;
-let _onCardStop: (() => void) | null = null; // notifies the card that owns this audio
+let _onCardStop: (() => void) | null = null;
 let _currentTrack: TrackInfo | null = null;
 let _playing = false;
 const _listeners = new Set<Listener>();
@@ -24,12 +25,8 @@ export function subscribeAudio(fn: Listener): () => void {
   return () => _listeners.delete(fn);
 }
 
-/**
- * Start playing a new preview. Returns a "detach" function the card stores in
- * stopRef — calling it removes the card's ownership without stopping audio.
- */
 export function playPreview(url: string, track: TrackInfo, onCardStop: () => void): () => void {
-  // Stop previous track and notify its card
+  // Stop previous and notify its card
   if (_audio) {
     _audio.pause();
     _audio.src = "";
@@ -44,7 +41,7 @@ export function playPreview(url: string, track: TrackInfo, onCardStop: () => voi
   audio.volume = 0.6;
   _audio = audio;
   _onCardStop = onCardStop;
-  _currentTrack = track;
+  _currentTrack = { ...track, previewUrl: url };
   _playing = true;
   _notify();
 
@@ -54,19 +51,18 @@ export function playPreview(url: string, track: TrackInfo, onCardStop: () => voi
       _audio = null;
       _onCardStop = null;
       _playing = false;
-      // Keep _currentTrack so overlay can still show title during hide delay
+      // Keep _currentTrack for overlay display + replay
       _notify();
       onCardStop();
     }
   });
 
-  // Return detach fn — card calls this on unmount, does NOT stop audio
+  // Detach fn — does NOT stop audio, just removes card ownership
   return () => {
     if (_onCardStop === onCardStop) _onCardStop = null;
   };
 }
 
-/** Pause / resume the current audio (does not destroy it) */
 export function pauseAudio() {
   if (!_audio || !_playing) return;
   _audio.pause();
@@ -81,26 +77,43 @@ export function resumeAudio() {
   _notify();
 }
 
-/** Toggle pause/resume */
+/** Toggle: pause if playing, resume if paused, replay from start if ended */
 export function toggleAudio() {
-  if (!_audio) return;
-  if (_playing) pauseAudio();
-  else resumeAudio();
+  if (_playing) {
+    pauseAudio();
+  } else if (_audio) {
+    resumeAudio();
+  } else if (_currentTrack) {
+    // Song ended — replay from start
+    const track = _currentTrack;
+    const audio = new Audio(track.previewUrl);
+    audio.volume = 0.6;
+    _audio = audio;
+    _playing = true;
+    _notify();
+    audio.play().catch(() => {});
+    audio.addEventListener("ended", () => {
+      if (_audio === audio) {
+        _audio = null;
+        _playing = false;
+        _notify();
+      }
+    });
+  }
 }
 
-/** Fully stop and clear current audio */
 export function stopAudio() {
-  if (!_audio) return;
-  _audio.pause();
-  _audio.src = "";
-  const prev = _onCardStop;
-  _audio = null;
-  _onCardStop = null;
+  if (_audio) {
+    _audio.pause();
+    _audio.src = "";
+    const prev = _onCardStop;
+    _audio = null;
+    _onCardStop = null;
+    prev?.();
+  }
   _playing = false;
   _currentTrack = null;
   _notify();
-  prev?.();
 }
 
 export function isPlaying(): boolean { return _playing; }
-export function hasAudio(): boolean { return _audio !== null; }

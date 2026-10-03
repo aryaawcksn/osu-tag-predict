@@ -107,7 +107,8 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, title, artist, status, s
   // Sync playing state from global store (handles external pause/stop)
   useEffect(() => {
     return subscribeAudio((track, globalPlaying) => {
-      const isOurs = track?.beatmapsetId === beatmapsetId && stopRef.current !== null;
+      // We're "playing" if the global track matches our beatmapset and audio is active
+      const isOurs = !!beatmapsetId && track?.beatmapsetId === beatmapsetId;
       setPlaying(isOurs && globalPlaying);
     });
   }, [beatmapsetId]);
