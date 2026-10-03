@@ -25,7 +25,7 @@ export default function NavBar({ user, onLogout, onProfile, onInfo, theme, onTog
       {/* ── Left: logo ── */}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <img src="/favicon.png" alt="o!btc" style={{ width: 24, height: 24, objectFit: "contain" }} />
-        <span style={logoTextStyle}>o!btc</span>
+        <span style={logoTextStyle}>o!btaco</span>
       </div>
 
       {/* ── Right: actions ── */}
@@ -39,11 +39,11 @@ export default function NavBar({ user, onLogout, onProfile, onInfo, theme, onTog
           style={ghostBtn}
         >
           <IconInfo size={14} strokeWidth={2} style={{ color: isDark ? "rgba(255,255,255,0.6)" : "var(--muted)" }} />
-          <span style={{ fontSize: 12, color: "var(--muted)" }}>Info</span>
+          {/* <span style={{ fontSize: 12, color: "var(--muted)" }}>Info</span> */}
         </button>
 
         {/* Theme toggle */}
-        <button
+        {/* <button
           onClick={onToggleTheme}
           title={isDark ? "Switch to light mode" : "Switch to dark mode"}
           style={{ ...ghostBtn, padding: "5px 8px" }}
@@ -51,7 +51,7 @@ export default function NavBar({ user, onLogout, onProfile, onInfo, theme, onTog
           {isDark
             ? <IconSun size={15} strokeWidth={2} style={{ color: "#fff" }} />
             : <IconMoon size={15} strokeWidth={2} style={{ color: "#4a4a62" }} />}
-        </button>
+        </button> */}
 
         {/* Divider */}
         <div style={{ width: 1, height: 20, background: "var(--border)", margin: "0 2px" }} />
