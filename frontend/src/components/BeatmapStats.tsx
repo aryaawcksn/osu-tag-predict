@@ -8,6 +8,8 @@ interface StatsProps {
   objectCount?: number | null;
   difficultyRating?: number | null;
   starColor: string;
+  version?: string | null;
+  bpm?: number | null;
 }
 
 const STATS = [
@@ -64,13 +66,38 @@ function BatteryBar({ value, max, color }: { value: number; max: number; color: 
   );
 }
 
-export function BeatmapStats({ ar, cs, od, objectCount, difficultyRating, starColor: col }: StatsProps) {
+export function BeatmapStats({ ar, cs, od, objectCount, difficultyRating, starColor: col, version, bpm }: StatsProps) {
   const values: Record<string, number | null | undefined> = { AR: ar, CS: cs, OD: od, OBJ: objectCount };
   const textCol = starTextColor(difficultyRating);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0, overflow: "hidden" }}>
-      {/* Difficulty rating bar - on top */}
+      {/* BPM badge */}
+      {bpm != null && (
+        <div>
+          <span
+            style={{
+              fontFamily: "var(--font-m)",
+              fontSize: "0.65rem",
+              fontWeight: 700,
+              padding: "3px 8px",
+              borderRadius: 5,
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              color: "var(--muted)",
+              letterSpacing: "0.04em",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+            }}
+          >
+            <span style={{ color: "var(--muted2)", fontSize: "0.58rem", letterSpacing: "0.06em" }}>BPM</span>
+            {Math.round(bpm)}
+          </span>
+        </div>
+      )}
+
+      {/* Difficulty box — version name left, ★ rating right */}
       {difficultyRating != null && (
         <div
           style={{
@@ -80,18 +107,33 @@ export function BeatmapStats({ ar, cs, od, objectCount, difficultyRating, starCo
             border: `1px solid ${col}35`,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 4,
+              gap: 6,
+              minWidth: 0,
+            }}
+          >
             <span
               style={{
                 fontFamily: "var(--font-m)",
                 fontSize: "0.62rem",
-                color: "#77778c",
-                letterSpacing: "0.06em",
-                fontWeight: 600,
+                color: textCol,
+                letterSpacing: "0.04em",
+                fontWeight: 700,
                 lineHeight: 1,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                flex: 1,
+                minWidth: 0,
+                opacity: 0.85,
               }}
             >
-              DIFF
+              {version ?? "—"}
             </span>
             <span
               style={{
@@ -100,19 +142,13 @@ export function BeatmapStats({ ar, cs, od, objectCount, difficultyRating, starCo
                 fontWeight: 800,
                 color: textCol,
                 letterSpacing: "0.02em",
+                flexShrink: 0,
               }}
             >
               ★ {difficultyRating.toFixed(2)}
             </span>
           </div>
-          <div
-            style={{
-              height: 4,
-              borderRadius: 2,
-              overflow: "hidden",
-              background: "rgba(255,255,255,0.08)",
-            }}
-          >
+          <div style={{ height: 4, borderRadius: 2, overflow: "hidden", background: "rgba(255,255,255,0.08)" }}>
             <div
               style={{
                 width: `${Math.min((difficultyRating / 10) * 100, 100)}%`,

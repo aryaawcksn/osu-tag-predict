@@ -288,30 +288,19 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
             whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {set.artist ?? "Unknown"}
           </div>
-          <div style={{ fontFamily: "var(--font-m)", fontSize: 10, color: "var(--muted2)", marginBottom: 8 }}>
-            {diff?.bpm != null && <span>{fmt(diff.bpm, 0)} BPM</span>}
-          </div>
 
           {/* Active diff info + battery stats */}
           {diff && (
-            <>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 8, flexWrap: "wrap" }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: starCol,
-                  display: "inline-block", flexShrink: 0 }} />
-                <span style={{ fontFamily: "var(--font-d)", fontWeight: 700, fontSize: 12, color: starCol }}>
-                  {diff.version ?? "—"}
-                </span>
-              </div>
-
-              <BeatmapStats
-                ar={diff.ar}
-                cs={diff.cs}
-                od={diff.od}
-                objectCount={diff.object_count}
-                difficultyRating={diff.difficulty_rating}
-                starColor={starCol}
-              />
-            </>
+            <BeatmapStats
+              ar={diff.ar}
+              cs={diff.cs}
+              od={diff.od}
+              objectCount={diff.object_count}
+              difficultyRating={diff.difficulty_rating}
+              starColor={starCol}
+              version={diff.version}
+              bpm={diff.bpm}
+            />
           )}
 
           {/* Tag bars */}

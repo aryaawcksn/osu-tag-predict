@@ -308,10 +308,6 @@ export function BeatmapCard({ record, highlightTags, currentUser, onHide, onHide
         <div style={bodyStyle}>
           <div style={titleStyle}>{title}</div>
           {record.artist && <div style={artistStyle}>{record.artist}</div>}
-          <div style={mapperStyle}>
-            {record.version && <span style={{ color: "var(--muted)" }}>[{record.version}]</span>}
-            {record.bpm != null && <span style={{ color: "var(--muted2)" }}> · {fmt(record.bpm, 0)} BPM</span>}
-          </div>
 
           <div style={{ marginBottom: 8, minWidth: 0 }}>
             <BeatmapStats
@@ -319,6 +315,8 @@ export function BeatmapCard({ record, highlightTags, currentUser, onHide, onHide
               objectCount={record.object_count}
               difficultyRating={stars}
               starColor={starCol}
+              version={record.version}
+              bpm={record.bpm}
             />
           </div>
 
