@@ -178,7 +178,7 @@ export function BeatmapStats({ ar, cs, od, objectCount, difficultyRating, starCo
                   fontSize: "0.62rem",
                   fontWeight: 600,
                   lineHeight: 1,
-                  color: col,
+                  color: textCol,
                   overflow: "hidden",
                   textAlign: "right",
                   textOverflow: "ellipsis",

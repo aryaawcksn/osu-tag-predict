@@ -69,13 +69,14 @@ export function starColor(rating?: number | null): string {
 }
 
 /**
- * Text colour for difficulty ratings.
- * - Below 6.5: black (#000000) — sits on light backgrounds
- * - 6.5–9:     #F6F05C (yellow) — readable on dark purple/blue backgrounds
+ * Text colour for difficulty ratings (dark UI).
+ * - Below 6.5: use the background colour itself (starColor) — always readable on dark
+ * - 6.5–9:     #F6F05C (yellow) — readable on dark purple/blue/navy backgrounds
  * - 9+:        interpolates through the text spectrum (yellow → red → pink → purple)
  */
 export function starTextColor(rating?: number | null): string {
-  if (rating == null || rating < 6.5) return "#000000";
+  if (rating == null) return "#aaaaaa";
+  if (rating < 6.5) return interpolateStops(STOPS, Math.max(rating, 0.1));
   if (rating < 9) return "#F6F05C";
   if (rating >= 12.4) return "#6563DE";
   return interpolateStops(TEXT_STOPS, rating);
