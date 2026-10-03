@@ -21,6 +21,16 @@ const STOPS: [number, [number, number, number]][] = [
   [9.0,  [0x00, 0x00, 0x00]],
 ];
 
+// Text colour spectrum for high difficulties (>= 9★)
+// domain: [9, 9.9, 10.6, 11.5, 12.4]
+const TEXT_STOPS: [number, [number, number, number]][] = [
+  [9.0,  [0xF6, 0xF0, 0x5C]],
+  [9.9,  [0xFF, 0x80, 0x68]],
+  [10.6, [0xFF, 0x4E, 0x6F]],
+  [11.5, [0xC6, 0x45, 0xB8]],
+  [12.4, [0x65, 0x63, 0xDE]],
+];
+
 const GAMMA = 2.2;
 
 function lerp(a: number, b: number, t: number): number {
@@ -37,23 +47,36 @@ function toHex(r: number, g: number, b: number): string {
   return "#" + [r, g, b].map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2, "0")).join("");
 }
 
-export function starColor(rating?: number | null): string {
-  if (rating == null || rating < 0.1) return "#aaaaaa";
-  if (rating >= 9) return "#000000";
-
-  // Find surrounding stops
-  let lo = STOPS[0], hi = STOPS[STOPS.length - 1];
-  for (let i = 0; i < STOPS.length - 1; i++) {
-    if (rating >= STOPS[i][0] && rating <= STOPS[i + 1][0]) {
-      lo = STOPS[i];
-      hi = STOPS[i + 1];
+function interpolateStops(stops: [number, [number, number, number]][], rating: number): string {
+  let lo = stops[0], hi = stops[stops.length - 1];
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (rating >= stops[i][0] && rating <= stops[i + 1][0]) {
+      lo = stops[i];
+      hi = stops[i + 1];
       break;
     }
   }
-
-  const t = (rating - lo[0]) / (hi[0] - lo[0]);
+  const t = Math.min(1, Math.max(0, (rating - lo[0]) / (hi[0] - lo[0])));
   const [lr, lg, lb] = lo[1];
   const [hr, hg, hb] = hi[1];
-
   return toHex(lerp(lr, hr, t), lerp(lg, hg, t), lerp(lb, hb, t));
+}
+
+export function starColor(rating?: number | null): string {
+  if (rating == null || rating < 0.1) return "#aaaaaa";
+  if (rating >= 9) return "#000000";
+  return interpolateStops(STOPS, rating);
+}
+
+/**
+ * Text colour for difficulty ratings.
+ * - Below 6.5: black (#000000) — sits on light backgrounds
+ * - 6.5–9:     #F6F05C (yellow) — readable on dark purple/blue backgrounds
+ * - 9+:        interpolates through the text spectrum (yellow → red → pink → purple)
+ */
+export function starTextColor(rating?: number | null): string {
+  if (rating == null || rating < 6.5) return "#000000";
+  if (rating < 9) return "#F6F05C";
+  if (rating >= 12.4) return "#6563DE";
+  return interpolateStops(TEXT_STOPS, rating);
 }

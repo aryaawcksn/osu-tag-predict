@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { BeatmapRecord, CurrentUser } from "../types";
 import SaveToPlaylistModal from "./SaveToPlaylistModal";
-import { starColor } from "../utils/starColor";
+import { starColor, starTextColor } from "../utils/starColor";
 import { playPreview as _playPreview, pauseAudio, resumeAudio, subscribeAudio } from "../utils/audioStore";
 import { BeatmapStats } from "./BeatmapStats";
 import { IconExternalLink, IconDownload, IconBookmark, IconPlay, IconPause } from "./Icons";
@@ -355,6 +355,7 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
             onClick={e => e.preventDefault()}>
             {diffs.map((d, i) => {
               const col = starColor(d.difficulty_rating);
+              const textCol = starTextColor(d.difficulty_rating);
               const active = i === selectedIdx;
               return (
                 <button key={d.beatmap_id} title={`${d.version ?? "?"} ★${fmt(d.difficulty_rating)}`}
@@ -370,7 +371,7 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
                     display: "inline-block", boxShadow: active ? `0 0 4px ${col}` : "none" }} />
                   <span style={{ fontFamily: "var(--font-d)", fontSize: 11,
                     fontWeight: active ? 700 : 500,
-                    color: active ? col : "var(--muted2)", whiteSpace: "nowrap" }}>
+                    color: active ? textCol : "var(--muted2)", whiteSpace: "nowrap" }}>
                     {d.version ?? `#${d.beatmap_id}`}
                   </span>
                 </button>

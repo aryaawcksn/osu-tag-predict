@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { BeatmapRecord, CurrentUser } from "../types";
 import SaveToPlaylistModal from "./SaveToPlaylistModal";
-import { starColor } from "../utils/starColor";
+import { starColor, starTextColor } from "../utils/starColor";
 import { playPreview as _playPreview, pauseAudio, resumeAudio, subscribeAudio } from "../utils/audioStore";
 import { BeatmapStats } from "./BeatmapStats";
 import {
@@ -312,7 +312,7 @@ export function BeatmapCard({ record, highlightTags, currentUser, onHide, onHide
             {record.bpm != null && <span style={{ color: "var(--muted2)" }}> · {fmt(record.bpm, 0)} BPM</span>}
           </div>
 
-          <div style={{ marginBottom: 8 }}>
+          <div style={{ marginBottom: 8, minWidth: 0 }}>
             <BeatmapStats
               ar={record.ar} cs={record.cs} od={record.od}
               objectCount={record.object_count}
@@ -393,6 +393,7 @@ const cardStyle: React.CSSProperties = {
 
 const bodyStyle: React.CSSProperties = {
   padding: "12px 14px 14px", flex: 1, display: "flex", flexDirection: "column",
+  minWidth: 0, overflow: "hidden",
 };
 
 const titleStyle: React.CSSProperties = {

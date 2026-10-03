@@ -1,4 +1,5 @@
 // ── Beatmap stats display: battery-style bars ────────────────────────────────
+import { starTextColor } from "../utils/starColor";
 
 interface StatsProps {
   ar?: number | null;
@@ -65,9 +66,10 @@ function BatteryBar({ value, max, color }: { value: number; max: number; color: 
 
 export function BeatmapStats({ ar, cs, od, objectCount, difficultyRating, starColor: col }: StatsProps) {
   const values: Record<string, number | null | undefined> = { AR: ar, CS: cs, OD: od, OBJ: objectCount };
+  const textCol = starTextColor(difficultyRating);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0, overflow: "hidden" }}>
       {/* Difficulty rating bar - on top */}
       {difficultyRating != null && (
         <div
@@ -96,7 +98,7 @@ export function BeatmapStats({ ar, cs, od, objectCount, difficultyRating, starCo
                 fontFamily: "var(--font-d)",
                 fontSize: 13,
                 fontWeight: 800,
-                color: col,
+                color: textCol,
                 letterSpacing: "0.02em",
               }}
             >
@@ -130,8 +132,10 @@ export function BeatmapStats({ ar, cs, od, objectCount, difficultyRating, starCo
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-          gap: "7px 12px",
+          gap: "7px 8px",
           padding: 10,
+          minWidth: 0,
+          overflow: "hidden",
           background:
             "linear-gradient(135deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015)), #13111d",
           border: "1px solid rgba(180, 130, 220, 0.14)",
@@ -148,10 +152,11 @@ export function BeatmapStats({ ar, cs, od, objectCount, difficultyRating, starCo
               key={key}
               style={{
                 display: "grid",
-                gridTemplateColumns: "25px minmax(50px, 1fr) 38px",
+                gridTemplateColumns: "20px 1fr 32px",
                 alignItems: "center",
-                gap: 6,
+                gap: 4,
                 minWidth: 0,
+                overflow: "hidden",
               }}
             >
               <span
