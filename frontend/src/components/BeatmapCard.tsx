@@ -90,6 +90,7 @@ interface CoverProps {
 }
 
 function CoverOverlay({ bgImg, beatmapId, beatmapsetId, title, artist, status, statusCol, showSave, onSave }: CoverProps) {
+  const [hovered, setHovered] = useState(false);
   const [playing, setPlaying] = useState(false);
   const stopRef = useRef<(() => void) | null>(null);
 
@@ -143,12 +144,14 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, title, artist, status, s
   return (
     <div
       style={{ position: "relative", height: 130, overflow: "hidden", background: "var(--bg)", flexShrink: 0, cursor: "default" }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       {/* Cover image */}
       {bgImg && (
         <img src={bgImg} alt="" loading="lazy"
           style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center",
-            opacity: 0.65, display: "block" }}
+            opacity: hovered ? 0.45 : 0.65, transition: "opacity 0.2s", display: "block" }}
           onError={e => { (e.currentTarget.parentElement!.style.background = "var(--bg)"); e.currentTarget.style.display = "none"; }} />
       )}
 
@@ -168,7 +171,8 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, title, artist, status, s
 
       {/* Hover action bar */}
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center", gap: 8 }}>
+        alignItems: "center", justifyContent: "center", gap: 8,
+        opacity: hovered ? 1 : 0, transition: "opacity 0.18s" }}>
 
         {/* Play / Pause */}
         {previewUrl && (
@@ -277,6 +281,16 @@ export function BeatmapCard({ record, highlightTags, currentUser, onHide, onHide
     <>
       <div
         onContextMenu={handleContextMenu}
+        onMouseEnter={e => {
+          e.currentTarget.style.borderColor = "rgba(255,102,170,0.45)";
+          e.currentTarget.style.transform = "translateY(-2px)";
+          e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.45)";
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.borderColor = "rgba(180,130,220,0.18)";
+          e.currentTarget.style.transform = "none";
+          e.currentTarget.style.boxShadow = "none";
+        }}
         style={cardStyle}
       >
         <CoverOverlay
@@ -372,6 +386,7 @@ const cardStyle: React.CSSProperties = {
   overflow: "hidden",
   display: "flex",
   flexDirection: "column",
+  transition: "border-color 0.2s, transform 0.15s, box-shadow 0.2s",
   minWidth: 0,
   cursor: "default",
 };
