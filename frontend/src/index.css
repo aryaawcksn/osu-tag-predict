@@ -307,3 +307,33 @@ input[type='range']::-moz-range-thumb {
   opacity: 1;
   pointer-events: auto;
 }
+
+/* ── Dual range slider thumbs ─────────────────────────────── */
+.range-thumb {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  margin: 0; padding: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: none;
+}
+.range-thumb::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--pink);
+  border: 2px solid var(--card);
+  cursor: pointer;
+  pointer-events: all;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+.range-thumb::-moz-range-thumb {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--pink);
+  border: 2px solid var(--card);
+  cursor: pointer;
+  pointer-events: all;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}

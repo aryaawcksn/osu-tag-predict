@@ -4,6 +4,7 @@ import { getBeatmapsByTags, getPlaystyleAnalysis } from "../api";
 import { BeatmapCard } from "./BeatmapCard";
 import { ALL_TAGS } from "../constants";
 import SimilarBeatmapPanel from "./SimilarBeatmapPanel";
+import RangeSlider from "./RangeSlider";
 
 const INITIAL_SHOW = 24;
 const CURRENT_YEAR = new Date().getFullYear();
@@ -21,8 +22,9 @@ interface Props {
 export default function BeatmapTagSearch({ currentUser }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showAll, setShowAll] = useState(false);
-  const [targetStars, setTargetStars] = useState(5);
-  const [appliedStars, setAppliedStars] = useState<number | null>(null);
+  const [starMin, setStarMin] = useState(0.1);
+  const [starMax, setStarMax] = useState(15.0);
+  const [appliedRange, setAppliedRange] = useState<[number, number] | null>(null);
   const [status, setStatus] = useState<string>("");
   const [yearFrom, setYearFrom] = useState<number | null>(null);
   const [yearTo, setYearTo] = useState<number | null>(null);
@@ -66,8 +68,13 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
         setSelected(new Set([result.distribution[0].label]));
       }
       if (result.avg_difficulty != null) {
-        setTargetStars(result.avg_difficulty);
-        setAppliedStars(result.avg_difficulty);
+        const avg = result.avg_difficulty;
+        setStarMin(Math.max(0.1, Math.round((avg - 0.5) * 10) / 10));
+        setStarMax(Math.min(15.0, Math.round((avg + 0.5) * 10) / 10));
+        setAppliedRange([
+          Math.max(0.1, Math.round((avg - 0.5) * 10) / 10),
+          Math.min(15.0, Math.round((avg + 0.5) * 10) / 10),
+        ]);
       }
     } catch (err: unknown) {
       setAnalyzeError(err instanceof Error ? err.message : "Analysis failed");
@@ -82,8 +89,8 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
     setError(null);
     setResults(null);
     setOffset(0);
-    const minS = appliedStars != null ? appliedStars - 0.5 : undefined;
-    const maxS = appliedStars != null ? appliedStars + 0.5 : undefined;
+    const minS = appliedRange != null ? appliedRange[0] : undefined;
+    const maxS = appliedRange != null ? appliedRange[1] : undefined;
     const searchParams = {
       tags: Array.from(selected), minStars: minS, maxStars: maxS,
       yearFrom: yearFrom ?? undefined, yearTo: yearTo ?? undefined,
@@ -131,7 +138,9 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
     setActiveSearch(null);
     setYearFrom(null);
     setYearTo(null);
-    setAppliedStars(null);
+    setAppliedRange(null);
+    setStarMin(0.1);
+    setStarMax(15.0);
     setDistribution(null);
   }
 
@@ -288,32 +297,29 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
         </div>
       )}
 
-      {/* Difficulty slider */}
+      {/* Difficulty range slider */}
       <div style={filterRowStyle}>
         <span style={{ fontSize: 12, color: "var(--muted)", flexShrink: 0 }}>Difficulty</span>
         <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>
-            <span>★ 0.1</span>
-            <span style={{ color: "var(--pink)", fontWeight: 600 }}>
-              ★ {targetStars.toFixed(1)}
-              {appliedStars === null ? (
-                <span style={{ color: "var(--muted)", fontWeight: 400, marginLeft: 5 }}>(Any)</span>
-              ) : appliedStars !== targetStars ? (
-                <span style={{ color: "#fbbf24", fontWeight: 400, marginLeft: 5 }}>(Applied: ★ {appliedStars.toFixed(1)})</span>
-              ) : (
-                <span style={{ color: "#b8e994", fontWeight: 400, marginLeft: 5 }}>(±0.5 applied)</span>
-              )}
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 6 }}>
+            <span style={{ color: "var(--pink)", fontWeight: 600 }}>★ {starMin.toFixed(1)}</span>
+            <span style={{ color: "var(--muted2)", fontSize: 10 }}>
+              {appliedRange
+                ? `★${appliedRange[0].toFixed(1)} – ★${appliedRange[1].toFixed(1)} applied`
+                : "Any difficulty"}
             </span>
-            <span>★ 15.0</span>
+            <span style={{ color: "var(--pink)", fontWeight: 600 }}>★ {starMax.toFixed(1)}</span>
           </div>
-          <input type="range" min={0.1} max={15.0} step={0.1} value={targetStars}
-            onChange={e => setTargetStars(Number(e.target.value))}
-            style={{ width: "100%", cursor: "pointer" }} />
+          <RangeSlider
+            min={0.1} max={15.0} step={0.1}
+            valueMin={starMin} valueMax={starMax}
+            onChange={(lo, hi) => { setStarMin(lo); setStarMax(hi); }}
+          />
         </div>
         <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-          <button onClick={() => setAppliedStars(targetStars)} style={applyBtnStyle}>Apply</button>
-          {appliedStars != null && (
-            <button onClick={() => setAppliedStars(null)} style={clearSmallBtnStyle}>✕</button>
+          <button onClick={() => setAppliedRange([starMin, starMax])} style={applyBtnStyle}>Apply</button>
+          {appliedRange != null && (
+            <button onClick={() => { setAppliedRange(null); setStarMin(0.1); setStarMax(15.0); }} style={clearSmallBtnStyle}>✕</button>
           )}
         </div>
       </div>
