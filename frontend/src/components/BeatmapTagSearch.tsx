@@ -301,14 +301,10 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
       <div style={filterRowStyle}>
         <span style={{ fontSize: 12, color: "var(--muted)", flexShrink: 0 }}>Difficulty</span>
         <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 6 }}>
-            <span style={{ color: "var(--pink)", fontWeight: 600 }}>★ {starMin.toFixed(1)}</span>
-            <span style={{ color: "var(--muted2)", fontSize: 10 }}>
-              {appliedRange
-                ? `★${appliedRange[0].toFixed(1)} – ★${appliedRange[1].toFixed(1)} applied`
-                : "Any difficulty"}
-            </span>
-            <span style={{ color: "var(--pink)", fontWeight: 600 }}>★ {starMax.toFixed(1)}</span>
+          <div style={{ fontSize: 10, color: "var(--muted2)", textAlign: "center", marginBottom: 2 }}>
+            {appliedRange
+              ? `★${appliedRange[0].toFixed(1)} – ★${appliedRange[1].toFixed(1)} applied`
+              : "Any difficulty"}
           </div>
           <RangeSlider
             min={0.1} max={15.0} step={0.1}

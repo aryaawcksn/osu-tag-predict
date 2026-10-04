@@ -318,6 +318,26 @@ input[type='range']::-moz-range-thumb {
   appearance: none;
   pointer-events: none;
 }
+/* Hide the native track on both thumbs */
+.range-thumb::-webkit-slider-runnable-track {
+  background: transparent;
+  border: none;
+  height: 3px;
+}
+.range-thumb::-moz-range-track {
+  background: transparent;
+  border: none;
+  height: 3px;
+}
+.range-thumb::-ms-track {
+  background: transparent;
+  border-color: transparent;
+  color: transparent;
+}
+/* Also override the global input[type=range] background for these */
+input[type='range'].range-thumb {
+  background: transparent !important;
+}
 .range-thumb::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 16px; height: 16px;
@@ -327,6 +347,7 @@ input[type='range']::-moz-range-thumb {
   cursor: pointer;
   pointer-events: all;
   box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  margin-top: -6.5px; /* vertically center thumb on the 3px track */
 }
 .range-thumb::-moz-range-thumb {
   width: 16px; height: 16px;
