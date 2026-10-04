@@ -22,7 +22,6 @@ from auth import router as auth_router
 from database import AsyncSessionFactory, engine
 from dependencies import require_user, get_current_user
 from models import Session, User
-from queue_manager import queue_manager
 
 MODEL_PATH = os.environ.get("MODEL_PATH", "model_lstm_osu_dataset_16.keras")
 MLB_PATH   = os.environ.get("MLB_PATH",   "pickle_mlb_16.pkl")
@@ -30,22 +29,14 @@ MLB_PATH   = os.environ.get("MLB_PATH",   "pickle_mlb_16.pkl")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialise DB connection pool (validates connectivity on startup and ensures tables)
     async with engine.begin() as conn:
         print("DB connection established")
         from database import Base
         await conn.run_sync(Base.metadata.create_all)
 
-
     predictor.load_artifacts(MODEL_PATH, MLB_PATH)
     print(f"Model loaded: {MODEL_PATH}")
-    try:
-        await queue_manager.restore_from_db()
-        print("Queue state restored from DB")
-    except Exception as exc:
-        print(f"Warning: could not restore queue from DB: {exc}")
 
-    # Start daily beatmap crawler in background (non-blocking)
     from crawler import start_daily_crawler
     crawler_task = asyncio.create_task(start_daily_crawler())
 
@@ -56,7 +47,6 @@ async def lifespan(app: FastAPI):
         await crawler_task
     except asyncio.CancelledError:
         pass
-    # Dispose engine on shutdown to close all pooled connections
     await engine.dispose()
 
 
@@ -127,12 +117,6 @@ class LinkRequest(BaseModel):
     url: str
 
 
-class QueueJobResponse(BaseModel):
-    job_id: str
-    position: Optional[int]
-    status: str
-
-
 # --------------------------------------------------------------------------- #
 # Helper: upsert beatmap after successful prediction (Requirement 4.5, 5.2)   #
 # --------------------------------------------------------------------------- #
@@ -156,24 +140,22 @@ async def _upsert_beatmap_safe(result: dict) -> None:
 # Background task coroutines                                                    #
 # --------------------------------------------------------------------------- #
 
-async def _predict_link_task(input_value: str) -> dict:
+async def _run_predict_link(url: str) -> dict:
     """Run predict_from_link in a thread pool to avoid blocking the event loop."""
     loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(None, predictor.predict_from_link, input_value)
+    result = await loop.run_in_executor(None, predictor.predict_from_link, url)
     await _upsert_beatmap_safe(result)
     return result
 
 
-async def _predict_file_task(input_value: str) -> dict:
-    """Run predict_from_file in a thread pool; input_value is a temp file path.
-    File uploads are NOT saved to DB — they have no beatmap_id."""
+async def _run_predict_file(tmp_path: str) -> dict:
+    """Run predict_from_file in a thread pool. Cleans up temp file after."""
     loop = asyncio.get_event_loop()
     try:
-        result = await loop.run_in_executor(None, predictor.predict_from_file, input_value)
-        return result
+        return await loop.run_in_executor(None, predictor.predict_from_file, tmp_path)
     finally:
         try:
-            os.unlink(input_value)
+            os.unlink(tmp_path)
         except OSError:
             pass
 
@@ -279,39 +261,21 @@ async def crawler_run_weekly(
 
 
 # --------------------------------------------------------------------------- #
-# Predict endpoints (queue-aware)                                               #
-# Requirements: 1.2, 1.3, 6.1                                                  #
+# Predict endpoints                                                             #
 # --------------------------------------------------------------------------- #
 
-@app.post("/predict/link", response_model=QueueJobResponse)
+@app.post("/predict/link")
 async def predict_link(req: LinkRequest):
-    """
-    Submit a beatmap link for prediction via the queue.
-    Returns job_id and position instead of the result directly.
-    Requirements: 1.2, 1.3, 6.1
-    """
+    """Submit a beatmap link for prediction. Returns result directly."""
     try:
-        job = await queue_manager.enqueue(
-            input_type="link",
-            input_value=req.url,
-            user_id=None,
-            task_fn=_predict_link_task,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=429, detail=str(e))
+        return await _run_predict_link(req.url)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {e}")
-
-    return QueueJobResponse(job_id=job.id, position=job.position, status=job.status)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/predict/upload", response_model=QueueJobResponse)
+@app.post("/predict/upload")
 async def predict_upload(file: UploadFile = File(...)):
-    """
-    Submit a .osu file upload for prediction via the queue.
-    Returns job_id and position instead of the result directly.
-    Requirements: 1.2, 1.3, 6.1
-    """
+    """Submit a .osu file for prediction. Returns result directly."""
     if not file.filename.endswith(".osu"):
         raise HTTPException(status_code=400, detail="Hanya file .osu yang diterima.")
 
@@ -321,71 +285,9 @@ async def predict_upload(file: UploadFile = File(...)):
         tmp_path = tmp.name
 
     try:
-        job = await queue_manager.enqueue(
-            input_type="upload",
-            input_value=tmp_path,
-            user_id=None,
-            task_fn=_predict_file_task,
-        )
-    except ValueError as e:
-        # tmp file cleanup: since _predict_file_task won't run, clean up here
-        try:
-            os.unlink(tmp_path)
-        except OSError:
-            pass
-        raise HTTPException(status_code=429, detail=str(e))
+        return await _run_predict_file(tmp_path)
     except Exception as e:
-        try:
-            os.unlink(tmp_path)
-        except OSError:
-            pass
-        raise HTTPException(status_code=500, detail=f"Internal error: {e}")
-
-    return QueueJobResponse(job_id=job.id, position=job.position, status=job.status)
-
-
-# --------------------------------------------------------------------------- #
-# Queue endpoints                                                               #
-# Requirements: 1.1, 1.6                                                        #
-# --------------------------------------------------------------------------- #
-
-@app.get("/queue/state")
-def get_queue_state():
-    """
-    Return current queue state: occupied slots, total capacity, active jobs.
-    Requirements: 1.1
-    """
-    state = queue_manager.get_queue_state()
-    return {
-        "total_capacity": state.total_capacity,
-        "occupied_slots": state.occupied_slots,
-        "jobs": [
-            {
-                "id": j.id,
-                "status": j.status,
-                "position": j.position,
-            }
-            for j in state.jobs
-        ],
-    }
-
-
-@app.get("/queue/job/{job_id}")
-def get_job(job_id: str):
-    """
-    Return status and result of a specific job.
-    Requirements: 1.6
-    """
-    job = queue_manager.get_job(job_id)
-    if job is None:
-        raise HTTPException(status_code=404, detail="Job not found.")
-    return {
-        "id": job.id,
-        "status": job.status,
-        "position": job.position,
-        "result": job.result,
-        "error": job.error,
-    }
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # --------------------------------------------------------------------------- #
@@ -419,19 +321,10 @@ async def analysis_playstyle(
     current_user: User = Depends(require_user),
 ):
     """
-    Fetch play history, run predictions via queue, and return dominant playstyle.
-
-    - source=top   : uses top plays (best scores)
-    - source=recent: uses recent plays
-
-    Batches beatmap submissions to stay within the 5-slot queue limit.
-    Skips beatmaps that fail prediction (Requirement 3.6).
-
-    Requirements: 3.1, 3.2, 3.3, 3.6
+    Fetch play history, run predictions concurrently, and return dominant playstyle.
     """
     access_token = await _get_access_token_for_user(current_user)
 
-    # Fetch play history from osu! API (Requirements 3.1, 3.2)
     try:
         if source == "top":
             plays: list[BeatmapScore] = await fetch_top_plays(current_user.osu_id, access_token)
@@ -443,7 +336,7 @@ async def analysis_playstyle(
     if not plays:
         raise HTTPException(status_code=404, detail="No play history found")
 
-    # Deduplicate beatmap IDs (a map may appear multiple times in history)
+    # Deduplicate
     seen: set[str] = set()
     unique_plays: list[BeatmapScore] = []
     for p in plays:
@@ -451,8 +344,7 @@ async def analysis_playstyle(
             seen.add(p.beatmap_id)
             unique_plays.append(p)
 
-    # Check DB cache first — skip predict for beatmaps already predicted
-    # with the current model version (Requirements 3.3, 3.6)
+    # Check DB cache first
     from recommendation import get_cached_results
     all_ids = [p.beatmap_id for p in unique_plays]
     cached = await get_cached_results(all_ids)
@@ -460,58 +352,20 @@ async def analysis_playstyle(
     completed_results: list[dict] = list(cached.values())
     plays_to_predict = [p for p in unique_plays if p.beatmap_id not in cached]
 
-    # Submit only uncached beatmaps to the queue in batches
-    BATCH_SIZE = 5
+    # Run predictions concurrently with a semaphore to limit parallelism
+    sem = asyncio.Semaphore(5)
 
-    for batch_start in range(0, len(plays_to_predict), BATCH_SIZE):
-        batch = plays_to_predict[batch_start: batch_start + BATCH_SIZE]
-        job_ids: list[str] = []
-
-        for play in batch:
-            beatmap_url = f"https://osu.ppy.sh/beatmaps/{play.beatmap_id}"
+    async def _predict_one(play: BeatmapScore) -> dict | None:
+        async with sem:
             try:
-                job = await queue_manager.enqueue(
-                    input_type="link",
-                    input_value=beatmap_url,
-                    user_id=current_user.id,
-                    task_fn=_predict_link_task,
-                )
-                job_ids.append(job.id)
-            except ValueError:
-                # Queue full — wait briefly and retry once, then skip
-                await asyncio.sleep(1.0)
-                try:
-                    job = await queue_manager.enqueue(
-                        input_type="link",
-                        input_value=beatmap_url,
-                        user_id=current_user.id,
-                        task_fn=_predict_link_task,
-                    )
-                    job_ids.append(job.id)
-                except ValueError:
-                    # Still full — skip this beatmap (Requirement 3.6)
-                    pass
+                url = f"https://osu.ppy.sh/beatmaps/{play.beatmap_id}"
+                return await _run_predict_link(url)
+            except Exception:
+                return None
 
-        # Wait for all jobs in this batch to finish (done or failed)
-        POLL_INTERVAL = 0.5
-        MAX_WAIT = 120  # seconds per batch
-        waited = 0.0
-        while waited < MAX_WAIT:
-            all_done = all(
-                queue_manager.get_job(jid) is not None
-                and queue_manager.get_job(jid).status in ("done", "failed")
-                for jid in job_ids
-            )
-            if all_done:
-                break
-            await asyncio.sleep(POLL_INTERVAL)
-            waited += POLL_INTERVAL
-
-        # Collect successful results; skip failed ones (Requirement 3.6)
-        for jid in job_ids:
-            job = queue_manager.get_job(jid)
-            if job and job.status == "done" and job.result:
-                completed_results.append(job.result)
+    if plays_to_predict:
+        results = await asyncio.gather(*[_predict_one(p) for p in plays_to_predict])
+        completed_results.extend(r for r in results if r is not None)
 
     if not completed_results:
         raise HTTPException(
@@ -519,7 +373,6 @@ async def analysis_playstyle(
             detail="All beatmap predictions failed. Cannot determine playstyle.",
         )
 
-    # Calculate dominant playstyle (Requirement 3.4)
     dominant = calculate_dominant_playstyle(completed_results, plays=unique_plays)
     return dominant
 
