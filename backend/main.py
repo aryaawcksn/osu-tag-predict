@@ -656,11 +656,11 @@ async def beatmaps_this_week():
             "difficulties": diff_records,
         })
 
-    # Sort sets: loved first, then ranked/approved, then by ranked_date desc
-    status_order = {"loved": 0, "ranked": 1, "approved": 1, "qualified": 2}
+    # Sort sets by ranked_date desc (newest first), loved gets a slight boost
+    status_order = {"loved": 1, "ranked": 0, "approved": 0, "qualified": 0}
     beatmapsets.sort(key=lambda s: (
-        status_order.get(s["status"] or "", 9),
         s.get("ranked_date") or "",
+        status_order.get(s["status"] or "", 0),
     ), reverse=True)
 
     return {
