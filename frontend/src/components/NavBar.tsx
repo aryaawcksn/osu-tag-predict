@@ -22,7 +22,6 @@ export default function NavBar({ user, onLogout, onProfile, onInfo, theme, onTog
 
   return (
     <nav style={navStyle}>
-      <div style={navInnerStyle}>
       {/* ── Left: logo ── */}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <img src="/favicon.png" alt="o!btc" style={{ width: 24, height: 24, objectFit: "contain" }} />
@@ -40,7 +39,19 @@ export default function NavBar({ user, onLogout, onProfile, onInfo, theme, onTog
           style={ghostBtn}
         >
           <IconInfo size={14} strokeWidth={2} style={{ color: isDark ? "rgba(255,255,255,0.6)" : "var(--muted)" }} />
+          {/* <span style={{ fontSize: 12, color: "var(--muted)" }}>Info</span> */}
         </button>
+
+        {/* Theme toggle */}
+        {/* <button
+          onClick={onToggleTheme}
+          title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+          style={{ ...ghostBtn, padding: "5px 8px" }}
+        >
+          {isDark
+            ? <IconSun size={15} strokeWidth={2} style={{ color: "#fff" }} />
+            : <IconMoon size={15} strokeWidth={2} style={{ color: "#4a4a62" }} />}
+        </button> */}
 
         {/* Divider */}
         <div style={{ width: 1, height: 20, background: "var(--border)", margin: "0 2px" }} />
@@ -76,7 +87,6 @@ export default function NavBar({ user, onLogout, onProfile, onInfo, theme, onTog
           </a>
         )}
       </div>
-      </div>
     </nav>
   );
 }
@@ -84,22 +94,17 @@ export default function NavBar({ user, onLogout, onProfile, onInfo, theme, onTog
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const navStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  padding: "0 20px",
+  height: 52,
   background: "var(--card)",
   borderBottom: "1px solid var(--border)",
   position: "sticky",
   top: 0,
   zIndex: 100,
   backdropFilter: "blur(8px)",
-};
-
-const navInnerStyle: React.CSSProperties = {
-  maxWidth: 1280,
-  margin: "0 auto",
-  padding: "0 24px",
-  height: 52,
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
 };
 
 const logoTextStyle: React.CSSProperties = {
