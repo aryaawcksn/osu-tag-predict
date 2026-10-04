@@ -1,0 +1,723 @@
+PageSpeed Insights logo
+PageSpeed Insights
+Laporan dari 4 Okt 2026, 09.24.53
+https://obtaco.vercel.app/
+Masukkan URL yang valid
+
+
+smartphone
+Mobile
+
+computer
+Desktop
+
+Mencari tahu pengalaman pengguna Anda yang sebenarnya
+Tidak Ada Data
+
+Mendiagnosis masalah performa
+80
+Performa
+90
+Aksesibilitas
+96
+Praktik Terbaik
+100
+SEO
+1/2
+Penjelajahan Agentic
+80
+FCP
++10
+LCP
++24
+TBT
++30
+CLS
++7
+SI
++10
+Performa
+Nilai adalah hasil perkiraan dan dapat bervariasi. Skor performa dihitung secara langsung dari metrik ini.Lihat kalkulator.
+0–49
+50–89
+90–100
+Final Screenshot
+
+Metrik
+Luaskan tampilan
+First Contentful Paint
+0,6 dtk
+Largest Contentful Paint
+1,0 dtk
+Total Blocking Time
+0 md
+Cumulative Layout Shift
+0.366
+Speed Index
+0,8 dtk
+Captured at 4 Okt 2026, 09.24 WIB
+Desktop Emulasi with Lighthouse 13.5.0
+Sesi satu halaman
+Pemuatan halaman awal
+Throttle kustom
+Using HeadlessChromium 153.0.8010.36 with lr
+Lihat Peta Hierarki
+Screenshot
+Screenshot
+Screenshot
+Screenshot
+Screenshot
+Screenshot
+Screenshot
+Screenshot
+Tampilkan audit yang relevan dengan:
+
+All
+
+FCP
+
+LCP
+
+TBT
+
+CLS
+Insight
+Meningkatkan penayangan gambar Perkiraan penghematan 467 KiB
+Mengurangi waktu download gambar dapat meningkatkan waktu pemuatan halaman dan LCP. Pelajari lebih lanjut cara mengoptimalkan ukuran gambarLCPFCPTidak dinilai
+URL
+Ukuran Resource
+Perkiraan Penghematan
+vercel.app Pihak pertama
+273,1 KiB	273,0 KiB
+o!btc
+<img src="/favicon.png" alt="o!btc" style="width: 24px; height: 24px; object-fit: contain;">
+/favicon.png(obtaco.vercel.app)
+273,1 KiB
+273,0 KiB
+Menggunakan format gambar modern (WebP, AVIF) atau meningkatkan kompresi gambar dapat meningkatkan ukuran download gambar ini.
+220,8 KiB
+File gambar ini lebih besar dari yang diperlukan (569x564) untuk dimensi yang ditampilkan (24x24). Gunakan gambar responsif untuk mengurangi ukuran download gambar.
+272,6 KiB
+ppy.sh
+290,0 KiB	193,6 KiB
+div > div > div > img
+<img src="https://assets.ppy.sh/beatmaps/2464993/covers/card.jpg?1790459264" alt="" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.65; transition: o…;">
+…covers/card.jpg?179…(assets.ppy.sh)
+31,4 KiB
+24,2 KiB
+Menggunakan format gambar modern (WebP, AVIF) atau meningkatkan kompresi gambar dapat meningkatkan ukuran download gambar ini.
+24,2 KiB
+div > div > div > img
+<img src="https://assets.ppy.sh/beatmaps/2625493/covers/card.jpg?1790455014" alt="" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.65; transition: o…;">
+…covers/card.jpg?179…(assets.ppy.sh)
+26,6 KiB
+19,3 KiB
+Menggunakan format gambar modern (WebP, AVIF) atau meningkatkan kompresi gambar dapat meningkatkan ukuran download gambar ini.
+19,3 KiB
+div > div > div > img
+<img src="https://assets.ppy.sh/beatmaps/1849048/covers/card.jpg?1790386015" alt="" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.65; transition: o…;">
+…covers/card.jpg?179…(assets.ppy.sh)
+25,6 KiB
+18,3 KiB
+Menggunakan format gambar modern (WebP, AVIF) atau meningkatkan kompresi gambar dapat meningkatkan ukuran download gambar ini.
+18,3 KiB
+div > div > div > img
+<img src="https://assets.ppy.sh/beatmaps/2581203/covers/card.jpg?1790428933" alt="" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.65; transition: o…;">
+…covers/card.jpg?179…(assets.ppy.sh)
+25,5 KiB
+18,2 KiB
+Menggunakan format gambar modern (WebP, AVIF) atau meningkatkan kompresi gambar dapat meningkatkan ukuran download gambar ini.
+18,2 KiB
+div > div > div > img
+<img src="https://assets.ppy.sh/beatmaps/2483633/covers/card.jpg?1790378486" alt="" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.65; transition: o…;">
+…covers/card.jpg?179…(assets.ppy.sh)
+21,5 KiB
+14,2 KiB
+Menggunakan format gambar modern (WebP, AVIF) atau meningkatkan kompresi gambar dapat meningkatkan ukuran download gambar ini.
+14,2 KiB
+div > div > div > img
+<img src="https://assets.ppy.sh/beatmaps/2592548/covers/card.jpg?1790322724" alt="" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.65; transition: o…;">
+…covers/card.jpg?179…(assets.ppy.sh)
+21,4 KiB
+14,2 KiB
+Menggunakan format gambar modern (WebP, AVIF) atau meningkatkan kompresi gambar dapat meningkatkan ukuran download gambar ini.
+14,2 KiB
+div > div > div > img
+<img src="https://assets.ppy.sh/beatmaps/2559705/covers/card.jpg?1790335000" alt="" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.65; transition: o…;">
+…covers/card.jpg?179…(assets.ppy.sh)
+21,4 KiB
+14,1 KiB
+Menggunakan format gambar modern (WebP, AVIF) atau meningkatkan kompresi gambar dapat meningkatkan ukuran download gambar ini.
+14,1 KiB
+div > div > div > img
+<img src="https://assets.ppy.sh/beatmaps/2568567/covers/card.jpg?1790318306" alt="" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.65; transition: o…;">
+…covers/card.jpg?179…(assets.ppy.sh)
+20,9 KiB
+13,6 KiB
+Menggunakan format gambar modern (WebP, AVIF) atau meningkatkan kompresi gambar dapat meningkatkan ukuran download gambar ini.
+13,6 KiB
+div > div > div > img
+<img src="https://assets.ppy.sh/beatmaps/2360849/covers/card.jpg?1745624636" alt="" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.7;">
+…covers/card.jpg?174…(assets.ppy.sh)
+18,2 KiB
+13,6 KiB
+Menggunakan format gambar modern (WebP, AVIF) atau meningkatkan kompresi gambar dapat meningkatkan ukuran download gambar ini.
+13,5 KiB
+div > div > div > img
+<img src="https://assets.ppy.sh/beatmaps/2613635/covers/card.jpg?1790163734" alt="" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.65; transition: o…;">
+…covers/card.jpg?179…(assets.ppy.sh)
+19,4 KiB
+12,1 KiB
+Menggunakan format gambar modern (WebP, AVIF) atau meningkatkan kompresi gambar dapat meningkatkan ukuran download gambar ini.
+12,1 KiB
+div > div > div > img
+<img src="https://assets.ppy.sh/beatmaps/2446228/covers/card.jpg?1768233080" alt="" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.7;">
+…covers/card.jpg?176…(assets.ppy.sh)
+15,7 KiB
+11,0 KiB
+Menggunakan format gambar modern (WebP, AVIF) atau meningkatkan kompresi gambar dapat meningkatkan ukuran download gambar ini.
+11,0 KiB
+div > div > div > img
+<img src="https://assets.ppy.sh/beatmaps/2611462/covers/card.jpg?1790458718" alt="" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.65; transition: o…;">
+…covers/card.jpg?179…(assets.ppy.sh)
+14,5 KiB
+7,2 KiB
+Menggunakan format gambar modern (WebP, AVIF) atau meningkatkan kompresi gambar dapat meningkatkan ukuran download gambar ini.
+7,2 KiB
+div > div > div > img
+<img src="https://assets.ppy.sh/beatmaps/2568946/covers/card.jpg?1790356015" alt="" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.65; transition: o…;">
+…covers/card.jpg?179…(assets.ppy.sh)
+14,3 KiB
+7,0 KiB
+Menggunakan format gambar modern (WebP, AVIF) atau meningkatkan kompresi gambar dapat meningkatkan ukuran download gambar ini.
+7,0 KiB
+div > div > div > img
+<img src="https://assets.ppy.sh/beatmaps/2401580/covers/card.jpg?1790408398" alt="" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.65; transition: o…;">
+…covers/card.jpg?179…(assets.ppy.sh)
+13,6 KiB
+6,4 KiB
+Menggunakan format gambar modern (WebP, AVIF) atau meningkatkan kompresi gambar dapat meningkatkan ukuran download gambar ini.
+6,4 KiB
+Permintaan pemblokiran render Perkiraan penghematan 350 md
+Permintaan memblokir render awal halaman, yang dapat menunda LCP. Penundaan atau penyisipan dapat memindahkan permintaan jaringan ini dari jalur penting.LCPFCPTidak dinilai
+URL
+Ukuran Transfer
+Durasi
+vercel.app Pihak pertama
+2,3 KiB	0 md
+/assets/index-BNeOx89G.css(obtaco.vercel.app)
+2,3 KiB
+Google Fonts cdn 
+2,8 KiB	400 md
+/css2?family=JetBrains+Mono:wght@400;500;600&display=swap(fonts.googleapis.com)
+1,4 KiB
+200 md
+/css2?family=Exo+2:wght@400;500;600;700;800&display=swap(fonts.googleapis.com)
+1,4 KiB
+200 md
+Penyebab perubahan tata letak
+Pergeseran tata letak terjadi saat elemen bergerak tanpa interaksi pengguna. Selidiki penyebab perubahan tata letak, seperti penambahan elemen, penghapusan elemen, atau perubahan font saat halaman dimuat.CLSTidak dinilai
+Elemen
+Skor pergeseran tata letak
+Total
+0,366
+User Playlists Public playlists curated by the community Catchy Song unvoids …
+<section style="margin-top: 40px;">
+0,348
+osu! Beatmap Tag Collection Paste a beatmap link or upload a .osu file to pred…
+<div style="max-width: 1280px; margin: 0px auto; padding: 36px 24px 80px;">
+0,012
+osu! Beatmap Tag Collection Paste a beatmap link or upload a .osu file to pred…
+<div style="max-width: 1280px; margin: 0px auto; padding: 36px 24px 80px;">
+0,007
+Penemuan permintaan LCP
+Optimalkan LCP dengan membuat gambar LCP dapat ditemukan dari HTML secara langsung, dan menghindari pemuatan lambatLCPTidak dinilai
+Resource LCP tidak boleh menggunakan loading=lazy
+fetchpriority=high harus diterapkan
+Permintaan dapat ditemukan di dokumen awal
+div > div > div > img
+<img src="https://assets.ppy.sh/beatmaps/2401580/covers/card.jpg?1790408398" alt="" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.65; transition: o…;">
+Hierarki dependensi jaringan
+Hindari perantaian permintaan penting dengan mengurangi panjang rantai, mengurangi ukuran download resource, atau menunda download resource yang tidak penting untuk mempercepat pemuatan halaman.LCPTidak dinilai
+Latensi jalur kritis maksimal: 4.849 md
+Navigasi Awal
+https://obtaco.vercel.app - 43 md, 1,15 KiB
+/assets/index-Ri4H2J2I.js(obtaco.vercel.app) - 357 md, 75,99 KiB
+/relabel/status(api-osu.elms-ppkn-smego10.my.id) - 718 md, 0,71 KiB
+/auth/me(api-osu.elms-ppkn-smego10.my.id) - 729 md, 0,83 KiB
+/queue/state(api-osu.elms-ppkn-smego10.my.id) - 732 md, 0,69 KiB
+/relabel/status(api-osu.elms-ppkn-smego10.my.id) - 865 md, 0,71 KiB
+/queue/state(api-osu.elms-ppkn-smego10.my.id) - 864 md, 0,70 KiB
+/stats(api-osu.elms-ppkn-smego10.my.id) - 973 md, 0,68 KiB
+/beatmaps/this-week(api-osu.elms-ppkn-smego10.my.id) - 1.422 md, 64,95 KiB
+/playlists/public?offset=0(api-osu.elms-ppkn-smego10.my.id) - 1.003 md, 2,46 KiB
+/queue/state(api-osu.elms-ppkn-smego10.my.id) - 2.529 md, 0,70 KiB
+/relabel/status(api-osu.elms-ppkn-smego10.my.id) - 2.850 md, 0,72 KiB
+/queue/state(api-osu.elms-ppkn-smego10.my.id) - 2.861 md, 0,70 KiB
+/queue/state(api-osu.elms-ppkn-smego10.my.id) - 4.497 md, 0,69 KiB
+/relabel/status(api-osu.elms-ppkn-smego10.my.id) - 4.839 md, 0,71 KiB
+/queue/state(api-osu.elms-ppkn-smego10.my.id) - 4.849 md, 0,71 KiB
+/assets/index-BNeOx89G.css(obtaco.vercel.app) - 246 md, 2,27 KiB
+/css2?family=Exo+2:wght@400;500;600;700;800&display=swap(fonts.googleapis.com) - 255 md, 1,38 KiB
+…v26/7cHmv4okm….woff2(fonts.gstatic.com) - 402 md, 40,76 KiB
+/css2?family=JetBrains+Mono:wght@400;500;600&display=swap(fonts.googleapis.com) - 256 md, 1,44 KiB
+…v24/tDbv2o-fl….woff2(fonts.gstatic.com) - 713 md, 31,40 KiB
+Origin yang dihubungkan sebelumnya
+Petunjuk prakoneksi membantu browser membuat koneksi lebih awal saat halaman dimuat, sehingga dapat menghemat waktu ketika permintaan ke origin tersebut dibuat pertama kali. Berikut ini adalah origin yang telah terhubung ke halaman sebelumnya.
+tidak ada origin yang dihubungkan sebelumnya
+Kandidat prakoneksi
+Tambahkan petunjuk prakoneksi ke origin yang paling penting, tetapi usahakan untuk menggunakan tidak lebih dari 4 petunjuk.
+Origin
+Perkiraan penghematan LCP
+https://api-osu.elms-ppkn-smego10.my.id
+80 md
+https://assets.ppy.sh
+80 md
+Gunakan durasi cache yang efisien Perkiraan penghematan 28 KiB
+Durasi cache yang panjang dapat mempercepat kunjungan berulang ke halaman Anda. Pelajari lebih lanjut caching.LCPFCPTidak dinilai
+Permintaan
+TTL Cache
+Ukuran Transfer
+ppy.sh
+301 KiB
+…covers/card.jpg?179…(assets.ppy.sh)
+28 hr
+32 KiB
+…covers/card.jpg?179…(assets.ppy.sh)
+28 hr
+27 KiB
+…covers/card.jpg?179…(assets.ppy.sh)
+28 hr
+26 KiB
+…covers/card.jpg?179…(assets.ppy.sh)
+28 hr
+26 KiB
+…covers/card.jpg?179…(assets.ppy.sh)
+28 hr
+22 KiB
+…covers/card.jpg?179…(assets.ppy.sh)
+28 hr
+22 KiB
+…covers/card.jpg?179…(assets.ppy.sh)
+28 hr
+22 KiB
+…covers/card.jpg?179…(assets.ppy.sh)
+28 hr
+22 KiB
+…covers/card.jpg?179…(assets.ppy.sh)
+28 hr
+20 KiB
+…covers/card.jpg?174…(assets.ppy.sh)
+28 hr
+19 KiB
+…covers/card.jpg?176…(assets.ppy.sh)
+28 hr
+16 KiB
+…covers/card.jpg?179…(assets.ppy.sh)
+28 hr
+15 KiB
+…covers/card.jpg?179…(assets.ppy.sh)
+28 hr
+15 KiB
+…covers/card.jpg?179…(assets.ppy.sh)
+28 hr
+14 KiB
+Optimalkan ukuran DOM
+Perincian LCP
+Pihak ketiga
+Insight ini juga tersedia di Panel Performa Chrome DevTools - rekam aktivitas untuk melihat informasi yang lebih mendetail.
+Diagnostik
+Kurangi JavaScript yang tidak digunakan Perkiraan penghematan 36 KiB
+Kurangi JavaScript yang tidak digunakan dan tunda pemuatan skrip sampai diperlukan untuk menurunkan byte yang digunakan oleh aktivitas jaringan. Pelajari cara mengurangi JavaScript yang tidak digunakan.LCPFCPTidak dinilai
+URL
+Ukuran Transfer
+Perkiraan Penghematan
+vercel.app Pihak pertama
+75,3 KiB	36,0 KiB
+/assets/index-Ri4H2J2I.js(obtaco.vercel.app)
+75,3 KiB
+36,0 KiB
+Hindari tugas thread utama yang berjalan lama 2 tugas berjalan lama
+Informasi selengkapnya tentang performa aplikasi Anda. Angka ini tidak secara langsung memengaruhi skor Performa.
+Lulus audit (16)
+Tampilkan
+90
+Aksesibilitas
+Pemeriksaan ini menandai peluang untuk meningkatkan aksesibilitas aplikasi web Anda. Deteksi otomatis hanya dapat mendeteksi sebagian masalah dan tidak menjamin aksesibilitas aplikasi web Anda, sehingga pengujian manual juga dianjurkan.
+Kontras
+Warna latar belakang dan latar depan tidak memiliki rasio kontras yang cukup.
+Teks yang memiliki kontras rendah akan sulit atau tidak mungkin dibaca oleh kebanyakan pengguna. Pelajari cara memberikan kontras warna yang memadai.
+Elemen yang Gagal
+👤 4
+<span>
+QUEUE 0/5 👤 4 | 🗂 148,317
+<div style="display: flex; align-items: center; gap: 14px; padding: 7px 24px;">
+🗂 148,317
+<span>
+QUEUE 0/5 👤 4 | 🗂 148,317
+<div style="display: flex; align-items: center; gap: 14px; padding: 7px 24px;">
+or upload a .osu file
+<div style="text-align: center; color: var(--muted2); font-size: 12px;">
+o!btaco Login with osu! QUEUE 0/5 👤 4 | 🗂 148,317 i osu! Beatmap Tag Collection…
+<div style="min-height: 100vh; background: var(--bg); color: var(--text);">
+Sep 27 – Oct 3, 2026 · 43 beatmapsets
+<p style="font-size: 12px; color: var(--muted2);">
+o!btaco Login with osu! QUEUE 0/5 👤 4 | 🗂 148,317 i osu! Beatmap Tag Collection…
+<div style="min-height: 100vh; background: var(--bg); color: var(--text);">
+BPM
+<span style="color: var(--muted2); font-size: 0.58rem; letter-spacing: 0.06em;">
+BPM 204
+<span style="font-family: var(--font-m); font-size: 0.65rem; font-weight: 700;">
+RANKED osu! .osz Over the Fullereneshift DJ SHARPNEL BPM 204 mizto's Extreme ★ …
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+1/19 · click to cycle
+<div style="text-align: right; font-family: var(--font-m); font-size: 9px;">
+RANKED osu! .osz Over the Fullereneshift DJ SHARPNEL BPM 204 mizto's Extreme ★ …
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+Hard
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+Hard Insane Extra aspen's Extra Astronic's Extra mizto's Extreme kowari's Extre…
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz Over the Fullereneshift DJ SHARPNEL BPM 204 mizto's Extreme ★ …
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+Insane
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+Hard Insane Extra aspen's Extra Astronic's Extra mizto's Extreme kowari's Extre…
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz Over the Fullereneshift DJ SHARPNEL BPM 204 mizto's Extreme ★ …
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+Extra
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+Hard Insane Extra aspen's Extra Astronic's Extra mizto's Extreme kowari's Extre…
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz Over the Fullereneshift DJ SHARPNEL BPM 204 mizto's Extreme ★ …
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+aspen's Extra
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+Hard Insane Extra aspen's Extra Astronic's Extra mizto's Extreme kowari's Extre…
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz Over the Fullereneshift DJ SHARPNEL BPM 204 mizto's Extreme ★ …
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+Astronic's Extra
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+Hard Insane Extra aspen's Extra Astronic's Extra mizto's Extreme kowari's Extre…
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz Over the Fullereneshift DJ SHARPNEL BPM 204 mizto's Extreme ★ …
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+kowari's Extreme
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+Hard Insane Extra aspen's Extra Astronic's Extra mizto's Extreme kowari's Extre…
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz Over the Fullereneshift DJ SHARPNEL BPM 204 mizto's Extreme ★ …
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+Can't Defeat Appman
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+Hard Insane Extra aspen's Extra Astronic's Extra mizto's Extreme kowari's Extre…
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz Over the Fullereneshift DJ SHARPNEL BPM 204 mizto's Extreme ★ …
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+Fourth Impact
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+Hard Insane Extra aspen's Extra Astronic's Extra mizto's Extreme kowari's Extre…
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz Over the Fullereneshift DJ SHARPNEL BPM 204 mizto's Extreme ★ …
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+-Tynamo's Instrumentality
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+Hard Insane Extra aspen's Extra Astronic's Extra mizto's Extreme kowari's Extre…
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz Over the Fullereneshift DJ SHARPNEL BPM 204 mizto's Extreme ★ …
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+Plasma's Evangelion
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+Hard Insane Extra aspen's Extra Astronic's Extra mizto's Extreme kowari's Extre…
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz Over the Fullereneshift DJ SHARPNEL BPM 204 mizto's Extreme ★ …
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+BPM
+<span style="color: var(--muted2); font-size: 0.58rem; letter-spacing: 0.06em;">
+BPM 110
+<span style="font-family: var(--font-m); font-size: 0.65rem; font-weight: 700;">
+RANKED osu! .osz Die In A Fire (feat. EileMonty & Orko) The Living Tombstone BP…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+1/19 · click to cycle
+<div style="text-align: right; font-family: var(--font-m); font-size: 9px;">
+RANKED osu! .osz Die In A Fire (feat. EileMonty & Orko) The Living Tombstone BP…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+LosDinosaurios' Easy
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+LosDinosaurios' Easy Take's Normal Shunao's Hard traqqy and Kensuke's Going Ins…
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz Die In A Fire (feat. EileMonty & Orko) The Living Tombstone BP…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+Take's Normal
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+LosDinosaurios' Easy Take's Normal Shunao's Hard traqqy and Kensuke's Going Ins…
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz Die In A Fire (feat. EileMonty & Orko) The Living Tombstone BP…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+Shunao's Hard
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+LosDinosaurios' Easy Take's Normal Shunao's Hard traqqy and Kensuke's Going Ins…
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz Die In A Fire (feat. EileMonty & Orko) The Living Tombstone BP…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+Aranel's Desire
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+LosDinosaurios' Easy Take's Normal Shunao's Hard traqqy and Kensuke's Going Ins…
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz Die In A Fire (feat. EileMonty & Orko) The Living Tombstone BP…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+Gerodrea's Animatronic
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+LosDinosaurios' Easy Take's Normal Shunao's Hard traqqy and Kensuke's Going Ins…
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz Die In A Fire (feat. EileMonty & Orko) The Living Tombstone BP…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+This Ends Tonight
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+LosDinosaurios' Easy Take's Normal Shunao's Hard traqqy and Kensuke's Going Ins…
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz Die In A Fire (feat. EileMonty & Orko) The Living Tombstone BP…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+BPM
+<span style="color: var(--muted2); font-size: 0.58rem; letter-spacing: 0.06em;">
+BPM 145
+<span style="font-family: var(--font-m); font-size: 0.65rem; font-weight: 700;">
+RANKED osu! .osz Twin Bloom Gardens BPM 145 Mirrored Heart ★ 8.15 AR 9.8 CS 4 O…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+1/19 · click to cycle
+<div style="text-align: right; font-family: var(--font-m); font-size: 9px;">
+RANKED osu! .osz Twin Bloom Gardens BPM 145 Mirrored Heart ★ 8.15 AR 9.8 CS 4 O…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+BPM
+<span style="color: var(--muted2); font-size: 0.58rem; letter-spacing: 0.06em;">
+BPM 90
+<span style="font-family: var(--font-m); font-size: 0.65rem; font-weight: 700;">
+RANKED osu! .osz Replaceable Goodbye KAF BPM 90 Transient ★ 4.07 AR 8 CS 5 OD 7…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+1/19 · click to cycle
+<div style="text-align: right; font-family: var(--font-m); font-size: 9px;">
+RANKED osu! .osz Replaceable Goodbye KAF BPM 90 Transient ★ 4.07 AR 8 CS 5 OD 7…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+BPM
+<span style="color: var(--muted2); font-size: 0.58rem; letter-spacing: 0.06em;">
+BPM 140
+<span style="font-family: var(--font-m); font-size: 0.65rem; font-weight: 700;">
+RANKED osu! .osz Bliss on Mushrooms (feat. Miyavi) Infected Mushroom & Bliss BP…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+1/19 · click to cycle
+<div style="text-align: right; font-family: var(--font-m); font-size: 9px;">
+RANKED osu! .osz Bliss on Mushrooms (feat. Miyavi) Infected Mushroom & Bliss BP…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+BPM
+<span style="color: var(--muted2); font-size: 0.58rem; letter-spacing: 0.06em;">
+BPM 144
+<span style="font-family: var(--font-m); font-size: 0.65rem; font-weight: 700;">
+RANKED osu! .osz Yuuga ni Sakase, Sumizome no Sakura ~ Re:The Harm of Coming in…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+98%
+<span style="font-family: var(--font-m); font-size: 10px; color: rgb(146, 89, 209);">
+RANKED osu! .osz Yuuga ni Sakase, Sumizome no Sakura ~ Re:The Harm of Coming in…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+82%
+<span style="font-family: var(--font-m); font-size: 10px; color: rgb(146, 89, 209);">
+RANKED osu! .osz Yuuga ni Sakase, Sumizome no Sakura ~ Re:The Harm of Coming in…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+52%
+<span style="font-family: var(--font-m); font-size: 10px; color: rgb(146, 89, 209);">
+RANKED osu! .osz Yuuga ni Sakase, Sumizome no Sakura ~ Re:The Harm of Coming in…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+1/19 · click to cycle
+<div style="text-align: right; font-family: var(--font-m); font-size: 9px;">
+RANKED osu! .osz Yuuga ni Sakase, Sumizome no Sakura ~ Re:The Harm of Coming in…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+Stage 6: Yuyuko Saigyouji
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 700;">
+Stage 6: Yuyuko Saigyouji
+<button style="display: flex; align-items: center; gap: 4px; padding: 3px 8px;">
+Stage 6: Yuyuko Saigyouji Re:Stage 6: Saigyou Ayakashi
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz Yuuga ni Sakase, Sumizome no Sakura ~ Re:The Harm of Coming in…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+Re:Stage 6: Saigyou Ayakashi
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+Stage 6: Yuyuko Saigyouji Re:Stage 6: Saigyou Ayakashi
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz Yuuga ni Sakase, Sumizome no Sakura ~ Re:The Harm of Coming in…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+BPM
+<span style="color: var(--muted2); font-size: 0.58rem; letter-spacing: 0.06em;">
+BPM 180
+<span style="font-family: var(--font-m); font-size: 0.65rem; font-weight: 700;">
+RANKED osu! .osz stresstest yax03 BPM 180 fortheworthy ★ 8.91 AR 10 CS 3.8 OD 1…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+1/19 · click to cycle
+<div style="text-align: right; font-family: var(--font-m); font-size: 9px;">
+RANKED osu! .osz stresstest yax03 BPM 180 fortheworthy ★ 8.91 AR 10 CS 3.8 OD 1…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+BPM
+<span style="color: var(--muted2); font-size: 0.58rem; letter-spacing: 0.06em;">
+BPM 100
+<span style="font-family: var(--font-m); font-size: 0.65rem; font-weight: 700;">
+RANKED osu! .osz EKSPONAT (MilWo, Sunset HARDTEKK Remix) (TikTok Homelander Edi…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+1/19 · click to cycle
+<div style="text-align: right; font-family: var(--font-m); font-size: 9px;">
+RANKED osu! .osz EKSPONAT (MilWo, Sunset HARDTEKK Remix) (TikTok Homelander Edi…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+MARMO'S EASY
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+MARMO'S EASY TAKE'S NORMAL ELICJ01'S HARD COLLAB INSANE COLLAB EXPERT KPMY'S EX…
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz EKSPONAT (MilWo, Sunset HARDTEKK Remix) (TikTok Homelander Edi…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+TAKE'S NORMAL
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+MARMO'S EASY TAKE'S NORMAL ELICJ01'S HARD COLLAB INSANE COLLAB EXPERT KPMY'S EX…
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz EKSPONAT (MilWo, Sunset HARDTEKK Remix) (TikTok Homelander Edi…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+ELICJ01'S HARD
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+MARMO'S EASY TAKE'S NORMAL ELICJ01'S HARD COLLAB INSANE COLLAB EXPERT KPMY'S EX…
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz EKSPONAT (MilWo, Sunset HARDTEKK Remix) (TikTok Homelander Edi…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+COLLAB EXPERT
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+MARMO'S EASY TAKE'S NORMAL ELICJ01'S HARD COLLAB INSANE COLLAB EXPERT KPMY'S EX…
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz EKSPONAT (MilWo, Sunset HARDTEKK Remix) (TikTok Homelander Edi…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+KPMY'S EXTRA
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+MARMO'S EASY TAKE'S NORMAL ELICJ01'S HARD COLLAB INSANE COLLAB EXPERT KPMY'S EX…
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz EKSPONAT (MilWo, Sunset HARDTEKK Remix) (TikTok Homelander Edi…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+LYVAI'S EXTRA
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+MARMO'S EASY TAKE'S NORMAL ELICJ01'S HARD COLLAB INSANE COLLAB EXPERT KPMY'S EX…
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz EKSPONAT (MilWo, Sunset HARDTEKK Remix) (TikTok Homelander Edi…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+EGO
+<span style="font-family: var(--font-d); font-size: 11px; font-weight: 500;">
+MARMO'S EASY TAKE'S NORMAL ELICJ01'S HARD COLLAB INSANE COLLAB EXPERT KPMY'S EX…
+<div style="border-top: 1px solid rgba(180, 130, 220, 0.1); padding: 8px 10px;">
+RANKED osu! .osz EKSPONAT (MilWo, Sunset HARDTEKK Remix) (TikTok Homelander Edi…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+BPM
+<span style="color: var(--muted2); font-size: 0.58rem; letter-spacing: 0.06em;">
+BPM 110
+<span style="font-family: var(--font-m); font-size: 0.65rem; font-weight: 700;">
+RANKED osu! .osz EKSPONAT MIA BOYKA BPM 110 HARD ★ 3.16 AR 8 CS 3.8 OD 6 OBJ 25…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+BPM
+<span style="color: var(--muted2); font-size: 0.58rem; letter-spacing: 0.06em;">
+BPM 150
+<span style="font-family: var(--font-m); font-size: 0.65rem; font-weight: 700;">
+RANKED osu! .osz moon (re-Illuminate ver.) feat. Hatsune Miku iroha(sasaki) BPM…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+BPM
+<span style="color: var(--muted2); font-size: 0.58rem; letter-spacing: 0.06em;">
+BPM 129
+<span style="font-family: var(--font-m); font-size: 0.65rem; font-weight: 700;">
+RANKED osu! .osz Okurina -Inochi o Aoku Mimamori Nemurina- FREEDOM CREATORS BPM…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+BPM
+<span style="color: var(--muted2); font-size: 0.58rem; letter-spacing: 0.06em;">
+BPM 188
+<span style="font-family: var(--font-m); font-size: 0.65rem; font-weight: 700;">
+RANKED osu! .osz Primal CQ BPM 188 Insane ★ 5.33 AR 9 CS 3.5 OD 8 OBJ 952 strea…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+Public playlists curated by the community
+<p style="font-size: 12px; color: var(--muted2); margin-top: 3px;">
+o!btaco Login with osu! QUEUE 0/5 👤 4 | 🗂 148,317 i osu! Beatmap Tag Collection…
+<div style="min-height: 100vh; background: var(--bg); color: var(--text);">
+2 maps
+<span style="font-size: 11px; color: var(--muted2); margin-left: auto;">
+Catchy Song unvoids 2 maps skillset/jumps expression/simple jumps/sharp 1 2 3 4…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+9 days ago
+<span style="font-size: 10px; color: var(--muted2); font-family: var(--font-m);">
+Catchy Song unvoids 2 maps skillset/jumps expression/simple jumps/sharp 1 2 3 4…
+<div style="background: var(--card); border: 1px solid rgba(180, 130, 220, 0.18);">
+Ini adalah peluang untuk meningkatkan keterbacaan konten Anda.
+Praktik terbaik
+Dokumen tidak memiliki penanda utama.
+Satu penanda utama membantu pengguna pembaca layar membuka halaman web. Pelajari penanda lebih lanjut.
+Elemen yang Gagal
+html
+<html lang="en">
+Link yang identik memiliki fungsi yang sama.
+Item berikut memperjelas praktik terbaik yang umum untuk aksesibilitas.
+Item tambahan untuk diperiksa secara manual (10)
+Tampilkan
+Item berikut ini menangani area yang tidak dapat dicakup oleh fitur pengujian otomatis. Pelajari lebih lanjut dalam panduan kami tentang menjalankan tinjauan aksesibilitas.
+Lulus audit (12)
+Tampilkan
+Tidak berlaku (48)
+Tampilkan
+96
+Praktik Terbaik
+Umum
+Error browser dicatat di konsol
+Error yang dicatat di konsol menunjukkan masalah yang belum terselesaikan. Error dapat berasal dari permintaan jaringan yang gagal dan masalah browser lainnya. Pelajari lebih lanjut error ini dalam audit diagnostik konsol
+Sumber
+Deskripsi
+elms-ppkn-smego10.my.id
+/auth/me:1:0(api-osu.elms-ppkn-smego10.my.id)
+Failed to load resource: the server responded with a status of 401 (Unauthorized)
+Kepercayaan dan Keamanan
+Pastikan CSP efektif melawan serangan XSS
+Memastikan isolasi origin yang tepat dengan COOP
+Mitigasi clickjacking dengan XFO atau CSP
+Memitigasi XSS berbasis DOM dengan Trusted Types
+Kompatibilitas Browser
+Fitur Baseline
+Lulus audit (12)
+Tampilkan
+Tidak berlaku (3)
+Tampilkan
+100
+SEO
+Pemeriksaan ini memastikan bahwa halaman Anda mengikuti saran pengoptimalan mesin telusur dasar. Ada banyak faktor tambahan yang tidak diperhitungkan oleh Lighthouse di sini yang mungkin memengaruhi peringkat penelusuran Anda, termasuk performa di Data Web Inti. Pelajari lebih lanjut Google Penelusuran Essentials.
+Item tambahan untuk diperiksa secara manual (1)
+Sembunyikan
+Data terstruktur valid
+Jalankan validator tambahan ini di situs Anda untuk memeriksa praktik terbaik SEO lainnya.
+Lulus audit (9)
+Tampilkan
+Tidak berlaku (1)
+Tampilkan
+1/2
+Penjelajahan Agentic
+Pemeriksaan ini memastikan situs berkualitas tinggi yang dapat dijelajahi oleh agen AI serta memvalidasi ketepatan integrasi WebMCP. Kategori ini masih dalam pengembangan dan dapat berubah sewaktu-waktu.
+Cumulative Layout Shift 0.366
+Pergeseran Tata Letak Kumulatif (CLS) mengukur perpindahan elemen yang terlihat dalam area pandang. Pelajari lebih lanjut metrik Pergeseran Tata Letak Kumulatif.
+Lulus audit (1)
+Tampilkan
+Tidak berlaku (5)
+Tampilkan
+Selengkapnya tentang PageSpeed Insights
+Yang baru
+Dokumentasi
+Pelajari Performa Web
+Ajukan pertanyaan di Stack Overflow
+Milis
+Konten Terkait
+Info Terbaru
+Dasar-Dasar Web
+Studi Kasus
+Podcast
+Ikuti Kami
+Twitter
+YouTube
+Google Developers Logo
+Chrome
+Firebase
+Semua produk
+Persyaratan dan Kebijakan Privasi
+Untuk mengetahui detailnya, lihat Kebijakan Situs Google Developers.

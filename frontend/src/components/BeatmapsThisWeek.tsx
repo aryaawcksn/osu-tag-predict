@@ -58,7 +58,20 @@ export default function BeatmapsThisWeek({ currentUser }: { currentUser?: Curren
       .then(r => r.json()).then(setData).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  if (loading || !data || data.beatmapsets.length === 0) return null;
+  if (loading) return (
+    <section style={{ marginTop: 32 }}>
+      <div style={{ height: 28, width: 180, borderRadius: 6, background: "rgba(255,255,255,0.06)", marginBottom: 8 }} />
+      <div style={{ height: 14, width: 140, borderRadius: 4, background: "rgba(255,255,255,0.04)", marginBottom: 16 }} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} style={{ height: 280, borderRadius: 12, background: "var(--card)",
+            border: "1px solid rgba(180,130,220,0.1)", animation: "pulse 1.5s ease-in-out infinite" }} />
+        ))}
+      </div>
+    </section>
+  );
+
+  if (!data || data.beatmapsets.length === 0) return null;
 
   const sets = showAll ? data.beatmapsets : data.beatmapsets.slice(0, PREVIEW_COUNT);
   const hasMore = data.beatmapsets.length > PREVIEW_COUNT;
