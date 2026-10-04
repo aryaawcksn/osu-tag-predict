@@ -3,7 +3,7 @@ import { Playlist } from "../types";
 import { getMyPlaylists, createPlaylist, addToPlaylist, removeFromPlaylist, updatePlaylist } from "../api";
 import { IconCheck, IconMusic, IconGlobe, IconLock } from "./Icons";
 
-const MAX_PLAYLISTS = 3;
+const MAX_PUBLIC_PLAYLISTS = 3;
 const MAX_NAME_LEN = 30;
 
 interface Props {
@@ -72,7 +72,7 @@ export default function SaveToPlaylistModal({ beatmapId, beatmapTitle, onClose }
   }
 
   async function handleCreate() {
-    if (!newName.trim() || playlists.length >= MAX_PLAYLISTS) return;
+    if (!newName.trim()) return;
     setCreating(true);
     try {
       const pl = await createPlaylist(newName.trim());
@@ -84,7 +84,8 @@ export default function SaveToPlaylistModal({ beatmapId, beatmapTitle, onClose }
     setCreating(false);
   }
 
-  const atMax = playlists.length >= MAX_PLAYLISTS;
+  const publicCount = playlists.filter(p => p.is_public).length;
+  const atPublicMax = publicCount >= MAX_PUBLIC_PLAYLISTS;
 
   return (
     <div style={overlayStyle} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -100,34 +101,26 @@ export default function SaveToPlaylistModal({ beatmapId, beatmapTitle, onClose }
         </div>
 
         {/* Create new */}
-        {atMax ? (
-          <div style={{ marginBottom: 14, padding: "8px 12px", borderRadius: 8,
-            background: "rgba(255,102,170,0.08)", border: "1px solid rgba(255,102,170,0.25)",
-            fontSize: 12, color: "var(--muted)", textAlign: "center" }}>
-            Maximum {MAX_PLAYLISTS} playlists reached.
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+          <div style={{ position: "relative" }}>
+            <input className="osu-input" placeholder="New playlist name…" value={newName}
+              maxLength={MAX_NAME_LEN}
+              onChange={e => setNewName(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") handleCreate(); }}
+              style={{ fontSize: 12, paddingRight: 44 }} />
+            <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
+              fontSize: 10, color: newName.length >= MAX_NAME_LEN ? "#ff6666" : "var(--muted2)",
+              pointerEvents: "none", fontFamily: "var(--font-m)" }}>
+              {newName.length}/{MAX_NAME_LEN}
+            </span>
           </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
-            <div style={{ position: "relative" }}>
-              <input className="osu-input" placeholder="New playlist name…" value={newName}
-                maxLength={MAX_NAME_LEN}
-                onChange={e => setNewName(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") handleCreate(); }}
-                style={{ fontSize: 12, paddingRight: 44 }} />
-              <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
-                fontSize: 10, color: newName.length >= MAX_NAME_LEN ? "#ff6666" : "var(--muted2)",
-                pointerEvents: "none", fontFamily: "var(--font-m)" }}>
-                {newName.length}/{MAX_NAME_LEN}
-              </span>
-            </div>
-            <button className="btn-pink" onClick={handleCreate}
-              disabled={!newName.trim() || creating}
-              style={{ fontSize: 12, padding: "7px 14px", alignSelf: "flex-end",
-                opacity: !newName.trim() || creating ? 0.45 : 1 }}>
-              {creating ? "…" : "+ New"}
-            </button>
-          </div>
-        )}
+          <button className="btn-pink" onClick={handleCreate}
+            disabled={!newName.trim() || creating}
+            style={{ fontSize: 12, padding: "7px 14px", alignSelf: "flex-end",
+              opacity: !newName.trim() || creating ? 0.45 : 1 }}>
+            {creating ? "…" : "+ New"}
+          </button>
+        </div>
 
         {/* Playlist list */}
         <div style={{ maxHeight: 300, overflowY: "auto",
@@ -143,7 +136,7 @@ export default function SaveToPlaylistModal({ beatmapId, beatmapTitle, onClose }
               const isSaved = saved.has(pl.id);
               const isSaving = saving === pl.id;
               const isEmpty = pl.item_count === 0 && !isSaved;
-              const cantPublic = !pl.is_public && isEmpty;
+              const cantPublic = !pl.is_public && (isEmpty || atPublicMax);
               return (
                 <div key={pl.id} style={{ marginBottom: 4, borderRadius: 8, overflow: "hidden",
                   background: isSaved ? "rgba(255,102,170,0.1)" : "rgba(255,255,255,0.03)",
@@ -179,7 +172,13 @@ export default function SaveToPlaylistModal({ beatmapId, beatmapTitle, onClose }
                     padding: "0 10px 8px", gap: 6 }}>
                     <button onClick={e => handleTogglePublic(pl, e)}
                       disabled={togglingPublic === pl.id || cantPublic}
-                      title={cantPublic ? "Add at least one beatmap before making public" : undefined}
+                      title={
+                        cantPublic
+                          ? isEmpty
+                            ? "Add at least one beatmap before making public"
+                            : `Max ${MAX_PUBLIC_PLAYLISTS} public playlists reached`
+                          : undefined
+                      }
                       style={{ fontSize: 10, padding: "3px 9px", borderRadius: 5, cursor: cantPublic ? "not-allowed" : "pointer",
                         border: `1px solid ${pl.is_public ? "rgba(255,102,170,0.4)" : "var(--border)"}`,
                         background: "transparent",
