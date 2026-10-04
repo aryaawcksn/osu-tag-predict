@@ -31,7 +31,6 @@ function GroupedSetCard({ diffs, currentUser }: { diffs: BeatmapRecord[]; curren
   const sorted = [...diffs].sort((a, b) => (a.difficulty_rating ?? 0) - (b.difficulty_rating ?? 0));
   const midIdx = Math.max(0, Math.floor((sorted.length - 1) / 2));
   const [selectedIdx, setSelectedIdx] = useState(midIdx);
-  const [hovered, setHovered] = useState(false);
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [playing, setPlaying] = useState(false);
   const stopRef = useRef<(() => void) | null>(null);
@@ -85,17 +84,11 @@ function GroupedSetCard({ diffs, currentUser }: { diffs: BeatmapRecord[]; curren
   return (
     <>
       <div
-        style={{
-          background: "var(--card)", border: `1px solid ${hovered ? "rgba(255,102,170,0.45)" : "rgba(180,130,220,0.18)"}`,
-          borderRadius: 12, overflow: "hidden", display: "flex", flexDirection: "column",
-        }}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
+        className="bmap-card"
       >
         {/* Cover */}
-        <div style={{ position: "relative", height: 130, overflow: "hidden", background: "var(--bg)", flexShrink: 0 }}>
-          {bgImg && <img src={bgImg} alt="" loading="lazy"
-            style={{ width: "100%", height: "100%", objectFit: "cover", opacity: hovered ? 0.45 : 0.65 }} />}
+        <div className="cover-wrap">
+          {bgImg && <img src={bgImg} alt="" loading="lazy" className="cover-img" />}
           <div style={{ position: "absolute", inset: 0, pointerEvents: "none",
             background: "linear-gradient(to bottom, transparent 30%, var(--card) 100%)" }} />
           {diff?.status && (
@@ -114,9 +107,7 @@ function GroupedSetCard({ diffs, currentUser }: { diffs: BeatmapRecord[]; curren
               ))}
             </div>
           )}
-          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column",
-            alignItems: "center", justifyContent: "center", gap: 8,
-            opacity: hovered ? 1 : 0 }}>
+          <div className="cover-overlay">
             {previewUrl && (
               <button onClick={togglePlay}
                 style={{ width: 44, height: 44, borderRadius: "50%",

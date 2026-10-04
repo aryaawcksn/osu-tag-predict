@@ -153,7 +153,6 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
   const maxProb = allLabels[0]?.probability ?? 1;
   const hasMultiplePages = totalLabelPages > 1;
 
-  const [hovered, setHovered] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [showPlaylist, setShowPlaylist] = useState(false);
   const stopRef = useRef<(() => void) | null>(null);
@@ -193,22 +192,10 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
 
   return (
     <>
-    <div
-      style={cardStyle}
-      onMouseEnter={e => {
-        setHovered(true);
-        e.currentTarget.style.borderColor = "rgba(255,102,170,0.45)";
-      }}
-      onMouseLeave={e => {
-        setHovered(false);
-        e.currentTarget.style.borderColor = "rgba(180,130,220,0.18)";
-      }}
-    >
+    <div className="bmap-card">
       {/* Cover with hover overlay */}
-      <div style={{ position: "relative", height: 130, overflow: "hidden", background: "var(--bg)", flexShrink: 0 }}>
-        <img src={imgUrl} alt="" loading="lazy"
-          style={{ width: "100%", height: "100%", objectFit: "cover",
-            opacity: hovered ? 0.45 : 0.65 }}
+      <div className="cover-wrap">
+        <img src={imgUrl} alt="" loading="lazy" className="cover-img"
           onError={e => { (e.currentTarget.parentElement!.style.background = "var(--bg)"); e.currentTarget.style.display = "none"; }} />
         <div style={{ position: "absolute", inset: 0, pointerEvents: "none",
           background: "linear-gradient(to bottom, transparent 30%, var(--card) 100%)" }} />
@@ -221,9 +208,7 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
           </span>
         )}
         {/* Hover overlay */}
-        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column",
-          alignItems: "center", justifyContent: "center", gap: 8,
-          opacity: hovered ? 1 : 0 }}>
+        <div className="cover-overlay">
           <button onClick={togglePlay} title={playing ? "Pause" : "Play preview"}
             style={{ width: 44, height: 44, borderRadius: "50%",
               background: playing ? "rgba(255,102,170,0.9)" : "rgba(0,0,0,0.65)",
@@ -382,11 +367,4 @@ const cardStyle: React.CSSProperties = {
   border: "1px solid rgba(180,130,220,0.18)",
   borderRadius: 12, overflow: "hidden",
   display: "flex", flexDirection: "column",
-};
-
-const statBadge: React.CSSProperties = {
-  fontFamily: "var(--font-m)", fontSize: 10,
-  padding: "2px 6px", borderRadius: 4,
-  background: "var(--stat-bg)", border: "1px solid var(--stat-border)",
-  color: "var(--stat-color)",
 };
