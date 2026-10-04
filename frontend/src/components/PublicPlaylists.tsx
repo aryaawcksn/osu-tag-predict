@@ -32,7 +32,7 @@ export default function PublicPlaylists({ onOpenPlaylist, currentUser }: Props) 
     ));
   }
 
-  if (!loading && playlists.length === 0) return null;
+  if (loading || playlists.length === 0) return null;
 
   return (
     <section style={{ marginTop: 40 }}>
@@ -46,12 +46,7 @@ export default function PublicPlaylists({ onOpenPlaylist, currentUser }: Props) 
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
-        {loading
-          ? Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} style={{ height: 240, borderRadius: 12, background: "var(--card)",
-                border: "1px solid rgba(180,130,220,0.1)", animation: "pulse 1.5s ease-in-out infinite" }} />
-            ))
-          : playlists.map(pl => (
+        {playlists.map(pl => (
           <PlaylistCard
             key={pl.id}
             playlist={pl}
