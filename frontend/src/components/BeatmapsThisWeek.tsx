@@ -272,16 +272,18 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
 
           {/* Active diff info + battery stats */}
           {diff && (
-            <BeatmapStats
-              ar={diff.ar}
-              cs={diff.cs}
-              od={diff.od}
-              objectCount={diff.object_count}
-              difficultyRating={diff.difficulty_rating}
-              starColor={starCol}
-              version={diff.version}
-              bpm={diff.bpm}
-            />
+            <div style={{ marginBottom: 12 }}>
+              <BeatmapStats
+                ar={diff.ar}
+                cs={diff.cs}
+                od={diff.od}
+                objectCount={diff.object_count}
+                difficultyRating={diff.difficulty_rating}
+                starColor={starCol}
+                version={diff.version}
+                bpm={diff.bpm}
+              />
+            </div>
           )}
 
           {/* Tag bars */}

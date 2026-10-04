@@ -1,4 +1,4 @@
-import { PredictResult, QueueState, QueueJob, CurrentUser, DominantPlaystyle, BeatmapRecord } from "./types";
+import { PredictResult, CurrentUser, DominantPlaystyle, BeatmapRecord } from "./types";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -22,12 +22,6 @@ function authHeaders(): Record<string, string> {
   return token ? { "X-Session-Token": token } : {};
 }
 
-// Queue submission response
-export interface SubmitResponse {
-  job_id: string;
-  position: number;
-}
-
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: "Unknown error" }));
@@ -36,19 +30,19 @@ async function handleResponse<T>(res: Response): Promise<T> {
   return res.json();
 }
 
-// Submit beatmap link for prediction (Requirements 1.2)
-export async function predictFromLink(url: string): Promise<SubmitResponse> {
+// Submit beatmap link for prediction
+export async function predictFromLink(url: string): Promise<PredictResult> {
   const res = await fetch(`${BASE_URL}/predict/link`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     credentials: "include",
     body: JSON.stringify({ url }),
   });
-  return handleResponse<SubmitResponse>(res);
+  return handleResponse<PredictResult>(res);
 }
 
-// Submit .osu file upload for prediction (Requirements 1.2)
-export async function predictFromUpload(file: File): Promise<SubmitResponse> {
+// Submit .osu file upload for prediction
+export async function predictFromUpload(file: File): Promise<PredictResult> {
   const form = new FormData();
   form.append("file", file);
   const res = await fetch(`${BASE_URL}/predict/upload`, {
@@ -57,39 +51,7 @@ export async function predictFromUpload(file: File): Promise<SubmitResponse> {
     credentials: "include",
     body: form,
   });
-  return handleResponse<SubmitResponse>(res);
-}
-
-// Get current queue state (Requirements 1.1, 1.6)
-export async function getQueueState(): Promise<QueueState> {
-  const res = await fetch(`${BASE_URL}/queue/state`, {
-    headers: { ...authHeaders() },
-    credentials: "include",
-  });
-  return handleResponse<QueueState>(res);
-}
-
-// Get single job result by id (Requirements 1.6)
-export async function getJobResult(jobId: string): Promise<QueueJob> {
-  const res = await fetch(`${BASE_URL}/queue/job/${jobId}`, {
-    headers: { ...authHeaders() },
-    credentials: "include",
-  });
-  return handleResponse<QueueJob>(res);
-}
-
-// Poll job until done or failed (Requirements 1.6)
-export async function pollJobResult(jobId: string): Promise<PredictResult> {
-  const INTERVAL_MS = 1000;
-  const MAX_ATTEMPTS = 120;
-
-  for (let i = 0; i < MAX_ATTEMPTS; i++) {
-    const job = await getJobResult(jobId);
-    if (job.status === "done") return job.result as PredictResult;
-    if (job.status === "failed") throw new Error(job.error ?? "Prediction failed");
-    await new Promise((resolve) => setTimeout(resolve, INTERVAL_MS));
-  }
-  throw new Error("Prediction timed out");
+  return handleResponse<PredictResult>(res);
 }
 
 // Get current authenticated user info (Requirements 2.4)

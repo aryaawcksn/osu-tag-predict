@@ -253,8 +253,10 @@ export default function PlaylistPage({ username, initialPlaylistId, currentUser,
   const [activeId, setActiveId] = useState<number | null>(initialPlaylistId ?? null);
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [publicLimitError, setPublicLimitError] = useState(false);
 
   const isOwner = currentUser?.username === username;
+  const publicCount = playlists.filter(p => p.is_public).length;
 
   useEffect(() => {
     getUserPlaylists(username)
@@ -294,8 +296,16 @@ export default function PlaylistPage({ username, initialPlaylistId, currentUser,
   }
 
   async function handleTogglePublic(pl: Playlist) {
-    const updated = await updatePlaylist(pl.id, { is_public: !pl.is_public }).catch(() => null);
-    if (updated) setPlaylists(prev => prev.map(p => p.id === pl.id ? updated : p));
+    setPublicLimitError(false);
+    try {
+      const updated = await updatePlaylist(pl.id, { is_public: !pl.is_public });
+      setPlaylists(prev => prev.map(p => p.id === pl.id ? updated : p));
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message.includes("Maximum 3 public")) {
+        setPublicLimitError(true);
+        setTimeout(() => setPublicLimitError(false), 4000);
+      }
+    }
   }
 
   async function handleLove(pl: Playlist) {
@@ -382,6 +392,13 @@ export default function PlaylistPage({ username, initialPlaylistId, currentUser,
                     opacity: !newName.trim() || creating ? 0.45 : 1 }}>
                   {creating ? "Creating…" : "+ New Playlist"}
                 </button>
+                {publicLimitError && (
+                  <div style={{ marginTop: 8, padding: "7px 10px", borderRadius: 7,
+                    background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.4)",
+                    color: "#fbbf24", fontSize: 11 }}>
+                    Max 3 public playlists allowed.
+                  </div>
+                )}
               </div>
             )}
 
@@ -411,7 +428,7 @@ export default function PlaylistPage({ username, initialPlaylistId, currentUser,
                           {!isOwner && currentUser && (
                             <span
                               onClick={e => { e.stopPropagation(); handleLove(pl); }}
-                              title={pl.loved ? "Remove love" : "Love this playlist"}
+                              title={pl.loved ? "Remove favorite" : "Favorite this playlist"}
                               style={{ color: pl.loved ? "#ff66aa" : "var(--muted2)", cursor: "pointer",
                                 fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}>
                               {pl.loved ? "♥" : "♡"} {pl.love_count}
@@ -422,9 +439,17 @@ export default function PlaylistPage({ username, initialPlaylistId, currentUser,
                       {isOwner && (
                         <div style={{ display: "flex", gap: 4, padding: "0 8px 8px" }}>
                           <button onClick={() => handleTogglePublic(pl)}
+                            disabled={!pl.is_public && (pl.item_count === 0 || publicCount >= 3)}
+                            title={
+                              !pl.is_public && pl.item_count === 0 ? "Add beatmaps first" :
+                              !pl.is_public && publicCount >= 3 ? "Max 3 public playlists allowed" :
+                              undefined
+                            }
                             style={{ flex: 1, fontSize: 10, padding: "3px 0", borderRadius: 5,
                               border: "1px solid var(--border)", background: "transparent",
-                              color: "var(--muted)", cursor: "pointer" }}>
+                              color: (!pl.is_public && (pl.item_count === 0 || publicCount >= 3)) ? "var(--muted2)" : "var(--muted)",
+                              cursor: (!pl.is_public && (pl.item_count === 0 || publicCount >= 3)) ? "not-allowed" : "pointer",
+                              opacity: (!pl.is_public && (pl.item_count === 0 || publicCount >= 3)) ? 0.45 : 1 }}>
                             {pl.is_public ? "Make Private" : "Make Public"}
                           </button>
                           <button onClick={() => handleDelete(pl.id)}

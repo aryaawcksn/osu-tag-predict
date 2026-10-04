@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getStats } from "../api";
 
 // ── Hardcoded content ────────────────────────────────────────────────────────
 
@@ -13,8 +14,8 @@ const ANNOUNCEMENTS = [
   {
     id: 2,
     date: "2026-09-24",
-    title: "Public playlists & community loves",
-    body: "You can now make your playlists public and let other players love them. Loved playlists appear in your profile, and you'll be notified when a playlist you loved gets updated.",
+    title: "Public playlists & community favorites",
+    body: "You can now make your playlists public and let other players favorite them. Favorited playlists appear in your profile, and you'll be notified when a playlist you favorited gets updated.",
     type: "feature" as const,
   },
 
@@ -151,11 +152,37 @@ interface Props {
 }
 
 export default function InfoPage({ onBack }: Props) {
+  const [stats, setStats] = useState<{ total_users: number; total_beatmaps: number } | null>(null);
+
+  useEffect(() => {
+    getStats().then(setStats).catch(() => {});
+  }, []);
+
   return (
     <div style={{ maxWidth: 760, margin: "0 auto", padding: "32px 24px 80px" }}>
       <button onClick={onBack} className="btn-ghost" style={{ marginBottom: 28, fontSize: 13 }}>
         ← Back
       </button>
+
+      {/* Stats */}
+      {stats && (
+        <div style={{
+          display: "flex", gap: 12, marginBottom: 36, flexWrap: "wrap",
+        }}>
+          <div style={statCardStyle}>
+            <div style={{ fontSize: 24, fontFamily: "var(--font-d)", fontWeight: 800, color: "#ff66aa" }}>
+              {stats.total_users.toLocaleString()}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>registered users</div>
+          </div>
+          <div style={statCardStyle}>
+            <div style={{ fontSize: 24, fontFamily: "var(--font-d)", fontWeight: 800, color: "#ff66aa" }}>
+              {stats.total_beatmaps.toLocaleString()}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>beatmaps processed</div>
+          </div>
+        </div>
+      )}
 
       {/* Announcements */}
       <section style={{ marginBottom: 48 }}>
@@ -189,3 +216,11 @@ export default function InfoPage({ onBack }: Props) {
     </div>
   );
 }
+
+
+const statCardStyle: React.CSSProperties = {
+  flex: 1, minWidth: 140,
+  background: "var(--card)", border: "1px solid var(--border)",
+  borderRadius: 12, padding: "18px 22px",
+  textAlign: "center",
+};

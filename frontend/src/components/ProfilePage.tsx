@@ -1,19 +1,21 @@
 import { useEffect, useState } from "react";
 import { CurrentUser, Playlist } from "../types";
-import { getMyPlaylists, createPlaylist, deletePlaylist, updatePlaylist, getLoveddPlaylists, unlovePlaylist, lovePlaylist, syncLoveSnapshot } from "../api";
+import { getMyPlaylists, createPlaylist, deletePlaylist, updatePlaylist, getLoveddPlaylists, unlovePlaylist, lovePlaylist, syncLoveSnapshot, logout } from "../api";
 
 interface Props {
   user: CurrentUser;
   onBack: () => void;
   onOpenPlaylist: (username: string) => void;
+  onLogout: () => void;
 }
 
-export default function ProfilePage({ user, onBack, onOpenPlaylist }: Props) {
+export default function ProfilePage({ user, onBack, onOpenPlaylist, onLogout }: Props) {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [lovedPlaylists, setLovedPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [publicLimitError, setPublicLimitError] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -39,8 +41,16 @@ export default function ProfilePage({ user, onBack, onOpenPlaylist }: Props) {
   }
 
   async function handleTogglePublic(pl: Playlist) {
-    const updated = await updatePlaylist(pl.id, { is_public: !pl.is_public }).catch(() => null);
-    if (updated) setPlaylists(prev => prev.map(p => p.id === pl.id ? updated : p));
+    setPublicLimitError(false);
+    try {
+      const updated = await updatePlaylist(pl.id, { is_public: !pl.is_public });
+      setPlaylists(prev => prev.map(p => p.id === pl.id ? updated : p));
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message.includes("Maximum 3 public")) {
+        setPublicLimitError(true);
+        setTimeout(() => setPublicLimitError(false), 4000);
+      }
+    }
   }
 
   async function handleUnlove(id: number) {
@@ -73,7 +83,7 @@ export default function ProfilePage({ user, onBack, onOpenPlaylist }: Props) {
         {user.avatar_url && (
           <img src={user.avatar_url} alt={user.username} style={avatarStyle} />
         )}
-        <div>
+        <div style={{ flex: 1 }}>
           <div style={{ fontFamily: "var(--font-d)", fontSize: 22, fontWeight: 800, color: "var(--text)" }}>
             {user.username}
           </div>
@@ -88,6 +98,14 @@ export default function ProfilePage({ user, onBack, onOpenPlaylist }: Props) {
             View public playlist page →
           </button>
         </div>
+        <button
+          onClick={async () => { await logout().catch(() => {}); onLogout(); }}
+          style={{ fontSize: 12, padding: "7px 14px", borderRadius: 8,
+            border: "1px solid var(--border)", background: "transparent",
+            color: "var(--muted)", cursor: "pointer", flexShrink: 0 }}
+        >
+          Logout
+        </button>
       </div>
 
       {/* My Playlists */}
@@ -100,6 +118,14 @@ export default function ProfilePage({ user, onBack, onOpenPlaylist }: Props) {
             {playlists.length} playlist{playlists.length !== 1 ? "s" : ""}
           </span>
         </div>
+
+        {publicLimitError && (
+          <div style={{ marginBottom: 14, padding: "9px 14px", borderRadius: 8,
+            background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.4)",
+            color: "#fbbf24", fontSize: 13 }}>
+            You can only have 3 public playlists at a time.
+          </div>
+        )}
 
         <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
           <input
@@ -127,25 +153,29 @@ export default function ProfilePage({ user, onBack, onOpenPlaylist }: Props) {
 
         {!loading && playlists.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {playlists.map(pl => (
-              <PlaylistRow
-                key={pl.id}
-                playlist={pl}
-                onTogglePublic={() => handleTogglePublic(pl)}
-                onDelete={() => handleDelete(pl.id)}
-                onOpen={() => onOpenPlaylist(user.username)}
-              />
-            ))}
+            {(() => {
+              const publicCount = playlists.filter(p => p.is_public).length;
+              return playlists.map(pl => (
+                <PlaylistRow
+                  key={pl.id}
+                  playlist={pl}
+                  publicCount={publicCount}
+                  onTogglePublic={() => handleTogglePublic(pl)}
+                  onDelete={() => handleDelete(pl.id)}
+                  onOpen={() => onOpenPlaylist(user.username)}
+                />
+              ));
+            })()}
           </div>
         )}
       </div>
 
-      {/* Loved Playlists */}
+      {/* Favorited Playlists */}
       {!loading && (
         <div className="osu-card">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
             <h2 style={{ fontFamily: "var(--font-d)", fontSize: 17, fontWeight: 800, color: "var(--text)", margin: 0 }}>
-              ♥ Loved Playlists
+              Favorited Playlists
             </h2>
             <span style={{ fontSize: 12, color: "var(--muted2)" }}>
               {lovedPlaylists.length} playlist{lovedPlaylists.length !== 1 ? "s" : ""}
@@ -154,7 +184,7 @@ export default function ProfilePage({ user, onBack, onOpenPlaylist }: Props) {
 
           {lovedPlaylists.length === 0 ? (
             <div style={{ padding: "24px 0", textAlign: "center", color: "var(--muted2)", fontSize: 13 }}>
-              No loved playlists yet. Love public playlists from the home page.
+              No favorited playlists yet. Favorite public playlists from the home page.
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -176,12 +206,20 @@ export default function ProfilePage({ user, onBack, onOpenPlaylist }: Props) {
   );
 }
 
-function PlaylistRow({ playlist: pl, onTogglePublic, onDelete, onOpen }: {
+function PlaylistRow({ playlist: pl, publicCount, onTogglePublic, onDelete, onOpen }: {
   playlist: Playlist;
+  publicCount: number;
   onTogglePublic: () => void;
   onDelete: () => void;
   onOpen: () => void;
 }) {
+  const canMakePublic = pl.is_public || (pl.item_count > 0 && publicCount < 3);
+  const disabledReason = !pl.is_public && pl.item_count === 0
+    ? "Add beatmaps first"
+    : !pl.is_public && publicCount >= 3
+    ? "Max 3 public playlists"
+    : undefined;
+
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10,
       padding: "10px 14px", borderRadius: 10,
@@ -217,10 +255,14 @@ function PlaylistRow({ playlist: pl, onTogglePublic, onDelete, onOpen }: {
 
       <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center" }}>
         <button onClick={onTogglePublic}
+          disabled={!canMakePublic}
+          title={disabledReason}
           style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6,
             border: "1px solid var(--border)", background: "transparent",
-            color: pl.is_public ? "#ff66aa" : "var(--muted2)", cursor: "pointer" }}>
-          {pl.is_public ? "🌐 Public" : "🔒 Private"}
+            color: pl.is_public ? "#ff66aa" : canMakePublic ? "var(--muted2)" : "var(--muted2)",
+            cursor: canMakePublic ? "pointer" : "not-allowed",
+            opacity: canMakePublic ? 1 : 0.4 }}>
+          {pl.is_public ? "Public" : "Private"}
         </button>
         <button onClick={onDelete}
           style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6,
@@ -298,7 +340,7 @@ function LovedPlaylistRow({ playlist: pl, onOpen, onUnlove, onSync, onSaveToo }:
             style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6,
               border: "1px solid rgba(255,102,170,0.35)", background: "transparent",
               color: "#ff66aa", cursor: "pointer" }}>
-            ♥ Remove
+            Remove
           </button>
         </div>
       </div>
@@ -308,7 +350,7 @@ function LovedPlaylistRow({ playlist: pl, onOpen, onUnlove, onSync, onSaveToo }:
         <div style={{ borderTop: "1px solid rgba(255,180,0,0.2)", padding: "10px 14px",
           background: "rgba(255,180,0,0.05)", display: "flex", gap: 8, alignItems: "center" }}>
           <span style={{ fontSize: 12, color: "var(--muted)", flex: 1 }}>
-            This playlist has changed since you loved it.
+            This playlist has changed since you favorited it.
           </span>
           <button
             onClick={() => { onSync(); setShowUpdateChoice(false); }}

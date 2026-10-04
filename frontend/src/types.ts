@@ -1,18 +1,3 @@
-// Queue types (Requirements 1.1, 1.6)
-export interface QueueJob {
-  id: string;
-  status: "waiting" | "processing" | "done" | "failed";
-  position?: number;
-  result?: unknown;
-  error?: string;
-}
-
-export interface QueueState {
-  total_capacity: number;
-  occupied_slots: number;
-  jobs: QueueJob[];
-}
-
 // Auth types (Requirements 2.4)
 export interface CurrentUser {
   osu_id: number;

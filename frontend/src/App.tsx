@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import LinkInput from "./components/LinkInput";
 import ResultCard from "./components/ResultCard";
 import NavBar from "./components/NavBar";
-import QueueBar from "./components/QueueBar";
 import RecommendationList from "./components/RecommendationList";
 import BeatmapTagSearch from "./components/BeatmapTagSearch";
 import ProfilePage from "./components/ProfilePage";
@@ -13,10 +12,10 @@ import BeatmapsThisWeek from "./components/BeatmapsThisWeek";
 import PublicPlaylists from "./components/PublicPlaylists";
 import InfoPage from "./components/InfoPage";
 import AudioOverlay from "./components/AudioOverlay";
-import { PredictResult, CurrentUser, QueueState } from "./types";
+import { PredictResult, CurrentUser } from "./types";
 import {
-  getCurrentUser, getQueueState, predictFromLink, predictFromUpload,
-  pollJobResult, setSessionToken, clearSessionToken,
+  getCurrentUser, predictFromLink, predictFromUpload,
+  setSessionToken, clearSessionToken,
 } from "./api";
 
 // ── Hash-based router ─────────────────────────────────────────────────────────
@@ -54,10 +53,8 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [userLoading, setUserLoading] = useState(true);
-  const [queueState, setQueueState] = useState<QueueState | null>(null);
   const [page, setPageState] = useState<Page>(parsePage);
-  const [theme, setTheme] = useState<"dark" | "light">(() => {
-    const saved = localStorage.getItem("theme");
+  const [theme, setTheme] = useState<"dark" | "light">(() => {    const saved = localStorage.getItem("theme");
     return saved === "light" ? "light" : "dark";
   });
 
@@ -94,41 +91,19 @@ export default function App() {
     getCurrentUser().then(setUser).catch(() => setUser(null)).finally(() => setUserLoading(false));
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function fetchQ() {
-      if (document.hidden) return;
-      try {
-        const s = await getQueueState();
-        if (!cancelled) setQueueState(s);
-      } catch { /* ignore */ }
-    }
-    fetchQ();
-    const id = setInterval(fetchQ, 2000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, []);
-
-  const queueFull = queueState
-    ? queueState.occupied_slots >= queueState.total_capacity
-    : false;
-
   async function handleLinkSubmit(url: string) {
-    if (queueFull) { setError("Queue is full. Please wait."); return; }
     setLoading(true); setError(null); setResult(null);
     try {
-      const { job_id } = await predictFromLink(url);
-      setResult(await pollJobResult(job_id));
+      setResult(await predictFromLink(url));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally { setLoading(false); }
   }
 
   async function handleFileSubmit(file: File) {
-    if (queueFull) { setError("Queue is full. Please wait."); return; }
     setLoading(true); setError(null); setResult(null);
     try {
-      const { job_id } = await predictFromUpload(file);
-      setResult(await pollJobResult(job_id));
+      setResult(await predictFromUpload(file));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally { setLoading(false); }
@@ -144,7 +119,6 @@ export default function App() {
     <>
       <NavBar
         user={user}
-        onLogout={handleLogout}
         onProfile={() => setPage({ type: "profile" })}
         onInfo={() => setPage({ type: "info" })}
         theme={theme}
@@ -185,6 +159,7 @@ export default function App() {
           user={user}
           onBack={() => setPage({ type: "home" })}
           onOpenPlaylist={u => setPage({ type: "playlist", username: u })}
+          onLogout={handleLogout}
         />
         <InfoTooltip />
       </div>
@@ -208,7 +183,6 @@ export default function App() {
   return (
     <div style={rootStyle}>
       {nav}
-      <QueueBar />
       <InfoTooltip />
 
       <div style={mainStyle}>
@@ -221,24 +195,18 @@ export default function App() {
           </p>
         </div>
 
-        {queueFull && (
-          <div className="osu-card" style={{ borderColor: "rgba(146,64,14,0.6)", background: "#1c1206", color: "#fbbf24", fontSize: 13, textAlign: "center", marginBottom: 16 }}>
-            Queue is full (5/5 slots). New predictions are temporarily disabled.
-          </div>
-        )}
-
         <LinkInput
           onLinkSubmit={handleLinkSubmit}
           onFileSubmit={handleFileSubmit}
           onError={(e) => { setError(e); setResult(null); }}
           onLoading={setLoading}
           loading={loading}
-          disabled={queueFull}
+          disabled={false}
         />
 
         {loading && (
           <p style={{ textAlign: "center", color: "var(--muted)", marginTop: 20, fontSize: 13 }}>
-            Analyzing beatmap… waiting for result
+            Analyzing beatmap…
           </p>
         )}
 

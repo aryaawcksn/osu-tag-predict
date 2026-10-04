@@ -34,6 +34,11 @@ export default function PublicPlaylists({ onOpenPlaylist, currentUser }: Props) 
 
   if (loading || playlists.length === 0) return null;
 
+  const visiblePlaylists = playlists.filter(pl => pl.item_count > 0);
+
+  if (loading || playlists.length === 0) return null;
+  if (visiblePlaylists.length === 0) return null;
+
   return (
     <section style={{ marginTop: 40 }}>
       <div style={{ marginBottom: 16 }}>
@@ -46,7 +51,7 @@ export default function PublicPlaylists({ onOpenPlaylist, currentUser }: Props) 
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
-        {playlists.map(pl => (
+        {visiblePlaylists.map(pl => (
           <PlaylistCard
             key={pl.id}
             playlist={pl}
@@ -169,7 +174,7 @@ function PlaylistCard({ playlist: pl, currentUser, onOpen, onLoveChange }: CardP
           <button
             onClick={handleLove}
             disabled={!canLove || lovePending}
-            title={!currentUser ? "Login to love this playlist" : isOwn ? "Your own playlist" : pl.loved ? "Remove love" : "Love this playlist"}
+            title={!currentUser ? "Login to favorite this playlist" : isOwn ? "Your own playlist" : pl.loved ? "Remove favorite" : "Favorite this playlist"}
             style={{
               display: "flex", alignItems: "center", gap: 4,
               background: "transparent",
