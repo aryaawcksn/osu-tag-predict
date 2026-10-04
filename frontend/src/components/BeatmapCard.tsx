@@ -90,7 +90,6 @@ interface CoverProps {
 }
 
 function CoverOverlay({ bgImg, beatmapId, beatmapsetId, title, artist, status, statusCol, showSave, onSave }: CoverProps) {
-  const [hovered, setHovered] = useState(false);
   const [playing, setPlaying] = useState(false);
   const stopRef = useRef<(() => void) | null>(null);
 
@@ -144,19 +143,17 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, title, artist, status, s
   return (
     <div
       style={{ position: "relative", height: 130, overflow: "hidden", background: "var(--bg)", flexShrink: 0, cursor: "default" }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
       {/* Cover image */}
       {bgImg && (
         <img src={bgImg} alt="" loading="lazy"
-          style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center",
-            opacity: hovered ? 0.45 : 0.65, transition: "opacity 0.2s", display: "block" }}
+          className="beatmap-cover-img"
+          style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center", display: "block" }}
           onError={e => { (e.currentTarget.parentElement!.style.background = "var(--bg)"); e.currentTarget.style.display = "none"; }} />
       )}
 
       {/* Bottom gradient for body bleed */}
-      <div style={{ position: "absolute", inset: 0, pointerEvents: "none",
+      <div className="cover-gradient" style={{ position: "absolute", inset: 0, pointerEvents: "none",
         background: "linear-gradient(to bottom, transparent 30%, var(--card) 100%)" }} />
 
       {/* Status badge */}
@@ -170,9 +167,8 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, title, artist, status, s
       )}
 
       {/* Hover action bar */}
-      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center", gap: 8,
-        opacity: hovered ? 1 : 0, transition: "opacity 0.18s" }}>
+      <div className="beatmap-hover-overlay" style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center", gap: 8 }}>
 
         {/* Play / Pause */}
         {previewUrl && (
@@ -183,7 +179,7 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, title, artist, status, s
               border: `2px solid ${playing ? "#ff66aa" : "rgba(255,255,255,0.35)"}`,
               color: "#fff", fontSize: 18, display: "flex", alignItems: "center",
               justifyContent: "center", cursor: "pointer", flexShrink: 0,
-              backdropFilter: "blur(4px)", transition: "all 0.15s" }}>
+              transition: "all 0.15s" }}>
             {playing ? <IconPause size={18} strokeWidth={2.5} /> : <IconPlay size={18} strokeWidth={2.5} />}
           </button>
         )}
@@ -193,20 +189,14 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, title, artist, status, s
           <a href={webUrl} target="_blank" rel="noopener noreferrer"
             onClick={e => e.stopPropagation()}
             title="Open beatmapset page on osu!"
-            style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
-              background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
-              color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
-              display: "flex", alignItems: "center", gap: 4 }}>
+            className="beatmap-hover-btn">
             <IconExternalLink size={12} strokeWidth={2.5} /> osu!
           </a>
           {dlUrl && (
             <a href={dlUrl}
               onClick={e => e.stopPropagation()}
               title="Download .osz"
-              style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
-                background: "rgba(255,102,170,0.75)", border: "1px solid rgba(255,102,170,0.5)",
-                color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
-                display: "flex", alignItems: "center", gap: 4 }}>
+              className="beatmap-hover-btn beatmap-hover-btn-dl">
               <IconDownload size={12} strokeWidth={2.5} /> .osz
             </a>
           )}
@@ -214,10 +204,7 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, title, artist, status, s
             <button
               onClick={e => { e.stopPropagation(); onSave?.(); }}
               title="Save to playlist"
-              style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
-                background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
-                color: "#fff", cursor: "pointer", backdropFilter: "blur(4px)",
-                display: "flex", alignItems: "center", gap: 4 }}>
+              className="beatmap-hover-btn">
               <IconBookmark size={12} strokeWidth={2.5} /> Save
             </button>
           )}
@@ -281,16 +268,7 @@ export function BeatmapCard({ record, highlightTags, currentUser, onHide, onHide
     <>
       <div
         onContextMenu={handleContextMenu}
-        onMouseEnter={e => {
-          e.currentTarget.style.borderColor = "rgba(255,102,170,0.45)";
-          e.currentTarget.style.transform = "translateY(-2px)";
-          e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.45)";
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.borderColor = "rgba(180,130,220,0.18)";
-          e.currentTarget.style.transform = "none";
-          e.currentTarget.style.boxShadow = "none";
-        }}
+        className="beatmap-card"
         style={cardStyle}
       >
         <CoverOverlay
