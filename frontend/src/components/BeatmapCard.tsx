@@ -147,13 +147,13 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, title, artist, status, s
       {/* Cover image */}
       {bgImg && (
         <img src={bgImg} alt="" loading="lazy"
-          className="beatmap-cover-img"
-          style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center", display: "block" }}
+          style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center",
+            opacity: 0.65, display: "block" }}
           onError={e => { (e.currentTarget.parentElement!.style.background = "var(--bg)"); e.currentTarget.style.display = "none"; }} />
       )}
 
       {/* Bottom gradient for body bleed */}
-      <div className="cover-gradient" style={{ position: "absolute", inset: 0, pointerEvents: "none",
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none",
         background: "linear-gradient(to bottom, transparent 30%, var(--card) 100%)" }} />
 
       {/* Status badge */}
@@ -167,7 +167,7 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, title, artist, status, s
       )}
 
       {/* Hover action bar */}
-      <div className="beatmap-hover-overlay" style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column",
+      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column",
         alignItems: "center", justifyContent: "center", gap: 8 }}>
 
         {/* Play / Pause */}
@@ -179,7 +179,7 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, title, artist, status, s
               border: `2px solid ${playing ? "#ff66aa" : "rgba(255,255,255,0.35)"}`,
               color: "#fff", fontSize: 18, display: "flex", alignItems: "center",
               justifyContent: "center", cursor: "pointer", flexShrink: 0,
-              transition: "all 0.15s" }}>
+              backdropFilter: "blur(4px)", transition: "all 0.15s" }}>
             {playing ? <IconPause size={18} strokeWidth={2.5} /> : <IconPlay size={18} strokeWidth={2.5} />}
           </button>
         )}
@@ -189,14 +189,20 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, title, artist, status, s
           <a href={webUrl} target="_blank" rel="noopener noreferrer"
             onClick={e => e.stopPropagation()}
             title="Open beatmapset page on osu!"
-            className="beatmap-hover-btn">
+            style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+              background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
+              color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
+              display: "flex", alignItems: "center", gap: 4 }}>
             <IconExternalLink size={12} strokeWidth={2.5} /> osu!
           </a>
           {dlUrl && (
             <a href={dlUrl}
               onClick={e => e.stopPropagation()}
               title="Download .osz"
-              className="beatmap-hover-btn beatmap-hover-btn-dl">
+              style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                background: "rgba(255,102,170,0.75)", border: "1px solid rgba(255,102,170,0.5)",
+                color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
+                display: "flex", alignItems: "center", gap: 4 }}>
               <IconDownload size={12} strokeWidth={2.5} /> .osz
             </a>
           )}
@@ -204,7 +210,10 @@ function CoverOverlay({ bgImg, beatmapId, beatmapsetId, title, artist, status, s
             <button
               onClick={e => { e.stopPropagation(); onSave?.(); }}
               title="Save to playlist"
-              className="beatmap-hover-btn">
+              style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
+                color: "#fff", cursor: "pointer", backdropFilter: "blur(4px)",
+                display: "flex", alignItems: "center", gap: 4 }}>
               <IconBookmark size={12} strokeWidth={2.5} /> Save
             </button>
           )}
@@ -268,7 +277,6 @@ export function BeatmapCard({ record, highlightTags, currentUser, onHide, onHide
     <>
       <div
         onContextMenu={handleContextMenu}
-        className="beatmap-card"
         style={cardStyle}
       >
         <CoverOverlay
@@ -364,7 +372,6 @@ const cardStyle: React.CSSProperties = {
   overflow: "hidden",
   display: "flex",
   flexDirection: "column",
-  transition: "border-color 0.2s, transform 0.15s, box-shadow 0.2s",
   minWidth: 0,
   cursor: "default",
 };
