@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { BeatmapRecord, CurrentUser } from "../types";
-import { getBeatmapsByTags } from "../api";
+import { BeatmapRecord, CurrentUser, DominantPlaystyle } from "../types";
+import { getBeatmapsByTags, getPlaystyleAnalysis } from "../api";
 import { BeatmapCard } from "./BeatmapCard";
 import { ALL_TAGS } from "../constants";
 import SimilarBeatmapPanel from "./SimilarBeatmapPanel";
 
 const INITIAL_SHOW = 24;
-
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: CURRENT_YEAR - 2007 + 1 }, (_, i) => CURRENT_YEAR - i);
 
@@ -39,6 +38,11 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
     yearFrom?: number; yearTo?: number;
   } | null>(null);
 
+  // Auto-detect state
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeSource, setAnalyzeSource] = useState<"top" | "recent">("top");
+  const [distribution, setDistribution] = useState<DominantPlaystyle["distribution"] | null>(null);
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null);
 
   const visibleTags = showAll ? ALL_TAGS : ALL_TAGS.slice(0, INITIAL_SHOW);
 
@@ -48,6 +52,28 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
       next.has(tag) ? next.delete(tag) : next.add(tag);
       return next;
     });
+  }
+
+  async function handleAutoDetect() {
+    setAnalyzing(true);
+    setAnalyzeError(null);
+    setDistribution(null);
+    try {
+      const result = await getPlaystyleAnalysis(analyzeSource);
+      setDistribution(result.distribution);
+      // Pre-select top tag and set difficulty from play history
+      if (result.distribution.length > 0) {
+        setSelected(new Set([result.distribution[0].label]));
+      }
+      if (result.avg_difficulty != null) {
+        setTargetStars(result.avg_difficulty);
+        setAppliedStars(result.avg_difficulty);
+      }
+    } catch (err: unknown) {
+      setAnalyzeError(err instanceof Error ? err.message : "Analysis failed");
+    } finally {
+      setAnalyzing(false);
+    }
   }
 
   async function handleSearch() {
@@ -106,23 +132,137 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
     setYearFrom(null);
     setYearTo(null);
     setAppliedStars(null);
+    setDistribution(null);
   }
+
+  // Top tags from distribution to show as suggestion chips (top 8, skip already selected)
+  const topSuggestions = distribution
+    ? distribution.slice(0, 8)
+    : null;
 
   return (
     <div style={containerStyle}>
-      <h2 style={headingStyle}>Find Beatmaps by Tags</h2>
-      <p style={subtextStyle}>
-        Select one or more tags to find matching beatmaps from the storage.
-      </p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4, flexWrap: "wrap", gap: 10 }}>
+        <div>
+          <h2 style={headingStyle}>Find Beatmaps by Tags</h2>
+          <p style={subtextStyle}>Select tags manually or auto-detect from your play history.</p>
+        </div>
 
-      {/* Tag grid */}
+        {/* Auto-detect controls */}
+        {currentUser && (
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+            <select
+              value={analyzeSource}
+              onChange={e => setAnalyzeSource(e.target.value as "top" | "recent")}
+              className="osu-select"
+              style={{ fontSize: 11, padding: "5px 24px 5px 8px", width: "auto" }}
+            >
+              <option value="top">Top plays</option>
+              <option value="recent">Recent plays</option>
+            </select>
+            <button
+              onClick={handleAutoDetect}
+              disabled={analyzing}
+              style={{
+                padding: "6px 12px", borderRadius: 8, border: "none",
+                background: "linear-gradient(135deg, var(--pink), var(--pink-dim))",
+                color: "#fff", fontSize: 11, fontFamily: "var(--font-d)", fontWeight: 700,
+                cursor: analyzing ? "not-allowed" : "pointer",
+                opacity: analyzing ? 0.6 : 1, whiteSpace: "nowrap",
+              }}
+            >
+              {analyzing ? "Analyzing…" : "◈ Auto-detect"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {analyzeError && (
+        <div style={{ ...errorStyle, marginBottom: 12 }}>{analyzeError}</div>
+      )}
+
+      {/* Distribution suggestions */}
+      {topSuggestions && (
+        <div style={{
+          background: "var(--card2)", border: "1px solid var(--border)",
+          borderRadius: 10, padding: "12px 14px", marginBottom: 14,
+        }}>
+          <div style={{ fontSize: 11, color: "var(--muted)", fontFamily: "var(--font-m)", letterSpacing: "0.06em", marginBottom: 10 }}>
+            YOUR PLAYSTYLE — click to toggle tags
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {topSuggestions.map(d => {
+              const isOn = selected.has(d.label);
+              const pct = Math.round(d.average_probability * 100);
+              const maxProb = topSuggestions[0]?.average_probability ?? 1;
+              return (
+                <div key={d.label} onClick={() => toggleTag(d.label)} style={{ cursor: "pointer" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                    <span style={{
+                      fontFamily: "var(--font-m)", fontSize: 11,
+                      color: isOn ? "var(--pink)" : "var(--muted)",
+                      fontWeight: isOn ? 700 : 400,
+                    }}>
+                      {isOn ? "✓ " : ""}{d.label}
+                    </span>
+                    <span style={{ fontFamily: "var(--font-m)", fontSize: 10, color: isOn ? "var(--pink)" : "var(--muted2)" }}>
+                      {pct}%
+                    </span>
+                  </div>
+                  <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
+                    <div style={{
+                      width: `${(d.average_probability / maxProb) * 100}%`,
+                      height: "100%", borderRadius: 2,
+                      background: isOn
+                        ? `linear-gradient(90deg, var(--pink), var(--pink-dim))`
+                        : "rgba(255,255,255,0.15)",
+                      transition: "all 0.2s ease",
+                    }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Combination presets */}
+          {topSuggestions.length >= 2 && (
+            <div style={{ marginTop: 12, borderTop: "1px solid var(--border)", paddingTop: 10 }}>
+              <div style={{ fontSize: 10, color: "var(--muted2)", fontFamily: "var(--font-m)", marginBottom: 7 }}>
+                QUICK COMBINATIONS
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                {/* Top 1 alone */}
+                {[
+                  [topSuggestions[0]?.label],
+                  topSuggestions.slice(0, 2).map(d => d.label),
+                  topSuggestions.slice(0, 3).map(d => d.label),
+                ].filter(combo => combo.every(Boolean)).map((combo, i) => {
+                  const active = combo.length === selected.size && combo.every(t => selected.has(t));
+                  return (
+                    <button key={i}
+                      onClick={e => { e.stopPropagation(); setSelected(new Set(combo)); }}
+                      style={{
+                        padding: "3px 9px", borderRadius: 20, fontSize: 10,
+                        fontFamily: "var(--font-m)", cursor: "pointer",
+                        border: `1px solid ${active ? "var(--pink)" : "var(--border)"}`,
+                        background: active ? "rgba(255,102,170,0.14)" : "transparent",
+                        color: active ? "var(--pink)" : "var(--muted2)",
+                        transition: "all 0.12s",
+                      }}>
+                      {combo.join(" + ")}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Manual tag grid */}
       <div style={tagGridStyle}>
         {visibleTags.map(tag => (
-          <button
-            key={tag}
-            onClick={() => toggleTag(tag)}
-            style={tagBtnStyle(selected.has(tag))}
-          >
+          <button key={tag} onClick={() => toggleTag(tag)} style={tagBtnStyle(selected.has(tag))}>
             {tag}
           </button>
         ))}
@@ -148,36 +288,32 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
         </div>
       )}
 
-      {/* Difficulty slider — single target value */}
+      {/* Difficulty slider */}
       <div style={filterRowStyle}>
-        <span style={{ fontSize: 12, color: "#a7a9be", flexShrink: 0 }}>Difficulty</span>
+        <span style={{ fontSize: 12, color: "var(--muted)", flexShrink: 0 }}>Difficulty</span>
         <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#a7a9be", marginBottom: 4 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>
             <span>★ 0.1</span>
-            <span style={{ color: "#ff6b9d", fontWeight: 600 }}>
+            <span style={{ color: "var(--pink)", fontWeight: 600 }}>
               ★ {targetStars.toFixed(1)}
               {appliedStars === null ? (
-                <span style={{ color: "#a7a9be", fontWeight: 400, marginLeft: 5 }}>(Any)</span>
+                <span style={{ color: "var(--muted)", fontWeight: 400, marginLeft: 5 }}>(Any)</span>
               ) : appliedStars !== targetStars ? (
                 <span style={{ color: "#fbbf24", fontWeight: 400, marginLeft: 5 }}>(Applied: ★ {appliedStars.toFixed(1)})</span>
               ) : (
-                <span style={{ color: "#b8e994", fontWeight: 400, marginLeft: 5 }}>(Applied)</span>
+                <span style={{ color: "#b8e994", fontWeight: 400, marginLeft: 5 }}>(±0.5 applied)</span>
               )}
             </span>
             <span>★ 15.0</span>
           </div>
           <input type="range" min={0.1} max={15.0} step={0.1} value={targetStars}
             onChange={e => setTargetStars(Number(e.target.value))}
-            style={{ width: "100%", accentColor: "#ff6b9d", cursor: "pointer" }} />
+            style={{ width: "100%", cursor: "pointer" }} />
         </div>
         <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-          <button onClick={() => setAppliedStars(targetStars)} style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: "#ff6b9d", color: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
-            Apply
-          </button>
+          <button onClick={() => setAppliedStars(targetStars)} style={applyBtnStyle}>Apply</button>
           {appliedStars != null && (
-            <button onClick={() => setAppliedStars(null)} style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #2e2d3d", background: "transparent", color: "#a7a9be", fontSize: 11, cursor: "pointer" }}>
-              ✕
-            </button>
+            <button onClick={() => setAppliedStars(null)} style={clearSmallBtnStyle}>✕</button>
           )}
         </div>
       </div>
@@ -190,8 +326,8 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
               padding: "4px 10px", borderRadius: 20, fontSize: 11, cursor: "pointer",
               border: "1px solid", textTransform: "capitalize" as const,
               background: status === s ? `${STATUS_COLORS[s]}22` : "transparent",
-              color: status === s ? STATUS_COLORS[s] : "#636e72",
-              borderColor: status === s ? STATUS_COLORS[s] : "#2e2d3d",
+              color: status === s ? STATUS_COLORS[s] : "var(--muted2)",
+              borderColor: status === s ? STATUS_COLORS[s] : "var(--border)",
             }}
           >{s}</button>
         ))}
@@ -199,29 +335,18 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
 
       {/* Year range filter */}
       <div style={{ ...filterRowStyle, marginTop: 10, gap: 10 }}>
-        <span style={{ fontSize: 12, color: "#a7a9be", flexShrink: 0 }}>Year</span>
-        <select
-          value={yearFrom ?? ""}
-          onChange={e => setYearFrom(e.target.value ? Number(e.target.value) : null)}
-          style={yearSelectStyle}
-        >
+        <span style={{ fontSize: 12, color: "var(--muted)", flexShrink: 0 }}>Year</span>
+        <select value={yearFrom ?? ""} onChange={e => setYearFrom(e.target.value ? Number(e.target.value) : null)} style={yearSelectStyle}>
           <option value="">From</option>
           {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
         </select>
-        <span style={{ color: "#636e72", fontSize: 12 }}>–</span>
-        <select
-          value={yearTo ?? ""}
-          onChange={e => setYearTo(e.target.value ? Number(e.target.value) : null)}
-          style={yearSelectStyle}
-        >
+        <span style={{ color: "var(--muted2)", fontSize: 12 }}>–</span>
+        <select value={yearTo ?? ""} onChange={e => setYearTo(e.target.value ? Number(e.target.value) : null)} style={yearSelectStyle}>
           <option value="">To</option>
           {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
         </select>
         {(yearFrom != null || yearTo != null) && (
-          <button
-            onClick={() => { setYearFrom(null); setYearTo(null); }}
-            style={{ padding: "3px 8px", borderRadius: 5, border: "1px solid #2e2d3d", background: "transparent", color: "#a7a9be", fontSize: 11, cursor: "pointer" }}
-          >✕</button>
+          <button onClick={() => { setYearFrom(null); setYearTo(null); }} style={clearSmallBtnStyle}>✕</button>
         )}
       </div>
 
@@ -230,11 +355,7 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
         <button
           onClick={handleSearch}
           disabled={selected.size === 0 || loading}
-          style={{
-            ...doneBtnStyle,
-            opacity: selected.size === 0 || loading ? 0.5 : 1,
-            cursor: selected.size === 0 || loading ? "not-allowed" : "pointer",
-          }}
+          style={{ ...doneBtnStyle, opacity: selected.size === 0 || loading ? 0.5 : 1, cursor: selected.size === 0 || loading ? "not-allowed" : "pointer" }}
         >
           {loading ? "Searching…" : `Search (${selected.size} tag${selected.size !== 1 ? "s" : ""})`}
         </button>
@@ -254,9 +375,9 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
             </div>
           ) : (
             <>
-              <p style={{ fontSize: 12, color: "#a7a9be", marginBottom: 10 }}>
+              <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 10 }}>
                 {results.length} beatmap{results.length !== 1 ? "s" : ""} found
-                <span style={{ color: "#636e72", fontSize: 11, marginLeft: 8 }}>right-click a card if tags aren't right</span>
+                <span style={{ color: "var(--muted2)", fontSize: 11, marginLeft: 8 }}>right-click a card to hide or find similar</span>
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
                 {results.map(bm => (
@@ -270,17 +391,14 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
                 ))}
               </div>
               {hasMore && (
-                <button
-                  onClick={handleLoadMore}
-                  disabled={loadingMore}
-                  style={loadMoreStyle}
-                >
+                <button onClick={handleLoadMore} disabled={loadingMore} style={loadMoreStyle}>
                   {loadingMore ? "Loading…" : "↓ Load more"}
                 </button>
               )}
-      {similarBeatmap && (
+              {similarBeatmap && (
                 <SimilarBeatmapPanel
                   sourceBeatmap={similarBeatmap}
+                  currentUser={currentUser}
                   onClose={() => setSimilarBeatmap(null)}
                   onFindSimilar={setSimilarBeatmap}
                 />
@@ -289,22 +407,21 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
           )}
         </div>
       )}
-
-      
     </div>
   );
 }
 
-// Styles
+// ── Styles ────────────────────────────────────────────────────────────────────
+
 const containerStyle: React.CSSProperties = {
   background: "var(--card)", border: "1px solid var(--border)",
   borderRadius: 12, padding: 22, marginTop: 24,
 };
 const headingStyle: React.CSSProperties = {
-  fontFamily: "var(--font-d)", fontSize: 17, fontWeight: 800, color: "#fff", marginBottom: 4,
+  fontFamily: "var(--font-d)", fontSize: 17, fontWeight: 800, color: "var(--text)", marginBottom: 2,
 };
 const subtextStyle: React.CSSProperties = {
-  color: "var(--muted)", fontSize: 13, marginBottom: 14,
+  color: "var(--muted)", fontSize: 13,
 };
 const tagGridStyle: React.CSSProperties = {
   display: "flex", flexWrap: "wrap", gap: 6,
@@ -314,10 +431,9 @@ function tagBtnStyle(active: boolean): React.CSSProperties {
     padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 500,
     cursor: "pointer", border: "1px solid",
     background: active ? "rgba(255,102,170,0.14)" : "rgba(255,255,255,0.03)",
-    color: active ? "#ff66aa" : "var(--muted)",
-    borderColor: active ? "#ff66aa" : "rgba(180,130,220,0.25)",
-    fontFamily: "var(--font-m)",
-    transition: "all 0.1s ease",
+    color: active ? "var(--pink)" : "var(--muted)",
+    borderColor: active ? "var(--pink)" : "rgba(180,130,220,0.25)",
+    fontFamily: "var(--font-m)", transition: "all 0.1s ease",
   };
 }
 const showMoreStyle: React.CSSProperties = {
@@ -327,12 +443,10 @@ const showMoreStyle: React.CSSProperties = {
 };
 function selectedChipStyle(relevant = false): React.CSSProperties {
   return {
-    padding: "3px 10px", borderRadius: 20, fontSize: 11,
-    fontFamily: "var(--font-m)",
+    padding: "3px 10px", borderRadius: 20, fontSize: 11, fontFamily: "var(--font-m)",
     background: relevant ? "rgba(255,102,170,0.3)" : "rgba(255,102,170,0.14)",
-    border: relevant ? "1px solid #ff66aa" : "1px solid rgba(255,102,170,0.5)",
-    color: "#ff66aa", cursor: "pointer",
-    fontWeight: relevant ? 700 : 400,
+    border: relevant ? "1px solid var(--pink)" : "1px solid rgba(255,102,170,0.5)",
+    color: "var(--pink)", cursor: "pointer", fontWeight: relevant ? 700 : 400,
   };
 }
 const filterRowStyle: React.CSSProperties = {
@@ -340,9 +454,18 @@ const filterRowStyle: React.CSSProperties = {
   background: "var(--card2)", border: "1px solid var(--border)",
   borderRadius: 8, padding: "10px 14px", marginTop: 14,
 };
+const applyBtnStyle: React.CSSProperties = {
+  padding: "4px 10px", borderRadius: 6, border: "none",
+  background: "linear-gradient(135deg, var(--pink), var(--pink-dim))",
+  color: "#fff", fontSize: 11, fontFamily: "var(--font-d)", fontWeight: 700, cursor: "pointer",
+};
+const clearSmallBtnStyle: React.CSSProperties = {
+  padding: "4px 8px", borderRadius: 6, border: "1px solid var(--border)",
+  background: "transparent", color: "var(--muted)", fontSize: 11, cursor: "pointer",
+};
 const doneBtnStyle: React.CSSProperties = {
   flex: 1, padding: "8px 0", borderRadius: 8, border: "none",
-  background: "linear-gradient(135deg, #ff66aa, #cc3377)",
+  background: "linear-gradient(135deg, var(--pink), var(--pink-dim))",
   color: "#fff", fontSize: 13, fontFamily: "var(--font-d)", fontWeight: 700,
 };
 const clearBtnStyle: React.CSSProperties = {
@@ -358,13 +481,10 @@ const emptyStyle: React.CSSProperties = {
   fontSize: 14, background: "var(--card2)", borderRadius: 8, border: "1px solid var(--border)",
 };
 const loadMoreStyle: React.CSSProperties = {
-  display: "block", width: "100%", marginTop: 12,
-  padding: "10px 0", borderRadius: 8,
+  display: "block", width: "100%", marginTop: 12, padding: "10px 0", borderRadius: 8,
   border: "1px solid var(--border)", background: "transparent",
-  color: "var(--muted)", fontSize: 13, cursor: "pointer",
-  textAlign: "center",
+  color: "var(--muted)", fontSize: 13, cursor: "pointer", textAlign: "center",
 };
-
 const yearSelectStyle: React.CSSProperties = {
   padding: "4px 8px", borderRadius: 6, border: "1px solid var(--border)",
   background: "var(--card2)", color: "var(--muted)", fontSize: 12, cursor: "pointer",

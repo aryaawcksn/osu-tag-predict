@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import LinkInput from "./components/LinkInput";
 import ResultCard from "./components/ResultCard";
 import NavBar from "./components/NavBar";
-import RecommendationList from "./components/RecommendationList";
+import RecommendationList from "./components/RecommendationList"; // kept for future use
 import BeatmapTagSearch from "./components/BeatmapTagSearch";
 import ProfilePage from "./components/ProfilePage";
 import PlaylistPage from "./components/PlaylistPage";
@@ -229,8 +229,6 @@ export default function App() {
             </a>
           </div>
         )}
-
-        {user && <RecommendationList currentUser={user} />}
 
         <BeatmapsThisWeek currentUser={user} />
 
