@@ -88,9 +88,6 @@ function GroupedSetCard({ diffs, currentUser }: { diffs: BeatmapRecord[]; curren
         style={{
           background: "var(--card)", border: `1px solid ${hovered ? "rgba(255,102,170,0.45)" : "rgba(180,130,220,0.18)"}`,
           borderRadius: 12, overflow: "hidden", display: "flex", flexDirection: "column",
-          transition: "border-color 0.2s, transform 0.15s, box-shadow 0.2s",
-          transform: hovered ? "translateY(-2px)" : "none",
-          boxShadow: hovered ? "0 8px 24px rgba(0,0,0,0.45)" : "none",
         }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -98,7 +95,7 @@ function GroupedSetCard({ diffs, currentUser }: { diffs: BeatmapRecord[]; curren
         {/* Cover */}
         <div style={{ position: "relative", height: 130, overflow: "hidden", background: "var(--bg)", flexShrink: 0 }}>
           {bgImg && <img src={bgImg} alt="" loading="lazy"
-            style={{ width: "100%", height: "100%", objectFit: "cover", opacity: hovered ? 0.45 : 0.65, transition: "opacity 0.2s" }} />}
+            style={{ width: "100%", height: "100%", objectFit: "cover", opacity: hovered ? 0.45 : 0.65 }} />}
           <div style={{ position: "absolute", inset: 0, pointerEvents: "none",
             background: "linear-gradient(to bottom, transparent 30%, var(--card) 100%)" }} />
           {diff?.status && (
@@ -119,14 +116,14 @@ function GroupedSetCard({ diffs, currentUser }: { diffs: BeatmapRecord[]; curren
           )}
           <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column",
             alignItems: "center", justifyContent: "center", gap: 8,
-            opacity: hovered ? 1 : 0, transition: "opacity 0.18s" }}>
+            opacity: hovered ? 1 : 0 }}>
             {previewUrl && (
               <button onClick={togglePlay}
                 style={{ width: 44, height: 44, borderRadius: "50%",
                   background: playing ? "rgba(255,102,170,0.9)" : "rgba(0,0,0,0.65)",
                   border: `2px solid ${playing ? "#ff66aa" : "rgba(255,255,255,0.35)"}`,
                   color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
-                  cursor: "pointer", backdropFilter: "blur(4px)" }}>
+                  cursor: "pointer" }}>
                 {playing ? <IconPause size={18} strokeWidth={2.5} /> : <IconPlay size={18} strokeWidth={2.5} />}
               </button>
             )}
@@ -134,7 +131,7 @@ function GroupedSetCard({ diffs, currentUser }: { diffs: BeatmapRecord[]; curren
               <a href={webUrl} target="_blank" rel="noopener noreferrer"
                 style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                   background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
-                  color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
+                  color: "#fff", textDecoration: "none",
                   display: "flex", alignItems: "center", gap: 4 }}>
                 <IconExternalLink size={12} strokeWidth={2.5} /> osu!
               </a>
@@ -142,7 +139,7 @@ function GroupedSetCard({ diffs, currentUser }: { diffs: BeatmapRecord[]; curren
                 <a href={dlUrl}
                   style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                     background: "rgba(255,102,170,0.75)", border: "1px solid rgba(255,102,170,0.5)",
-                    color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
+                    color: "#fff", textDecoration: "none",
                     display: "flex", alignItems: "center", gap: 4 }}>
                   <IconDownload size={12} strokeWidth={2.5} /> .osz
                 </a>
@@ -151,7 +148,7 @@ function GroupedSetCard({ diffs, currentUser }: { diffs: BeatmapRecord[]; curren
                 <button onClick={() => setShowPlaylist(true)}
                   style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                     background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
-                    color: "#fff", cursor: "pointer", backdropFilter: "blur(4px)",
+                    color: "#fff", cursor: "pointer",
                     display: "flex", alignItems: "center", gap: 4 }}>
                   <IconBookmark size={12} strokeWidth={2.5} /> Save
                 </button>

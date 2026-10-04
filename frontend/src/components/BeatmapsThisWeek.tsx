@@ -198,21 +198,17 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
       onMouseEnter={e => {
         setHovered(true);
         e.currentTarget.style.borderColor = "rgba(255,102,170,0.45)";
-        e.currentTarget.style.transform = "translateY(-2px)";
-        e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.45)";
       }}
       onMouseLeave={e => {
         setHovered(false);
         e.currentTarget.style.borderColor = "rgba(180,130,220,0.18)";
-        e.currentTarget.style.transform = "none";
-        e.currentTarget.style.boxShadow = "none";
       }}
     >
       {/* Cover with hover overlay */}
       <div style={{ position: "relative", height: 130, overflow: "hidden", background: "var(--bg)", flexShrink: 0 }}>
         <img src={imgUrl} alt="" loading="lazy"
           style={{ width: "100%", height: "100%", objectFit: "cover",
-            opacity: hovered ? 0.45 : 0.65, transition: "opacity 0.2s" }}
+            opacity: hovered ? 0.45 : 0.65 }}
           onError={e => { (e.currentTarget.parentElement!.style.background = "var(--bg)"); e.currentTarget.style.display = "none"; }} />
         <div style={{ position: "absolute", inset: 0, pointerEvents: "none",
           background: "linear-gradient(to bottom, transparent 30%, var(--card) 100%)" }} />
@@ -227,13 +223,13 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
         {/* Hover overlay */}
         <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center", gap: 8,
-          opacity: hovered ? 1 : 0, transition: "opacity 0.18s" }}>
+          opacity: hovered ? 1 : 0 }}>
           <button onClick={togglePlay} title={playing ? "Pause" : "Play preview"}
             style={{ width: 44, height: 44, borderRadius: "50%",
               background: playing ? "rgba(255,102,170,0.9)" : "rgba(0,0,0,0.65)",
               border: `2px solid ${playing ? "#ff66aa" : "rgba(255,255,255,0.35)"}`,
               color: "#fff", fontSize: 18, display: "flex", alignItems: "center",
-              justifyContent: "center", cursor: "pointer", backdropFilter: "blur(4px)" }}>
+              justifyContent: "center", cursor: "pointer" }}>
             {playing ? <IconPause size={18} strokeWidth={2.5} /> : <IconPlay size={18} strokeWidth={2.5} />}
           </button>
           <div style={{ display: "flex", gap: 6 }}>
@@ -241,7 +237,7 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
               onClick={e => e.stopPropagation()} title="Open beatmapset on osu!"
               style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                 background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
-                color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
+                color: "#fff", textDecoration: "none",
                 display: "flex", alignItems: "center", gap: 4 }}>
               <IconExternalLink size={12} strokeWidth={2.5} /> osu!
             </a>
@@ -249,7 +245,7 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
               onClick={e => e.stopPropagation()} title="Download .osz"
               style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                 background: "rgba(255,102,170,0.75)", border: "1px solid rgba(255,102,170,0.5)",
-                color: "#fff", textDecoration: "none", backdropFilter: "blur(4px)",
+                color: "#fff", textDecoration: "none",
                 display: "flex", alignItems: "center", gap: 4 }}>
               <IconDownload size={12} strokeWidth={2.5} /> .osz
             </a>
@@ -258,7 +254,7 @@ function BeatmapsetCard({ set, currentUser }: { set: BeatmapsetGroup; currentUse
                 title="Save to playlist"
                 style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
                   background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
-                  color: "#fff", cursor: "pointer", backdropFilter: "blur(4px)",
+                  color: "#fff", cursor: "pointer",
                   display: "flex", alignItems: "center", gap: 4 }}>
                 <IconBookmark size={12} strokeWidth={2.5} /> Save
               </button>
@@ -386,7 +382,6 @@ const cardStyle: React.CSSProperties = {
   border: "1px solid rgba(180,130,220,0.18)",
   borderRadius: 12, overflow: "hidden",
   display: "flex", flexDirection: "column",
-  transition: "border-color 0.2s, transform 0.15s, box-shadow 0.2s",
 };
 
 const statBadge: React.CSSProperties = {

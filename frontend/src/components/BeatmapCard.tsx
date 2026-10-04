@@ -89,29 +89,8 @@ interface CoverProps {
   onSave?: () => void;
 }
 
-function CoverOverlay({ bgImg, status, statusCol }: Pick<CoverProps, "bgImg" | "status" | "statusCol">) {
-  return (
-    <div style={{ position: "relative", height: 130, overflow: "hidden", background: "var(--bg)", flexShrink: 0 }}>
-      {bgImg && (
-        <img src={bgImg} alt="" loading="lazy"
-          style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center", opacity: 0.65, display: "block" }}
-          onError={e => { (e.currentTarget.parentElement!.style.background = "var(--bg)"); e.currentTarget.style.display = "none"; }} />
-      )}
-      <div style={{ position: "absolute", inset: 0, pointerEvents: "none",
-        background: "linear-gradient(to bottom, transparent 30%, var(--card) 100%)" }} />
-      {status && (
-        <span style={{ position: "absolute", top: 8, left: 8, fontSize: 9, fontWeight: 700,
-          padding: "2px 7px", borderRadius: 4, border: `1px solid ${statusCol}88`,
-          color: statusCol, background: "rgba(0,0,0,0.6)", fontFamily: "var(--font-m)",
-          letterSpacing: "0.06em", pointerEvents: "none" }}>
-          {status.toUpperCase()}
-        </span>
-      )}
-    </div>
-  );
-}
-
-function CardActions({ beatmapId, beatmapsetId, title, artist, showSave, onSave }: Pick<CoverProps, "beatmapId" | "beatmapsetId" | "title" | "artist" | "showSave" | "onSave">) {
+function CoverOverlay({ bgImg, beatmapId, beatmapsetId, title, artist, status, statusCol, showSave, onSave }: CoverProps) {
+  const [hovered, setHovered] = useState(false);
   const [playing, setPlaying] = useState(false);
   const stopRef = useRef<(() => void) | null>(null);
 
@@ -122,10 +101,14 @@ function CardActions({ beatmapId, beatmapsetId, title, artist, showSave, onSave 
   const dlParams = new URLSearchParams();
   if (title) dlParams.set("title", title);
   if (artist) dlParams.set("artist", artist);
-  const dlUrl = beatmapsetId ? `${BASE_URL}/proxy/download/${beatmapsetId}?${dlParams}` : null;
+  const dlUrl = beatmapsetId
+    ? `${BASE_URL}/proxy/download/${beatmapsetId}?${dlParams}`
+    : null;
 
+  // Sync playing state from global store (handles external pause/stop)
   useEffect(() => {
     return subscribeAudio((track, globalPlaying) => {
+      // We're "playing" if the global track matches our beatmapset and audio is active
       const isOurs = !!beatmapsetId && track?.beatmapsetId === beatmapsetId;
       setPlaying(isOurs && globalPlaying);
     });
@@ -137,8 +120,10 @@ function CardActions({ beatmapId, beatmapsetId, title, artist, showSave, onSave 
     if (playing) {
       pauseAudio();
     } else if (stopRef.current) {
+      // we own the current audio — just resume
       resumeAudio();
     } else {
+      // start fresh
       stopRef.current = _playPreview(
         previewUrl,
         { title: title ?? `Beatmap #${beatmapId}`, artist: artist ?? "Unknown", beatmapsetId: beatmapsetId ?? "" },
@@ -147,32 +132,106 @@ function CardActions({ beatmapId, beatmapsetId, title, artist, showSave, onSave 
     }
   }, [playing, previewUrl, title, artist, beatmapId, beatmapsetId]);
 
-  useEffect(() => () => { stopRef.current = null; }, []);
+  // On unmount: only stop if this card is NOT the current global audio
+  // (so navigating away doesn't kill audio still playing)
+  useEffect(() => () => {
+    if (stopRef.current) {
+      // Don't call onStop callback — just detach. The audioStore keeps playing.
+      stopRef.current = null;
+    }
+  }, []);
 
   return (
-    <div style={{ display: "flex", gap: 6, alignItems: "center", padding: "6px 14px 0" }}>
-      {previewUrl && (
-        <button onClick={togglePlay} title={playing ? "Pause preview" : "Play preview"}
-          style={{ ...iconBtnStyle, color: playing ? "#ff66aa" : "var(--muted)" }}>
-          {playing ? <IconPause size={14} strokeWidth={2.5} /> : <IconPlay size={14} strokeWidth={2.5} />}
-        </button>
+    <div
+      style={{ position: "relative", height: 130, overflow: "hidden", background: "var(--bg)", flexShrink: 0, cursor: "default" }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Cover image */}
+      {bgImg && (
+        <img src={bgImg} alt="" loading="lazy"
+          style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center",
+            opacity: hovered ? 0.45 : 0.65, display: "block" }}
+          onError={e => { (e.currentTarget.parentElement!.style.background = "var(--bg)"); e.currentTarget.style.display = "none"; }} />
       )}
-      <a href={webUrl} target="_blank" rel="noopener noreferrer"
-        onClick={e => e.stopPropagation()} title="Open on osu!"
-        style={{ ...iconBtnStyle, color: "var(--muted)", textDecoration: "none" }}>
-        <IconExternalLink size={14} strokeWidth={2.5} />
-      </a>
-      {dlUrl && (
-        <a href={dlUrl} onClick={e => e.stopPropagation()} title="Download .osz"
-          style={{ ...iconBtnStyle, color: "var(--muted)", textDecoration: "none" }}>
-          <IconDownload size={14} strokeWidth={2.5} />
-        </a>
+
+      {/* Bottom gradient for body bleed */}
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none",
+        background: "linear-gradient(to bottom, transparent 30%, var(--card) 100%)" }} />
+
+      {/* Status badge */}
+      {status && (
+        <span style={{ position: "absolute", top: 8, left: 8, fontSize: 9, fontWeight: 700,
+          padding: "2px 7px", borderRadius: 4, border: `1px solid ${statusCol}88`,
+          color: statusCol, background: "rgba(0,0,0,0.6)", fontFamily: "var(--font-m)",
+          letterSpacing: "0.06em", pointerEvents: "none" }}>
+          {status.toUpperCase()}
+        </span>
       )}
-      {showSave && (
-        <button onClick={e => { e.stopPropagation(); onSave?.(); }} title="Save to playlist"
-          style={{ ...iconBtnStyle, color: "var(--muted)" }}>
-          <IconBookmark size={14} strokeWidth={2.5} />
-        </button>
+
+      {/* Hover action bar */}
+      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center", gap: 8,
+        opacity: hovered ? 1 : 0 }}>
+
+        {/* Play / Pause */}
+        {previewUrl && (
+          <button onClick={togglePlay}
+            title={playing ? "Pause preview" : "Play preview"}
+            style={{ width: 44, height: 44, borderRadius: "50%",
+              background: playing ? "rgba(255,102,170,0.9)" : "rgba(0,0,0,0.65)",
+              border: `2px solid ${playing ? "#ff66aa" : "rgba(255,255,255,0.35)"}`,
+              color: "#fff", fontSize: 18, display: "flex", alignItems: "center",
+              justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+            {playing ? <IconPause size={18} strokeWidth={2.5} /> : <IconPlay size={18} strokeWidth={2.5} />}
+          </button>
+        )}
+
+        {/* Link + Download + Save row */}
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
+          <a href={webUrl} target="_blank" rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
+            title="Open beatmapset page on osu!"
+            style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+              background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
+              color: "#fff", textDecoration: "none",
+              display: "flex", alignItems: "center", gap: 4 }}>
+            <IconExternalLink size={12} strokeWidth={2.5} /> osu!
+          </a>
+          {dlUrl && (
+            <a href={dlUrl}
+              onClick={e => e.stopPropagation()}
+              title="Download .osz"
+              style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                background: "rgba(255,102,170,0.75)", border: "1px solid rgba(255,102,170,0.5)",
+                color: "#fff", textDecoration: "none",
+                display: "flex", alignItems: "center", gap: 4 }}>
+              <IconDownload size={12} strokeWidth={2.5} /> .osz
+            </a>
+          )}
+          {showSave && (
+            <button
+              onClick={e => { e.stopPropagation(); onSave?.(); }}
+              title="Save to playlist"
+              style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.25)",
+                color: "#fff", cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 4 }}>
+              <IconBookmark size={12} strokeWidth={2.5} /> Save
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Playing indicator — always visible when audio is on */}
+      {playing && (
+        <div style={{ position: "absolute", bottom: 8, right: 8, display: "flex", gap: 2, alignItems: "flex-end" }}>
+          {[1, 1.5, 0.8, 1.2, 1].map((h, i) => (
+            <div key={i} style={{ width: 3, borderRadius: 2, background: "#ff66aa",
+              animation: `eq-bar ${0.5 + i * 0.1}s ease-in-out infinite alternate`,
+              height: `${h * 10}px` }} />
+          ))}
+        </div>
       )}
     </div>
   );
@@ -219,17 +278,24 @@ export function BeatmapCard({ record, highlightTags, currentUser, onHide, onHide
 
   return (
     <>
-      <div onContextMenu={handleContextMenu} style={cardStyle}>
+      <div
+        onContextMenu={handleContextMenu}
+        onMouseEnter={e => {
+          e.currentTarget.style.borderColor = "rgba(255,102,170,0.45)";
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.borderColor = "rgba(180,130,220,0.18)";
+        }}
+        style={cardStyle}
+      >
         <CoverOverlay
           bgImg={bgImg}
-          status={record.status}
-          statusCol={statusCol}
-        />
-        <CardActions
           beatmapId={record.beatmap_id}
           beatmapsetId={record.beatmapset_id}
           title={record.title}
           artist={record.artist}
+          status={record.status}
+          statusCol={statusCol}
           showSave={!!currentUser}
           onSave={() => setShowPlaylist(true)}
         />
@@ -317,17 +383,6 @@ const cardStyle: React.CSSProperties = {
   flexDirection: "column",
   minWidth: 0,
   cursor: "default",
-};
-
-const iconBtnStyle: React.CSSProperties = {
-  background: "none",
-  border: "none",
-  padding: 4,
-  cursor: "pointer",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: 4,
 };
 
 const bodyStyle: React.CSSProperties = {
