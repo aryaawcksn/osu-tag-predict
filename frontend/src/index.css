@@ -358,3 +358,13 @@ input[type='range'].range-thumb {
   pointer-events: all;
   box-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
+
+/* Spectrum thumb — color driven by --thumb-color CSS var */
+.range-thumb--spectrum::-webkit-slider-thumb {
+  background: var(--thumb-color, var(--pink));
+  border-color: var(--card);
+}
+.range-thumb--spectrum::-moz-range-thumb {
+  background: var(--thumb-color, var(--pink));
+  border-color: var(--card);
+}
