@@ -340,7 +340,23 @@ export default function PlaylistPage({ username, initialPlaylistId, currentUser,
 
       {/* Profile header */}
       {owner && (
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
+        <div style={{ textAlign: "center", marginBottom: 32, position: "relative", overflow: "hidden", borderRadius: 16, padding: "32px 24px 24px" }}>
+          {/* Avatar background — no blur, fades to transparent at edges */}
+          {owner.avatar_url && (
+            <div style={{
+              position: "absolute", inset: 0, zIndex: 0,
+              backgroundImage: `url(${owner.avatar_url})`,
+              backgroundSize: "cover", backgroundPosition: "center",
+              opacity: 0.18,
+            }} />
+          )}
+          {/* Radial fade mask — hides edges */}
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 1,
+            background: "radial-gradient(ellipse at center, transparent 20%, var(--bg) 72%)",
+          }} />
+          {/* Content sits above background */}
+          <div style={{ position: "relative", zIndex: 2 }}>
           {owner.avatar_url ? (
             <img src={owner.avatar_url} alt={owner.username}
               style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover",
@@ -366,6 +382,7 @@ export default function PlaylistPage({ username, initialPlaylistId, currentUser,
           <p style={{ fontSize: 12, color: "var(--muted2)", marginTop: 8 }}>
             {playlists.length} playlist{playlists.length !== 1 ? "s" : ""}
           </p>
+          </div>
         </div>
       )}
 

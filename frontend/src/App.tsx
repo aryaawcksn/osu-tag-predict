@@ -218,7 +218,7 @@ export default function App() {
         {!user && (
           <div className="osu-card" style={{ marginTop: 32, textAlign: "center" }}>
             <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: 16 }}>
-              Log in with your osu! account to unlock map recommendations, playlists and more!.
+              Log in with your osu! account to access find beatmap by tags, create playlists and more!.
             </p>
             <a
               href={`${import.meta.env.VITE_API_URL ?? "http://localhost:8000"}/auth/login`}

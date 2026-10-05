@@ -43,10 +43,10 @@ export default function PublicPlaylists({ onOpenPlaylist, currentUser }: Props) 
     <section style={{ marginTop: 40 }}>
       <div style={{ marginBottom: 16 }}>
         <h2 style={{ fontFamily: "var(--font-d)", fontSize: 18, fontWeight: 800, color: "var(--text)", margin: 0 }}>
-          User Playlists
+          User Playlist
         </h2>
         <p style={{ fontSize: 12, color: "var(--muted2)", marginTop: 3 }}>
-          Public playlists curated by the community
+          Public playlists by the Users
         </p>
       </div>
 
