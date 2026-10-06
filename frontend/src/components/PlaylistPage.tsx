@@ -340,7 +340,7 @@ export default function PlaylistPage({ username, initialPlaylistId, currentUser,
 
       {/* Profile header */}
       {owner && (
-        <div style={{ textAlign: "center", marginBottom: 32, position: "relative", overflow: "hidden", borderRadius: 16, padding: "32px 24px 24px" }}>
+        <div style={{ textAlign: "center", marginBottom: 32, position: "relative", overflow: "hidden", borderRadius: 0, padding: "32px 24px 24px" }}>
           {/* Avatar background — no blur, fades to transparent at edges */}
           {owner.avatar_url && (
             <div style={{
@@ -353,7 +353,7 @@ export default function PlaylistPage({ username, initialPlaylistId, currentUser,
           {/* Radial fade mask — hides edges */}
           <div style={{
             position: "absolute", inset: 0, zIndex: 1,
-            background: "radial-gradient(ellipse at center, transparent 20%, var(--bg) 72%)",
+            background: "radial-gradient(ellipse at center, transparent 90%)",
           }} />
           {/* Content sits above background */}
           <div style={{ position: "relative", zIndex: 2 }}>

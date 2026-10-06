@@ -237,3 +237,17 @@ class PlaylistItem(Base):
     __table_args__ = (
         UniqueConstraint("playlist_id", "beatmap_id", name="uq_playlist_beatmap"),
     )
+
+
+class Visitor(Base):
+    """Tracks unique daily visitors by IP address."""
+    __tablename__ = "visitors"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ip_hash: Mapped[str] = mapped_column(String(64), nullable=False)  # hashed IP
+    visit_date: Mapped[str] = mapped_column(String(10), nullable=False)  # ISO date YYYY-MM-DD
+    first_seen: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("ip_hash", "visit_date", name="uq_visitor_ip_date"),
+    )

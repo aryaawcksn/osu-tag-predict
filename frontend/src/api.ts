@@ -142,9 +142,9 @@ export async function getHiddenBeatmaps(): Promise<{ hidden: BeatmapRecord[]; hi
   return handleResponse<{ hidden: BeatmapRecord[]; hidden_sets: string[] }>(res);
 }
 
-export async function getStats(): Promise<{ total_users: number; total_beatmaps: number }> {
+export async function getStats(): Promise<{ total_users: number; total_beatmaps: number; total_visitors: number }> {
   const res = await fetch(`${BASE_URL}/stats`);
-  return handleResponse<{ total_users: number; total_beatmaps: number }>(res);
+  return handleResponse<{ total_users: number; total_beatmaps: number; total_visitors: number }>(res);
 }
 
 // Get beatmaps by multiple tags

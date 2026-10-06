@@ -152,7 +152,7 @@ interface Props {
 }
 
 export default function InfoPage({ onBack }: Props) {
-  const [stats, setStats] = useState<{ total_users: number; total_beatmaps: number } | null>(null);
+  const [stats, setStats] = useState<{ total_users: number; total_beatmaps: number; total_visitors: number } | null>(null);
 
   useEffect(() => {
     getStats().then(setStats).catch(() => {});
@@ -180,6 +180,12 @@ export default function InfoPage({ onBack }: Props) {
               {stats.total_beatmaps.toLocaleString()}
             </div>
             <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>beatmaps processed</div>
+          </div>
+          <div style={statCardStyle}>
+            <div style={{ fontSize: 24, fontFamily: "var(--font-d)", fontWeight: 800, color: "#ff66aa" }}>
+              {stats.total_visitors.toLocaleString()}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>unique visitors</div>
           </div>
         </div>
       )}

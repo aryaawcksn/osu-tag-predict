@@ -171,9 +171,10 @@ def health():
 
 @app.get("/stats")
 async def get_stats():
-    """Public endpoint: total users and total beatmaps processed."""
+    """Public endpoint: total users, total beatmaps processed, and total unique visitors."""
+    import hashlib
     from sqlalchemy import func as sqlfunc
-    from models import User as UserModel, Beatmap as BeatmapModel
+    from models import User as UserModel, Beatmap as BeatmapModel, Visitor as VisitorModel
     async with AsyncSessionFactory() as db:
         total_users = (await db.execute(
             select(sqlfunc.count()).select_from(UserModel)
@@ -181,7 +182,38 @@ async def get_stats():
         total_beatmaps = (await db.execute(
             select(sqlfunc.count()).select_from(BeatmapModel)
         )).scalar_one()
-    return {"total_users": total_users, "total_beatmaps": total_beatmaps}
+        total_visitors = (await db.execute(
+            select(sqlfunc.count(sqlfunc.distinct(VisitorModel.ip_hash))).select_from(VisitorModel)
+        )).scalar_one()
+    return {"total_users": total_users, "total_beatmaps": total_beatmaps, "total_visitors": total_visitors}
+
+
+@app.middleware("http")
+async def track_visitor(request: Request, call_next):
+    """Record unique daily visitors by hashed IP (runs after response to avoid latency)."""
+    response = await call_next(request)
+    # Only track non-health, non-static paths and only GET requests to reduce noise
+    if request.method == "GET" and request.url.path in ("/stats", "/", "/health"):
+        import hashlib
+        from datetime import date
+        from sqlalchemy.dialects.postgresql import insert as pg_insert
+        from models import Visitor as VisitorModel
+
+        raw_ip = request.client.host if request.client else "unknown"
+        ip_hash = hashlib.sha256(raw_ip.encode()).hexdigest()
+        today = date.today().isoformat()
+
+        try:
+            async with AsyncSessionFactory() as db:
+                async with db.begin():
+                    stmt = pg_insert(VisitorModel).values(
+                        ip_hash=ip_hash, visit_date=today
+                    ).on_conflict_do_nothing()
+                    await db.execute(stmt)
+        except Exception:
+            pass  # never let tracking break the response
+
+    return response
 
 
 # --------------------------------------------------------------------------- #
