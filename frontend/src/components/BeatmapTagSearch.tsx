@@ -28,6 +28,7 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
   const [status, setStatus] = useState<string>("");
   const [yearFrom, setYearFrom] = useState<number | null>(null);
   const [yearTo, setYearTo] = useState<number | null>(null);
+  const [difficultyName, setDifficultyName] = useState("");
   const [results, setResults] = useState<BeatmapRecord[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -37,7 +38,7 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
   const [similarBeatmap, setSimilarBeatmap] = useState<BeatmapRecord | null>(null);
   const [activeSearch, setActiveSearch] = useState<{
     tags: string[]; minStars?: number; maxStars?: number;
-    yearFrom?: number; yearTo?: number;
+    yearFrom?: number; yearTo?: number; difficultyName?: string;
   } | null>(null);
 
   // Auto-detect state
@@ -94,12 +95,13 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
     const searchParams = {
       tags: Array.from(selected), minStars: minS, maxStars: maxS,
       yearFrom: yearFrom ?? undefined, yearTo: yearTo ?? undefined,
+      difficultyName: difficultyName.trim() || undefined,
     };
     setActiveSearch(searchParams);
     try {
       const res = await getBeatmapsByTags(
         searchParams.tags, minS, maxS, 0, status || undefined,
-        searchParams.yearFrom, searchParams.yearTo,
+        searchParams.yearFrom, searchParams.yearTo, searchParams.difficultyName,
       );
       setResults(res.beatmaps);
       setHasMore(res.has_more);
@@ -118,6 +120,7 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
       const res = await getBeatmapsByTags(
         activeSearch.tags, activeSearch.minStars, activeSearch.maxStars,
         offset, status || undefined, activeSearch.yearFrom, activeSearch.yearTo,
+        activeSearch.difficultyName,
       );
       setResults(prev => [...(prev ?? []), ...res.beatmaps]);
       setHasMore(res.has_more);
@@ -142,6 +145,7 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
     setStarMin(0.1);
     setStarMax(15.0);
     setDistribution(null);
+    setDifficultyName("");
   }
 
   // Top tags from distribution to show as suggestion chips (top 8, skip already selected)
@@ -349,6 +353,25 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
         </select>
         {(yearFrom != null || yearTo != null) && (
           <button onClick={() => { setYearFrom(null); setYearTo(null); }} style={clearSmallBtnStyle}>✕</button>
+        )}
+      </div>
+
+      {/* Difficulty name filter */}
+      <div style={{ ...filterRowStyle, marginTop: 10 }}>
+        <span style={{ fontSize: 12, color: "var(--muted)", flexShrink: 0 }}>Diff name</span>
+        <input
+          type="text"
+          placeholder="e.g. Insane, Sotark's Extra…"
+          value={difficultyName}
+          onChange={e => setDifficultyName(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && handleSearch()}
+          style={{
+            flex: 1, background: "transparent", border: "none", outline: "none",
+            color: "var(--text)", fontSize: 12, fontFamily: "var(--font-m)",
+          }}
+        />
+        {difficultyName && (
+          <button onClick={() => setDifficultyName("")} style={clearSmallBtnStyle}>✕</button>
         )}
       </div>
 

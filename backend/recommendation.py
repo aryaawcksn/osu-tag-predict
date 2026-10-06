@@ -279,6 +279,7 @@ async def get_beatmaps_by_tags(
     status: str | None = None,
     year_from: int | None = None,
     year_to: int | None = None,
+    version: str | None = None,
 ) -> List[dict]:
     """
     Return beatmaps that have ALL of the given tags, sorted by average probability
@@ -325,6 +326,8 @@ async def get_beatmaps_by_tags(
             stmt = stmt.where(Beatmap.ranked_date >= f"{year_from}-01-01")
         if year_to is not None:
             stmt = stmt.where(Beatmap.ranked_date <= f"{year_to}-12-31")
+        if version is not None and version.strip():
+            stmt = stmt.where(Beatmap.version.ilike(f"%{version.strip()}%"))
         stmt = stmt.order_by(avg_subq.c.avg_prob.desc()).limit(limit).offset(offset)
 
         rows = (await session.execute(stmt)).all()

@@ -181,12 +181,14 @@ export default function InfoPage({ onBack }: Props) {
             </div>
             <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>beatmaps processed</div>
           </div>
-          <div style={statCardStyle}>
-            <div style={{ fontSize: 24, fontFamily: "var(--font-d)", fontWeight: 800, color: "#ff66aa" }}>
-              {stats.total_visitors.toLocaleString()}
+          {stats.total_visitors != null && (
+            <div style={statCardStyle}>
+              <div style={{ fontSize: 24, fontFamily: "var(--font-d)", fontWeight: 800, color: "#ff66aa" }}>
+                {stats.total_visitors.toLocaleString()}
+              </div>
+              <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>unique visitors</div>
             </div>
-            <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>unique visitors</div>
-          </div>
+          )}
         </div>
       )}
 

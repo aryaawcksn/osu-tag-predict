@@ -712,6 +712,7 @@ async def beatmaps_by_tags(
     offset: int = Query(0, ge=0),
     year_from: Optional[int] = Query(None),
     year_to: Optional[int] = Query(None),
+    version: Optional[str] = Query(None),
     current_user: User = Depends(require_user),
 ):
     from recommendation import get_beatmaps_by_tags
@@ -720,7 +721,7 @@ async def beatmaps_by_tags(
         raise HTTPException(status_code=400, detail="At least one tag required")
     results = await get_beatmaps_by_tags(
         tag_list, offset=offset, min_stars=min_stars, max_stars=max_stars,
-        status=status, year_from=year_from, year_to=year_to,
+        status=status, year_from=year_from, year_to=year_to, version=version or None,
     )
     return {"beatmaps": results, "tags": tag_list, "offset": offset, "has_more": len(results) == 20}
 
