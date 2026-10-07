@@ -59,3 +59,80 @@ export const ALL_TAGS: string[] = [
   "tech/finger control",
   "tech/slider tech",
 ].sort();
+
+// F1 scores from model evaluation report (v16)
+// Used to sort tags and show reliability indicators in the UI
+export const TAG_F1_SCORES: Record<string, number> = {
+  "expression/chaotic":            0.07,
+  "expression/conceptual":         0.00,
+  "expression/difficulty spike":   0.08,
+  "expression/high contrast":      0.00,
+  "expression/iNiS-style":         0.39,
+  "expression/old-style revival":  0.24,
+  "expression/playfield usage":    0.00,
+  "expression/progression":        0.00,
+  "expression/repetition":         0.00,
+  "expression/simple":             0.49,
+  "gimmick/2B":                    0.00,
+  "gimmick/circle only":           0.70,
+  "gimmick/ninja spinners":        0.00,
+  "jumps/back and forth":          0.02,
+  "jumps/cross-screen":            0.34,
+  "jumps/freeform":                0.00,
+  "jumps/linear":                  0.19,
+  "jumps/sharp":                   0.34,
+  "jumps/squares":                 0.02,
+  "jumps/stamina":                 0.03,
+  "jumps/triangles":               0.00,
+  "jumps/wide":                    0.37,
+  "meta/accelerating bpm":         0.00,
+  "meta/swing":                    0.00,
+  "meta/time signatures":          0.00,
+  "meta/variable timing":          0.00,
+  "reading/overlaps":              0.09,
+  "reading/perfect stacks":        0.04,
+  "reading/visually dense":        0.21,
+  "skillset/alt":                  0.56,
+  "skillset/jumps":                0.77,
+  "skillset/precision":            0.63,
+  "skillset/reading":              0.21,
+  "skillset/streams":              0.68,
+  "skillset/tech":                 0.50,
+  "sliders/complex slidershapes":  0.39,
+  "sliders/complex sv":            0.29,
+  "sliders/high sv":               0.30,
+  "sliders/low sv":                0.00,
+  "streams/bursts":                0.67,
+  "streams/cutstreams":            0.26,
+  "streams/doubles":               0.00,
+  "streams/flow aim":              0.44,
+  "streams/spaced streams":        0.46,
+  "streams/speed":                 0.20,
+  "streams/stamina":               0.46,
+  "style/avant-garde":             0.00,
+  "style/clean":                   0.18,
+  "style/distance snap":           0.28,
+  "style/freeform":                0.00,
+  "style/geometric":               0.11,
+  "style/grid snap":               0.41,
+  "style/hexgrid":                 0.00,
+  "style/messy":                   0.05,
+  "style/symmetrical":             0.24,
+  "tech/aim control":              0.45,
+  "tech/finger control":           0.46,
+  "tech/slider tech":              0.55,
+};
+
+/** Tags sorted by F1 score descending, then alphabetically */
+export const SORTED_TAGS = [...ALL_TAGS].sort((a, b) => {
+  const diff = (TAG_F1_SCORES[b] ?? 0) - (TAG_F1_SCORES[a] ?? 0);
+  return diff !== 0 ? diff : a.localeCompare(b);
+});
+
+/** Returns a color based on F1 score tier */
+export function tagReliabilityColor(tag: string): string {
+  const f1 = TAG_F1_SCORES[tag] ?? 0;
+  if (f1 >= 0.5) return "#4ade80"; // green — reliable
+  if (f1 >= 0.2) return "#fbbf24"; // yellow — moderate
+  return "#f87171";                 // red — weak
+}

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { BeatmapRecord, CurrentUser, DominantPlaystyle } from "../types";
 import { getBeatmapsByTags, getPlaystyleAnalysis } from "../api";
 import { BeatmapCard } from "./BeatmapCard";
-import { ALL_TAGS } from "../constants";
+import { ALL_TAGS, SORTED_TAGS, TAG_F1_SCORES, tagReliabilityColor } from "../constants";
 import SimilarBeatmapPanel from "./SimilarBeatmapPanel";
 import RangeSlider from "./RangeSlider";
 
@@ -47,7 +47,7 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
   const [distribution, setDistribution] = useState<DominantPlaystyle["distribution"] | null>(null);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
 
-  const visibleTags = showAll ? ALL_TAGS : ALL_TAGS.slice(0, INITIAL_SHOW);
+  const visibleTags = showAll ? SORTED_TAGS : SORTED_TAGS.slice(0, INITIAL_SHOW);
 
   function toggleTag(tag: string) {
     setSelected(prev => {
@@ -276,6 +276,12 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
       <div style={tagGridStyle}>
         {visibleTags.map(tag => (
           <button key={tag} onClick={() => toggleTag(tag)} style={tagBtnStyle(selected.has(tag))}>
+            <span style={{
+              display: "inline-block", width: 6, height: 6, borderRadius: "50%",
+              background: tagReliabilityColor(tag), flexShrink: 0,
+              marginRight: 5, verticalAlign: "middle",
+              opacity: selected.has(tag) ? 1 : 0.7,
+            }} />
             {tag}
           </button>
         ))}
@@ -286,6 +292,16 @@ export default function BeatmapTagSearch({ currentUser }: Props) {
           {showAll ? "Show less ▲" : `Show ${ALL_TAGS.length - INITIAL_SHOW} more ▼`}
         </button>
       )}
+
+      {/* Reliability legend */}
+      <div style={{ display: "flex", gap: 14, marginTop: 8, flexWrap: "wrap" }}>
+        {([["#4ade80", "reliable (≥ 0.5)"], ["#fbbf24", "moderate (0.2–0.5)"], ["#f87171", "weak (< 0.2)"]] as const).map(([color, label]) => (
+          <span key={label} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "var(--muted2)", fontFamily: "var(--font-m)" }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: color, display: "inline-block" }} />
+            {label}
+          </span>
+        ))}
+      </div>
 
       {/* Selected chips */}
       {selected.size > 0 && (
